@@ -3,16 +3,30 @@ package de.sikeller.aqs.model;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+/** A position in the world, represented by x and y coordinates. */
 @Data
 @EqualsAndHashCode
 public class Position {
   private final int x;
   private final int y;
 
+  /**
+   * Calculate the Euclidean distance between this and another position.
+   *
+   * @param other the other position
+   * @return the Euclidean distance between the two positions
+   */
   public double distance(Position other) {
     return Math.sqrt(Math.pow((x - other.x), 2) + Math.pow((y - other.y), 2));
   }
 
+  /**
+   * Calculate a new position that is closer to the target position by a certain distance.
+   *
+   * @param target the target position
+   * @param moveDistance the distance to move towards the target
+   * @return the new position
+   */
   public Position moveTowards(Position target, double moveDistance) {
     int dx = target.getX() - x;
     int dy = target.getY() - y;

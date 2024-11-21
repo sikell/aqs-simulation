@@ -10,17 +10,17 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>aqs-runner</artifactId>
+    <artifactId>aqs-simulation-core</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>de.sikeller.aqs</groupId>
-            <artifactId>aqs-taxi-algorithm</artifactId>
+            <artifactId>aqs-model</artifactId>
         </dependency>
         <dependency>
             <groupId>de.sikeller.aqs</groupId>
-            <artifactId>aqs-visualization</artifactId>
+            <artifactId>aqs-taxi-algorithm</artifactId>
         </dependency>
     </dependencies>
 

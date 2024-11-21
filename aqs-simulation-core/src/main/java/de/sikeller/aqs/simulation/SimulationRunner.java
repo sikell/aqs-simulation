@@ -1,23 +1,26 @@
-package de.sikeller.aqs.runner;
+package de.sikeller.aqs.simulation;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithm;
-import de.sikeller.aqs.visualization.SimulationVisualization;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.LinkedList;
+import java.util.List;
+
 @Slf4j
 @RequiredArgsConstructor
-public class Runner {
+public class SimulationRunner implements SimulationControl {
   private final World world;
   private final TaxiAlgorithm algorithm;
-  private final SimulationVisualization visualization;
+  private final List<SimulationObserver> listeners = new LinkedList<>();
+  private volatile boolean running = false;
 
   public void init(int clientCount, int taxiCount) {
     initWorld(clientCount, taxiCount);
     algorithm.init(world);
-    visualization.update(world);
+    listeners.forEach(l -> l.onUpdate(world));
   }
 
   private void initWorld(int clientCount, int taxiCount) {
@@ -48,14 +51,16 @@ public class Runner {
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
   public void run(long sleep) {
-    Thread.sleep(1000); // setup delay
     while (!world.isFinished()) {
+      Thread.sleep(sleep);
+      if (!running) {
+        continue;
+      }
       var currentTime = world.getCurrentTime() + 1;
       var result = algorithm.nextStep(world);
       log.debug("Step {}: {}", currentTime, result);
       new WorldSimulator(world).move(currentTime);
-      visualization.update(world);
-      Thread.sleep(sleep);
+      listeners.forEach(l -> l.onUpdate(world));
     }
   }
 
@@ -71,5 +76,19 @@ public class Runner {
   private Position randomPosition() {
     return new Position(
         world.getRandom().nextInt(world.getMaxX()), world.getRandom().nextInt(world.getMaxY()));
+  }
+
+  public void registerObserver(SimulationObserver observer) {
+    listeners.add(observer);
+  }
+
+  @Override
+  public void start() {
+    this.running = true;
+  }
+
+  @Override
+  public void stop() {
+    this.running = false;
   }
 }

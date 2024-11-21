@@ -1,5 +1,7 @@
 package de.sikeller.aqs.visualization;
 
+import de.sikeller.aqs.model.ResultTable;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;

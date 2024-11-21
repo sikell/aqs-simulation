@@ -11,9 +11,10 @@
 
     <modules>
         <module>aqs-model</module>
-        <module>aqs-runner</module>
+        <module>aqs-simulation-app</module>
         <module>aqs-taxi-algorithm</module>
         <module>aqs-visualization</module>
+        <module>aqs-simulation-core</module>
     </modules>
 
     <properties>
@@ -35,6 +36,11 @@
             <dependency>
                 <groupId>de.sikeller.aqs</groupId>
                 <artifactId>aqs-taxi-algorithm</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.sikeller.aqs</groupId>
+                <artifactId>aqs-simulation-core</artifactId>
                 <version>${revision}</version>
             </dependency>
             <dependency>

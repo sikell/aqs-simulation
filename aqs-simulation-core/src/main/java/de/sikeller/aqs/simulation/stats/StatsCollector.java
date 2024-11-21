@@ -1,11 +1,11 @@
-package de.sikeller.aqs.runner.stats;
+package de.sikeller.aqs.simulation.stats;
 
+import de.sikeller.aqs.model.ResultTable;
 import de.sikeller.aqs.model.Taxi;
 import de.sikeller.aqs.model.World;
 import de.sikeller.aqs.model.events.EventClientFinished;
 import de.sikeller.aqs.model.events.EventList;
-import de.sikeller.aqs.runner.stats.CollectorMinMaxAverage.Result;
-import de.sikeller.aqs.visualization.ResultTable;
+import de.sikeller.aqs.simulation.stats.CollectorMinMaxAverage.Result;
 import lombok.extern.slf4j.Slf4j;
 
 import static java.lang.String.format;
