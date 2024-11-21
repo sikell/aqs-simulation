@@ -2,7 +2,7 @@ package de.sikeller.aqs.runner;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithm;
-import de.sikeller.aqs.visualization.VisualizationRunner;
+import de.sikeller.aqs.visualization.SimulationVisualization;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -12,9 +12,15 @@ import lombok.extern.slf4j.Slf4j;
 public class Runner {
   private final World world;
   private final TaxiAlgorithm algorithm;
-  private final VisualizationRunner visu;
+  private final SimulationVisualization visualization;
 
   public void init(int clientCount, int taxiCount) {
+    initWorld(clientCount, taxiCount);
+    algorithm.init(world);
+    visualization.update(world);
+  }
+
+  private void initWorld(int clientCount, int taxiCount) {
     for (int i = 0; i < clientCount; i++) {
       world
           .getClients()
@@ -37,17 +43,18 @@ public class Runner {
                   .currentSpeed(1)
                   .build());
     }
-    visu.update(world);
   }
 
   @SneakyThrows
+  @SuppressWarnings(value = "BusyWait")
   public void run(long sleep) {
+    Thread.sleep(1000); // setup delay
     while (!world.isFinished()) {
       var currentTime = world.getCurrentTime() + 1;
       var result = algorithm.nextStep(world);
       log.debug("Step {}: {}", currentTime, result);
       new WorldSimulator(world).move(currentTime);
-      visu.update(world);
+      visualization.update(world);
       Thread.sleep(sleep);
     }
   }

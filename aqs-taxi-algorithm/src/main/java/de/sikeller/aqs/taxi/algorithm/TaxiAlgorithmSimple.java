@@ -1,10 +1,13 @@
 package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.EntityUtils;
+import de.sikeller.aqs.model.TargetList;
 import de.sikeller.aqs.model.Taxi;
 import de.sikeller.aqs.model.World;
 import de.sikeller.aqs.taxi.algorithm.model.AlgorithmResult;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.List;
 
 import static de.sikeller.aqs.model.ClientMode.MOVING;
 
@@ -25,9 +28,13 @@ public class TaxiAlgorithmSimple extends AbstractTaxiAlgorithm implements TaxiAl
     nextClient.setMode(MOVING);
     Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
     nearestTaxi.getPlannedPassengers().add(nextClient);
-    nearestTaxi.getTargets().add(nextClient.getPosition());
-    nearestTaxi.getTargets().add(nextClient.getTarget());
-    log.info("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
+
+    nearestTaxi
+        .getTargets()
+        .addOrder(
+            List.of(nextClient.getPosition(), nextClient.getTarget()),
+            TargetList.defaultFlattenOrder);
+    log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
 
     return ok();
   }

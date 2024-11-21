@@ -27,6 +27,9 @@ public class TaxiScenarioCanvas extends JPanel {
         () -> {
           Graphics2D g2d = bufferedImage.createGraphics();
           g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+          g2d.setRenderingHint(
+              RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
           g2d.setColor(Color.WHITE);
           g2d.fillRect(0, 0, canvasWidth, canvasHeight);
 
@@ -39,8 +42,8 @@ public class TaxiScenarioCanvas extends JPanel {
           clients.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
           taxis.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
 
-          taxis.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
           clients.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
+          taxis.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
 
           g2d.dispose();
 

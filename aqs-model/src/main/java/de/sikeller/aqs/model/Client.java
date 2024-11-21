@@ -1,5 +1,7 @@
 package de.sikeller.aqs.model;
 
+import de.sikeller.aqs.model.events.EventClientFinished;
+import de.sikeller.aqs.model.events.EventDispatcher;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -39,6 +41,7 @@ public class Client implements Entity {
     this.position = position;
     this.lastUpdate = currentTime;
     if (this.position.equals(target)) {
+      EventDispatcher.dispatch(new EventClientFinished(currentTime, this));
       mode = ClientMode.FINISHED;
     }
   }

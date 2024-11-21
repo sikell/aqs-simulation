@@ -1,13 +1,14 @@
 package de.sikeller.aqs.model;
 
+import de.sikeller.aqs.model.events.EventClientEntersTaxi;
+import de.sikeller.aqs.model.events.EventClientLeaveTaxi;
+import de.sikeller.aqs.model.events.EventDispatcher;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -19,18 +20,19 @@ public class Taxi implements Entity {
   private final String name;
   private final int capacity;
   private Position position;
-  @Builder.Default private final List<Position> targets = new LinkedList<>();
+  @Builder.Default private final TargetList targets = TargetList.builder().build();
   @Builder.Default private final Set<Client> containedPassengers = new HashSet<>();
   @Builder.Default private final Set<Client> plannedPassengers = new HashSet<>();
   @Builder.Default private long lastUpdate = 0;
   @Builder.Default private double currentSpeed = 1;
+  @Builder.Default private double travelDistance = 0;
 
   public Taxi snapshot() {
     return Taxi.builder()
         .name(name)
         .capacity(capacity)
         .position(position)
-        .targets(new LinkedList<>(targets))
+        .targets(targets.snapshot())
         .containedPassengers(
             containedPassengers.stream().map(Client::snapshot).collect(Collectors.toSet()))
         .plannedPassengers(
@@ -41,36 +43,39 @@ public class Taxi implements Entity {
   @Override
   public void updatePosition(Position position, long currentTime) {
     log.trace("Taxi {} update position: {}", name, position);
+    this.travelDistance += this.position.distance(position);
     this.position = position;
     this.lastUpdate = currentTime;
     checkTargetReached(position);
-    checkClientEntering(position);
+    checkClientEntering(position, currentTime);
     checkClientLeaving(position, currentTime);
   }
 
   private void checkTargetReached(Position position) {
     if (!targets.isEmpty() && position.equals(getTarget())) {
-      var target = targets.removeFirst();
-      log.info("Taxi {} reached a target: {}", name, target);
+      var target = targets.getAnRemoveFirst();
+      log.debug("Taxi {} reached a target: {}", name, target);
     }
   }
 
   private void checkClientLeaving(Position position, long currentTime) {
     containedPassengers.forEach(p -> p.updatePosition(position, currentTime));
-    for (Client contained : new HashSet<>(containedPassengers)) {
-      if (contained.isFinished()) {
-        containedPassengers.remove(contained);
-        log.info("Taxi {} passenger {} left", name, contained.getName());
+    for (Client client : new HashSet<>(containedPassengers)) {
+      if (client.isFinished()) {
+        containedPassengers.remove(client);
+        EventDispatcher.dispatch(new EventClientLeaveTaxi(currentTime, client, this));
+        log.debug("Taxi {} passenger {} left", name, client.getName());
       }
     }
   }
 
-  private void checkClientEntering(Position position) {
-    for (Client planned : new HashSet<>(plannedPassengers)) {
-      if (planned.getPosition().equals(position)) {
-        plannedPassengers.remove(planned);
-        containedPassengers.add(planned);
-        log.info("Taxi {} passenger {} enters", name, planned.getName());
+  private void checkClientEntering(Position position, long currentTime) {
+    for (Client client : new HashSet<>(plannedPassengers)) {
+      if (client.getPosition().equals(position)) {
+        plannedPassengers.remove(client);
+        containedPassengers.add(client);
+        EventDispatcher.dispatch(new EventClientEntersTaxi(currentTime, client, this));
+        log.debug("Taxi {} passenger {} enters", name, client.getName());
       }
     }
   }

@@ -10,7 +10,7 @@ public class Position {
   private final int y;
 
   public double distance(Position other) {
-    return Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+    return Math.sqrt(Math.pow((x - other.x), 2) + Math.pow((y - other.y), 2));
   }
 
   public Position moveTowards(Position target, double moveDistance) {
