@@ -5,6 +5,10 @@
     <file url="file://$PROJECT_DIR$/aqs-model/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/aqs-runner/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/aqs-runner/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/aqs-taxi-algorithm/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/aqs-taxi-algorithm/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/aqs-visualization/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/aqs-visualization/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
   </component>

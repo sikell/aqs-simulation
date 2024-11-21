@@ -12,6 +12,8 @@
     <modules>
         <module>aqs-model</module>
         <module>aqs-runner</module>
+        <module>aqs-taxi-algorithm</module>
+        <module>aqs-visualization</module>
     </modules>
 
     <properties>
@@ -30,6 +32,16 @@
                 <artifactId>aqs-model</artifactId>
                 <version>${revision}</version>
             </dependency>
+            <dependency>
+                <groupId>de.sikeller.aqs</groupId>
+                <artifactId>aqs-taxi-algorithm</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.sikeller.aqs</groupId>
+                <artifactId>aqs-visualization</artifactId>
+                <version>${revision}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -38,6 +50,17 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.34</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.16</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>2.0.13</version>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
