@@ -20,33 +20,33 @@ public class EntityUtils {
   /**
    * Finds the nearest neighbor of a given entity from a collection of other entities.
    *
-   * @param entity the entity for which to find the nearest neighbor
+   * @param position the position to which to find the nearest neighbor
    * @param others the collection of other entities to consider
    * @param <T> the type of the entities in the collection, which must extend Entity
    * @return a Tuple containing the nearest entity and the distance to it, or null if the collection
    *     is empty
    */
   public static <T extends Entity> Tuple<T, Double> findNearestNeighbor(
-      Entity entity, Collection<T> others) {
+      Position position, Collection<T> others) {
     return others.stream()
-        .map(e -> new Tuple<>(e, currentDistance(e, entity)))
+        .map(e -> new Tuple<>(e, e.getPosition().distance(position)))
         .min(Comparator.comparingDouble(Tuple::v2))
         .orElse(null);
   }
 
   /**
-   * Sorts a collection of Positions by their distance to a given position and returns a list of
-   * tuples, where each tuple contains the position and its distance to the given position.
+   * Sorts a collection of {@link Entity}s by their distance to a given position and returns a list
+   * of tuples, where each tuple contains the position and its distance to the given position.
    *
    * @param position the position to which to calculate the distances
-   * @param others the collection of positions to sort
+   * @param others the collection of {@link Entity}s to sort
    * @param <T> the type of the positions in the collection, which must extend Position
    * @return a list of tuples, sorted by the distance to the given position
    */
-  public static <T extends Position> List<Tuple<T, Double>> sortByNearest(
+  public static <T extends Entity> List<Tuple<T, Double>> sortByNearest(
       Position position, Collection<T> others) {
     return others.stream()
-        .map(e -> new Tuple<>(e, e.distance(position)))
+        .map(e -> new Tuple<>(e, e.getPosition().distance(position)))
         .sorted(Comparator.comparingDouble(Tuple::v2))
         .toList();
   }

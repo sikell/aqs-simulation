@@ -4,15 +4,15 @@ import de.sikeller.aqs.model.World;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import de.sikeller.aqs.simulation.SimulationRunner;
 import de.sikeller.aqs.simulation.stats.StatsCollector;
-import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmSimple;
+import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmFillAllSeats;
 import de.sikeller.aqs.visualization.ResultVisualization;
 import de.sikeller.aqs.visualization.SimulationVisualization;
 
 public class Main {
   public static void main(String[] args) {
     var world = World.builder().maxX(800).maxY(800).build();
-    var algorithm = new TaxiAlgorithmSimple();
     var statsCollector = new StatsCollector();
+    var algorithm = new TaxiAlgorithmFillAllSeats();
     var eventDispatcher = EventDispatcher.instance();
 
     var runner = new SimulationRunner(world, algorithm);

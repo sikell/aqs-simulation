@@ -1,12 +1,11 @@
 package de.sikeller.aqs.model;
 
-import lombok.Builder;
-
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import lombok.Builder;
 
 @Builder
 public class Order {
@@ -30,5 +29,13 @@ public class Order {
 
   public Stream<Position> stream() {
     return path.stream();
+  }
+
+  public int size() {
+    return path.size();
+  }
+
+  public Position get(int i) {
+    return path.get(i);
   }
 }

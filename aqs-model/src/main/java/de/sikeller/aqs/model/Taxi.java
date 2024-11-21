@@ -108,7 +108,15 @@ public class Taxi implements Entity {
     return !targets.isEmpty() && !position.equals(getTarget());
   }
 
+  public int getCurrentCapacity() {
+    return capacity - (containedPassengers.size() + plannedPassengers.size());
+  }
+
   public boolean hasCapacity() {
     return containedPassengers.size() + plannedPassengers.size() < capacity;
+  }
+
+  public boolean isEmpty() {
+    return containedPassengers.isEmpty() && plannedPassengers.isEmpty();
   }
 }
