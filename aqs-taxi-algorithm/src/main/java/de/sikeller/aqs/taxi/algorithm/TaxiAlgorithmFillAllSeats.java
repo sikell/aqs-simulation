@@ -4,12 +4,17 @@ import static de.sikeller.aqs.model.ClientMode.MOVING;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.taxi.algorithm.model.AlgorithmResult;
-import java.util.LinkedList;
-import java.util.List;
+
+import java.util.*;
+
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
 
 @Slf4j
 public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
+
+
   @Override
   public AlgorithmResult nextStep(World world) {
     var waitingClients = getWaitingClients(world);

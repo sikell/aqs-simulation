@@ -22,7 +22,7 @@ public class SimulationVisualization extends AbstractVisualization implements Si
     frame.setLayout(new GridLayout(1, 2));
     frame.add(control);
     frame.add(canvas);
-
+    frame.setVisible(true);
     frame.pack();
   }
 

@@ -9,6 +9,8 @@ import de.sikeller.aqs.visualization.ResultVisualization;
 import de.sikeller.aqs.visualization.SimulationVisualization;
 
 public class Main {
+
+
   public static void main(String[] args) {
     var world = World.builder().maxX(800).maxY(800).build();
     var statsCollector = new StatsCollector();
@@ -20,7 +22,6 @@ public class Main {
 
     runner.registerObserver(visualisation);
 
-    runner.init(20, 5);
     runner.print();
     runner.run(10);
     runner.print();
@@ -32,4 +33,5 @@ public class Main {
     var resultVisualization = new ResultVisualization();
     resultVisualization.showResults(statsCollector.tableResults());
   }
+
 }

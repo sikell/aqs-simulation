@@ -6,8 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -17,35 +16,35 @@ public class SimulationRunner implements SimulationControl {
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
 
-  public void init(int clientCount, int taxiCount) {
-    initWorld(clientCount, taxiCount);
-    algorithm.init(world);
-    listeners.forEach(l -> l.onUpdate(world));
-  }
-
-  private void initWorld(int clientCount, int taxiCount) {
-    for (int i = 0; i < clientCount; i++) {
-      world
-          .getClients()
-          .add(
-              Client.builder()
-                  .name("c" + i)
-                  .position(randomPosition())
-                  .target(randomPosition())
-                  .build());
-    }
-    for (int i = 0; i < taxiCount; i++) {
-      Position taxiPosition = randomPosition();
-      world
-          .getTaxis()
-          .add(
-              Taxi.builder()
-                  .name("t" + i)
-                  .capacity(2)
-                  .position(taxiPosition)
-                  .currentSpeed(1)
-                  .build());
-    }
+  private void initWorld(Map<String, Integer> parameters) {
+    parameters.forEach(
+        (parameter, value) -> {
+          if (parameter.contains("client")) {
+            for (int i = 0; i < value; i++) {
+              world
+                  .getClients()
+                  .add(
+                      Client.builder()
+                          .name("c" + i)
+                          .position(randomPosition())
+                          .target(randomPosition())
+                          .build());
+            }
+          } else if(parameter.contains("taxi")){
+            for (int i = 0; i < value; i++) {
+              Position taxiPosition = randomPosition();
+              world
+                      .getTaxis()
+                      .add(
+                              Taxi.builder()
+                                      .name("t" + i)
+                                      .capacity(2)
+                                      .position(taxiPosition)
+                                      .currentSpeed(1)
+                                      .build());
+            }
+          }
+        });
   }
 
   @SneakyThrows
@@ -90,5 +89,17 @@ public class SimulationRunner implements SimulationControl {
   @Override
   public void stop() {
     this.running = false;
+  }
+
+  @Override
+  public void init(Map<String, Integer> parameters) {
+    initWorld(parameters);
+    algorithm.init(world);
+    listeners.forEach(l -> l.onUpdate(world));
+  }
+
+  @Override
+  public Set<String> getSimulationParameters() {
+    return algorithm.parameters;
   }
 }

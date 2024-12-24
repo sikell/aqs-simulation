@@ -4,11 +4,18 @@ import static de.sikeller.aqs.model.ClientMode.MOVING;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.taxi.algorithm.model.AlgorithmResult;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 
 @Slf4j
 public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
-  @Override
+
+    @Override
   public AlgorithmResult nextStep(World world) {
     var waitingClients = getWaitingClients(world);
     if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");
@@ -34,4 +41,6 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
 
     return ok();
   }
+
+
 }
