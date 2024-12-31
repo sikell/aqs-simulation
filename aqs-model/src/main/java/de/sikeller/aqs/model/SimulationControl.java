@@ -11,6 +11,6 @@ public interface SimulationControl {
 
   void init(Map<String, Integer> parameters);
 
-  Set<String> getSimulationParameters();
+  SimulationConfiguration getSimulationParameters();
 
 }

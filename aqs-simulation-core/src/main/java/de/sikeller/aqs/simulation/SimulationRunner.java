@@ -1,18 +1,26 @@
 package de.sikeller.aqs.simulation;
 
 import de.sikeller.aqs.model.*;
+import de.sikeller.aqs.model.events.EventDispatcher;
+import de.sikeller.aqs.simulation.stats.StatsCollector;
 import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithm;
+import de.sikeller.aqs.visualization.ResultVisualization;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RequiredArgsConstructor
 public class SimulationRunner implements SimulationControl {
   private final World world;
   private final TaxiAlgorithm algorithm;
+
+  private StatsCollector statsCollector = new StatsCollector();
+  private EventDispatcher eventDispatcher = EventDispatcher.instance();
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
 
@@ -30,18 +38,18 @@ public class SimulationRunner implements SimulationControl {
                           .target(randomPosition())
                           .build());
             }
-          } else if(parameter.contains("taxi")){
+          } else if (parameter.contains("taxi")) {
             for (int i = 0; i < value; i++) {
               Position taxiPosition = randomPosition();
               world
-                      .getTaxis()
-                      .add(
-                              Taxi.builder()
-                                      .name("t" + i)
-                                      .capacity(2)
-                                      .position(taxiPosition)
-                                      .currentSpeed(1)
-                                      .build());
+                  .getTaxis()
+                  .add(
+                      Taxi.builder()
+                          .name("t" + i)
+                          .capacity(2)
+                          .position(taxiPosition)
+                          .currentSpeed(1)
+                          .build());
             }
           }
         });
@@ -50,17 +58,27 @@ public class SimulationRunner implements SimulationControl {
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
   public void run(long sleep) {
-    while (!world.isFinished()) {
+    do {
       Thread.sleep(sleep);
-      if (!running) {
-        continue;
+      while (!world.isFinished()) {
+        Thread.sleep(sleep);
+        if (!running) {
+          continue;
+        }
+        var currentTime = world.getCurrentTime() + 1;
+        var result = algorithm.nextStep(world);
+        log.debug("Step {}: {}", currentTime, result);
+        new WorldSimulator(world).move(currentTime);
+        listeners.forEach(l -> l.onUpdate(world));
       }
-      var currentTime = world.getCurrentTime() + 1;
-      var result = algorithm.nextStep(world);
-      log.debug("Step {}: {}", currentTime, result);
-      new WorldSimulator(world).move(currentTime);
-      listeners.forEach(l -> l.onUpdate(world));
-    }
+
+    } while (world.getClients().isEmpty());
+
+    eventDispatcher.print();
+    statsCollector.collect(eventDispatcher, world);
+    statsCollector.print();
+    var resultVisualization = new ResultVisualization();
+    resultVisualization.showResults(statsCollector.tableResults());
   }
 
   public void print() {
@@ -93,13 +111,15 @@ public class SimulationRunner implements SimulationControl {
 
   @Override
   public void init(Map<String, Integer> parameters) {
+
     initWorld(parameters);
     algorithm.init(world);
     listeners.forEach(l -> l.onUpdate(world));
+    print();
   }
 
   @Override
-  public Set<String> getSimulationParameters() {
-    return algorithm.parameters;
+  public SimulationConfiguration getSimulationParameters() {
+    return algorithm.getParameters();
   }
 }
