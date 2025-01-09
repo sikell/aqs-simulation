@@ -12,10 +12,16 @@ import lombok.extern.slf4j.Slf4j;
 
 
 @Slf4j
+@Getter
 public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
 
-  @Override
+    @Override
+    public SimulationConfiguration getParameters() {
+        return new SimulationConfiguration("clientCount", "taxiCount");
+    }
+
+    @Override
   public AlgorithmResult nextStep(World world) {
     var waitingClients = getWaitingClients(world);
     if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");

@@ -15,7 +15,12 @@ import java.util.Set;
 @Slf4j
 public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
-    @Override
+  @Override
+  public SimulationConfiguration getParameters() {
+    return new SimulationConfiguration("taxiCount", "clientCount");
+  }
+
+  @Override
   public AlgorithmResult nextStep(World world) {
     var waitingClients = getWaitingClients(world);
     if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");
