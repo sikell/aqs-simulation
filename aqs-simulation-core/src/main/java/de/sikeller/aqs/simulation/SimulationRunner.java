@@ -19,7 +19,7 @@ import java.util.*;
 public class SimulationRunner implements SimulationControl {
   private final World world;
   private final Algorithm algorithm;
-
+  private final ResultVisualization resultVisualization = new ResultVisualization();
   private final StatsCollector statsCollector = new StatsCollector();
   private final EventDispatcher eventDispatcher = EventDispatcher.instance();
   private final List<SimulationObserver> listeners = new LinkedList<>();
@@ -81,7 +81,7 @@ public class SimulationRunner implements SimulationControl {
     eventDispatcher.print();
     statsCollector.collect(eventDispatcher, world);
     statsCollector.print();
-    var resultVisualization = new ResultVisualization();
+
     resultVisualization.showResults(statsCollector.tableResults());
   }
 
@@ -135,5 +135,9 @@ public class SimulationRunner implements SimulationControl {
   @Override
   public void setSimulationFinished(Boolean flag) {
     this.simulationFinished = flag;
+  }
+
+  public ResultVisualization getResultVisualization() {
+    return this.resultVisualization;
   }
 }
