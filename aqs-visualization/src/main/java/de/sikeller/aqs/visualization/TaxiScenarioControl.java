@@ -1,24 +1,22 @@
 package de.sikeller.aqs.visualization;
 
 import de.sikeller.aqs.model.SimulationControl;
-import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmFillAllSeats;
-import org.reflections.Reflections;
-import org.reflections.scanners.SubTypesScanner;
-import org.reflections.util.FilterBuilder;
+import de.sikeller.aqs.model.TaxiAlgorithm;
 
 import java.awt.*;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
 
 public class TaxiScenarioControl extends JPanel {
-
-    private List<Class<?>> algorithmList;
+  private List<Class<?>> algorithmList;
   private final SimulationControl simulation;
   private Map<String, Integer> inputParameters;
   private HashMap<String, Component> componentMap;
   private JPanel buttons;
-  private JPanel inputs;
+  private JPanel worldInputs;
+  private JPanel algorithmInputs;
   private JPanel controls;
   private JPanel selection;
 
@@ -30,7 +28,8 @@ public class TaxiScenarioControl extends JPanel {
   private JPanel setup() {
     controls = new JPanel();
     buttons = new JPanel();
-    inputs = new JPanel();
+    worldInputs = new JPanel();
+    algorithmInputs = new JPanel();
     selection = new JPanel();
     buttons.setName("buttons");
     buttons.setName("inputs");
@@ -40,82 +39,71 @@ public class TaxiScenarioControl extends JPanel {
     selection.add(algorithmSelectionLabel());
     selection.add(algorithmSelectionBox());
     selection.add(algorithmSelectionButton());
+    worldInputs.add(taxiCountLabel());
+    worldInputs.add(taxiCountTextField());
+    worldInputs.add(clientCountLabel());
+    worldInputs.add(clientCountTextField());
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
-    inputs.setLayout(new GridLayout(5, 2));
-      controls.add(selection);
-      controls.add(buttons);
-      controls.add(inputs);
+    worldInputs.setLayout(new GridLayout(5, 2));
+    controls.add(selection);
+    controls.add(buttons);
+    controls.add(worldInputs);
+    controls.add(algorithmInputs);
     createComponentMap();
     return controls;
   }
 
   private JComboBox<String> algorithmSelectionBox() {
-      Reflections reflections =
-              new Reflections(
-                      "de.sikeller.aqs.taxi.algorithm", new SubTypesScanner(false));
-      Set<Class <?>> allClasses = reflections.getSubTypesOf(Object.class);
-      algorithmList = new ArrayList<>();
-      allClasses.forEach(
-              aClass -> {
-                  if (aClass.getName().contains("model")) {
-                      return;
-                  }
-                  int mod = aClass.getModifiers();
-                  if (mod == 1) {
-                      algorithmList.add(aClass);
-                  }
+    algorithmList = simulation.getAlgorithm().getAllAlgorithms();
+    List<String> choices = new ArrayList<>();
+    algorithmList.forEach(entry -> choices.add(entry.getSimpleName()));
+    JComboBox<String> algorithms = new JComboBox<>();
+    algorithms.setName("algorithmSelectionBox");
+    choices.forEach(algorithms::addItem);
+    return algorithms;
+  }
 
-              });
-      List<String> choices = new ArrayList<>();
-      algorithmList.forEach(entry -> choices.add(entry.getSimpleName()));
-      JComboBox<String> algorithms = new JComboBox<>();
-      algorithms.setName("algorithmSelectionBox");
-      choices.forEach(algorithms::addItem);
-      return algorithms;
-    }
+  private JLabel algorithmSelectionLabel() {
+    return new JLabel("Selected Algorithm");
+  }
 
-    private JLabel algorithmSelectionLabel() {
-      return new JLabel("Selected Algorithm");
-    }
-    private JButton algorithmSelectionButton() {
-      JButton button = new JButton("Select");
-      button.setName("algorithmSelectionButton");
+  private JButton algorithmSelectionButton() {
+    JButton button = new JButton("Select");
+    button.setName("algorithmSelectionButton");
     button.addActionListener(
         e -> {
           JComboBox<String> selection =
               (JComboBox<String>) getComponentByName("algorithmSelectionBox");
           String selectedItem;
+
+          System.out.println(selection);
           if (selection != null) {
             selectedItem = Objects.requireNonNull(selection.getSelectedItem()).toString();
-          } else {
-              selectedItem = "empty";
-          }
+            String selectedAlgorithm = "";
 
-          Set<String> parameters = simulation.getSimulationParameters().getParameters();
-          inputs.removeAll();
-          inputParameters = new HashMap<>();
-          parameters.forEach(
-              parameter -> {
-                JLabel label = new JLabel(parameter);
-                label.setName(parameter + "Label");
-                inputs.add(label);
-                JTextField textField = new JTextField();
-                label.setLabelFor(textField);
-                textField.setColumns(4);
-                textField.setName(parameter);
-                inputs.add(textField);
-                inputParameters.put(parameter, 0);
-              });
-          SwingUtilities.updateComponentTreeUI(inputs);
+            for (Class<?> object : algorithmList) {
+              if (object.getSimpleName().matches(selectedItem)) {
+                selectedAlgorithm = object.getName();
+              }
+            }
+
+            simulation.getAlgorithm().setAlgorithm(instantiateAlgorithm(selectedAlgorithm));
+          }
+          generateParameters();
         });
-      return button;
-    }
+    generateParameters();
+    return button;
+  }
 
   private JButton startButton() {
     JButton button = new JButton("Start");
     button.setName("startButton");
     button.setEnabled(false);
-    button.addActionListener(e -> simulation.start());
+    button.addActionListener(e -> {
+      simulation.start();
+      button.setEnabled(false);
+      Objects.requireNonNull(getComponentByName("initializeSimulationButton")).setEnabled(true);
+    });
     return button;
   }
 
@@ -124,6 +112,34 @@ public class TaxiScenarioControl extends JPanel {
     button.setName("stopButton");
     button.addActionListener(e -> simulation.stop());
     return button;
+  }
+
+  private JLabel taxiCountLabel() {
+    JLabel label = new JLabel("TaxiCount:");
+    label.setName("taxiCountLabel");
+    return label;
+  }
+
+  private JTextField taxiCountTextField() {
+    JTextField textField = new JTextField();
+    textField.setName("taxiCount");
+    textField.setColumns(4);
+    textField.setToolTipText("Set the Count of Taxis for the Simulation");
+    return textField;
+  }
+
+  private JLabel clientCountLabel() {
+    JLabel label = new JLabel("ClientCount:");
+    label.setName("clientCountLabel");
+    return label;
+  }
+
+  private JTextField clientCountTextField() {
+    JTextField textField = new JTextField();
+    textField.setName("clientCount");
+    textField.setColumns(4);
+    textField.setToolTipText("Set the Count of Clients for the Simulation");
+    return textField;
   }
 
   private JButton initializeSimulationButton() {
@@ -137,27 +153,26 @@ public class TaxiScenarioControl extends JPanel {
             startButton.setEnabled(true);
             button.setEnabled(false);
           }
-          List<Integer> input = new ArrayList<>();
-          for (Component component : inputs.getComponents()) {
+          Map<String, Integer> input = new HashMap<>();
+          for (Component component : worldInputs.getComponents()) {
             if (component instanceof JTextField textField) {
               System.out.println(textField.getName());
               System.out.println(textField.getText());
-              input.add(Integer.parseInt(textField.getText()));
+              input.put(textField.getName(), Integer.parseInt(textField.getText()));
             }
           }
 
-          Iterator<String> parameterIterator = inputParameters.keySet().iterator();
-
-          for (Integer value : input) {
-            if (parameterIterator.hasNext()) {
-              String mapKey = parameterIterator.next();
-              inputParameters.put(mapKey, value);
+          for (Component component : algorithmInputs.getComponents()) {
+            if (component instanceof JTextField textField) {
+              System.out.println(textField.getName());
+              System.out.println(textField.getText());
+              input.put(textField.getName(), Integer.parseInt(textField.getText()));
             }
           }
+
+          inputParameters.putAll(input);
 
           simulation.init(inputParameters);
-
-
         });
     return button;
   }
@@ -167,16 +182,51 @@ public class TaxiScenarioControl extends JPanel {
     List<Component> components = new ArrayList<>();
     Collections.addAll(components, controls.getComponents());
     Collections.addAll(components, buttons.getComponents());
-    Collections.addAll(components, inputs.getComponents());
+    Collections.addAll(components, worldInputs.getComponents());
+    Collections.addAll(components, selection.getComponents());
     for (Component component : components) {
       componentMap.put(component.getName(), component);
     }
   }
 
   private Component getComponentByName(String componentName) {
-      if (componentMap.containsKey(componentName)) {
-          return componentMap.get(componentName);
-      }
+    if (componentMap.containsKey(componentName)) {
+      return componentMap.get(componentName);
+    }
     return null;
+  }
+
+  private static TaxiAlgorithm instantiateAlgorithm(String algorithmName) {
+    try {
+      Class<?> algorithm = Class.forName(algorithmName);
+      return (TaxiAlgorithm) algorithm.getDeclaredConstructor().newInstance();
+    } catch (ClassNotFoundException
+        | InvocationTargetException
+        | InstantiationException
+        | IllegalAccessException
+        | NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void generateParameters() {
+    Set<String> parameters = simulation.getSimulationParameters().getParameters();
+    algorithmInputs.removeAll();
+    inputParameters = new HashMap<>();
+    inputParameters.put("taxiCount", 0);
+    inputParameters.put("clientCount", 0);
+    parameters.forEach(
+        parameter -> {
+          JLabel label = new JLabel(parameter);
+          label.setName(parameter + "Label");
+          algorithmInputs.add(label);
+          JTextField textField = new JTextField();
+          label.setLabelFor(textField);
+          textField.setColumns(4);
+          textField.setName(parameter);
+          algorithmInputs.add(textField);
+          inputParameters.put(parameter, 0);
+        });
+    SwingUtilities.updateComponentTreeUI(worldInputs);
   }
 }

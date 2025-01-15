@@ -2,10 +2,8 @@ package de.sikeller.aqs.taxi.algorithm;
 
 import static de.sikeller.aqs.model.ClientMode.WAITING;
 
-import de.sikeller.aqs.model.Client;
-import de.sikeller.aqs.model.Taxi;
-import de.sikeller.aqs.model.World;
-import de.sikeller.aqs.taxi.algorithm.model.AlgorithmResult;
+import de.sikeller.aqs.model.*;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 

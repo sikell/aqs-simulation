@@ -1,4 +1,4 @@
-package de.sikeller.aqs.taxi.algorithm.model;
+package de.sikeller.aqs.model;
 
 import lombok.Builder;
 import lombok.Data;

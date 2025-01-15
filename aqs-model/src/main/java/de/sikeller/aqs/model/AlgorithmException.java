@@ -1,4 +1,4 @@
-package de.sikeller.aqs.taxi.algorithm.model;
+package de.sikeller.aqs.model;
 
 public class AlgorithmException extends RuntimeException {
   public AlgorithmException(String message) {

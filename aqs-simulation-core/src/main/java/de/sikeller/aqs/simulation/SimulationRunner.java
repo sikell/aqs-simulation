@@ -3,28 +3,30 @@ package de.sikeller.aqs.simulation;
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import de.sikeller.aqs.simulation.stats.StatsCollector;
-import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithm;
 import de.sikeller.aqs.visualization.ResultVisualization;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RequiredArgsConstructor
+@Setter
+@Getter
 public class SimulationRunner implements SimulationControl {
   private final World world;
-  private final TaxiAlgorithm algorithm;
+  private final Algorithm algorithm;
 
-  private StatsCollector statsCollector = new StatsCollector();
-  private EventDispatcher eventDispatcher = EventDispatcher.instance();
+  private final StatsCollector statsCollector = new StatsCollector();
+  private final EventDispatcher eventDispatcher = EventDispatcher.instance();
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
 
   private void initWorld(Map<String, Integer> parameters) {
+
     parameters.forEach(
         (parameter, value) -> {
           if (parameter.contains("client")) {
@@ -66,7 +68,7 @@ public class SimulationRunner implements SimulationControl {
           continue;
         }
         var currentTime = world.getCurrentTime() + 1;
-        var result = algorithm.nextStep(world);
+        var result = algorithm.getAlgorithm().nextStep(world);
         log.debug("Step {}: {}", currentTime, result);
         new WorldSimulator(world).move(currentTime);
         listeners.forEach(l -> l.onUpdate(world));
@@ -111,15 +113,14 @@ public class SimulationRunner implements SimulationControl {
 
   @Override
   public void init(Map<String, Integer> parameters) {
-
     initWorld(parameters);
-    algorithm.init(world);
+    algorithm.getAlgorithm().init(world);
     listeners.forEach(l -> l.onUpdate(world));
     print();
   }
 
   @Override
   public SimulationConfiguration getSimulationParameters() {
-    return algorithm.getParameters();
+    return algorithm.getAlgorithm().getParameters();
   }
 }

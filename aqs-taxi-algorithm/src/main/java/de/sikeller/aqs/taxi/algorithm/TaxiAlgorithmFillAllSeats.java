@@ -3,7 +3,7 @@ package de.sikeller.aqs.taxi.algorithm;
 import static de.sikeller.aqs.model.ClientMode.MOVING;
 
 import de.sikeller.aqs.model.*;
-import de.sikeller.aqs.taxi.algorithm.model.AlgorithmResult;
+import de.sikeller.aqs.model.AlgorithmResult;
 
 import java.util.*;
 
@@ -18,7 +18,7 @@ public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements 
 
     @Override
     public SimulationConfiguration getParameters() {
-        return new SimulationConfiguration("clientCount", "taxiCount");
+        return new SimulationConfiguration("SeatLimit", "DetectionRadius");
     }
 
     @Override

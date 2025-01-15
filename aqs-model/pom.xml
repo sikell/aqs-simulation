@@ -12,5 +12,7 @@
 
     <artifactId>aqs-model</artifactId>
     <packaging>jar</packaging>
+    <dependencies>
+    </dependencies>
 
 </project>

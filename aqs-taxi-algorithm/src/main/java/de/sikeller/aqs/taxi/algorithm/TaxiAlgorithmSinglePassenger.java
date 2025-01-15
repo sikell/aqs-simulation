@@ -3,13 +3,8 @@ package de.sikeller.aqs.taxi.algorithm;
 import static de.sikeller.aqs.model.ClientMode.MOVING;
 
 import de.sikeller.aqs.model.*;
-import de.sikeller.aqs.taxi.algorithm.model.AlgorithmResult;
-import lombok.Getter;
+import de.sikeller.aqs.model.AlgorithmResult;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 
 @Slf4j
@@ -17,7 +12,7 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
 
   @Override
   public SimulationConfiguration getParameters() {
-    return new SimulationConfiguration("taxiCount", "clientCount");
+    return new SimulationConfiguration("DetectionRadius", "Color");
   }
 
   @Override

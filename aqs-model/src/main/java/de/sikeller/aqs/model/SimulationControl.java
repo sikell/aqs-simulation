@@ -1,5 +1,7 @@
 package de.sikeller.aqs.model;
 
+import lombok.Getter;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -13,4 +15,5 @@ public interface SimulationControl {
 
   SimulationConfiguration getSimulationParameters();
 
+  Algorithm getAlgorithm();
 }
