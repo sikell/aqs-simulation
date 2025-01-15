@@ -43,4 +43,9 @@ public class World {
         .isFinished(isFinished)
         .build();
   }
+
+  public void reset() {
+    this.taxis.clear();
+    this.clients.clear();
+  }
 }

@@ -21,10 +21,11 @@ public class Main {
     var visualisation = new SimulationVisualization(world, runner);
 
     runner.registerObserver(visualisation);
-
-    runner.run(10);
-
-    List<String> taxiAlgorithms = new ArrayList<>();
+    do{
+      if (runner.isSimulationFinished()) {
+        runner.run(10);
+      }
+    } while (true);
 
   }
 

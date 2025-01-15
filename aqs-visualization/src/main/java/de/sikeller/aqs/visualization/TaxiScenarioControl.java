@@ -173,6 +173,7 @@ public class TaxiScenarioControl extends JPanel {
           inputParameters.putAll(input);
 
           simulation.init(inputParameters);
+          simulation.setSimulationFinished(true);
         });
     return button;
   }

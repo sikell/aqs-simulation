@@ -24,6 +24,7 @@ public class SimulationRunner implements SimulationControl {
   private final EventDispatcher eventDispatcher = EventDispatcher.instance();
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
+  private volatile boolean simulationFinished;
 
   private void initWorld(Map<String, Integer> parameters) {
 
@@ -60,6 +61,7 @@ public class SimulationRunner implements SimulationControl {
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
   public void run(long sleep) {
+    simulationFinished = false;
     do {
       Thread.sleep(sleep);
       while (!world.isFinished()) {
@@ -113,6 +115,12 @@ public class SimulationRunner implements SimulationControl {
 
   @Override
   public void init(Map<String, Integer> parameters) {
+    if (!world.getClients().isEmpty()) {
+      world.reset();
+      this.running = false;
+    }
+    System.out.println(world.getClients());
+    System.out.println(world.getTaxis());
     initWorld(parameters);
     algorithm.getAlgorithm().init(world);
     listeners.forEach(l -> l.onUpdate(world));
@@ -122,5 +130,10 @@ public class SimulationRunner implements SimulationControl {
   @Override
   public SimulationConfiguration getSimulationParameters() {
     return algorithm.getAlgorithm().getParameters();
+  }
+
+  @Override
+  public void setSimulationFinished(Boolean flag) {
+    this.simulationFinished = flag;
   }
 }

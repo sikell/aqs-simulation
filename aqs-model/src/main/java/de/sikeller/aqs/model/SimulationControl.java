@@ -16,4 +16,6 @@ public interface SimulationControl {
   SimulationConfiguration getSimulationParameters();
 
   Algorithm getAlgorithm();
+
+  void setSimulationFinished(Boolean flag);
 }
