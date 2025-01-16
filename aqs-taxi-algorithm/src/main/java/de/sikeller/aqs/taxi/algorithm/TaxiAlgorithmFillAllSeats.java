@@ -4,24 +4,19 @@ import static de.sikeller.aqs.model.ClientMode.MOVING;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
-
-import java.util.*;
-
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Slf4j
 @Getter
 public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
+  @Override
+  public SimulationConfiguration getParameters() {
+    return new SimulationConfiguration("SeatLimit", "DetectionRadius");
+  }
 
-    @Override
-    public SimulationConfiguration getParameters() {
-        return new SimulationConfiguration("SeatLimit", "DetectionRadius");
-    }
-
-    @Override
+  @Override
   public AlgorithmResult nextStep(World world) {
     var waitingClients = getWaitingClients(world);
     if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");
@@ -39,19 +34,7 @@ public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements 
       nextTaxi
           .getTargets()
           .addOrder(
-              Order.of(nextClient.getPosition(), nextClient.getTarget()),
-              orders -> {
-                List<Position> result = new LinkedList<>();
-                int maxSize = orders.stream().mapToInt(Order::size).max().orElse(0);
-                for (int i = 0; i < maxSize; i++) {
-                  for (Order innerList : orders) {
-                    if (i < innerList.size()) {
-                      result.add(innerList.get(i));
-                    }
-                  }
-                }
-                return result;
-              });
+              Order.of(nextClient.getPosition(), nextClient.getTarget()), TargetList.mergeOrders);
       log.debug("Taxi {} plan client {}", nextTaxi.getName(), nextClient.getName());
     }
 

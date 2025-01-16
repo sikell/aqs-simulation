@@ -6,9 +6,8 @@ import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
-public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
+public class TaxiAlgorithmGroupByTarget extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
   @Override
   public SimulationConfiguration getParameters() {
@@ -30,17 +29,31 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
 
     nextClient.setMode(MOVING);
     Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
-    nearestTaxi.getPlannedPassengers().add(nextClient);
 
+    nearestTaxi.getPlannedPassengers().add(nextClient);
     nearestTaxi
         .getTargets()
         .addOrder(
-            Order.of(nextClient.getPosition(), nextClient.getTarget()),
-            TargetList.sequentialOrders);
+            Order.of(nextClient.getPosition(), nextClient.getTarget()), TargetList.mergeOrders);
     log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
+
+    // search for others with same target and start
+    var clientsOrderedBySameTarget =
+        EntityUtils.sortByNearest(nextClient.getTarget(), waitingClients, Entity::getTarget);
+    for (Tuple<Client, Double> otherClient : clientsOrderedBySameTarget) {
+      // todo these numbers should be configurable by parameter:
+      if (!otherClient.v1().equals(nextClient)
+          && otherClient.v2() < 100
+          && nextClient.getPosition().distance(otherClient.v1().getPosition()) < 100) {
+        Client client = otherClient.v1();
+        client.setMode(MOVING);
+        nearestTaxi.getPlannedPassengers().add(client);
+        nearestTaxi
+            .getTargets()
+            .addOrder(Order.of(client.getPosition(), client.getTarget()), TargetList.mergeOrders);
+      }
+    }
 
     return ok();
   }
-
-
 }

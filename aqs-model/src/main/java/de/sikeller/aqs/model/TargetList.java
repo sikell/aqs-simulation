@@ -12,8 +12,32 @@ public class TargetList {
   @Builder.Default private final List<Order> orders = new LinkedList<>();
   @Builder.Default private final List<Position> flattenedTargets = new LinkedList<>();
 
-  public static Function<List<Order>, List<Position>> defaultFlattenOrder =
-      lists -> lists.stream().flatMap(Order::stream).toList();
+  /**
+   * <code>
+   * [[A, B], [a, b, c], [1, 2]] => [A, B, a, b, c, 1, 2]
+   * </code>
+   */
+  public static Function<List<Order>, List<Position>> sequentialOrders =
+      orders -> orders.stream().flatMap(Order::stream).toList();
+
+  /**
+   * <code>
+   * [[A, B], [a, b, c], [1, 2]] => [A, a, 1, B, b, 2, c]
+   * </code>
+   */
+  public static Function<List<Order>, List<Position>> mergeOrders =
+      orders -> {
+        List<Position> result = new LinkedList<>();
+        int maxSize = orders.stream().mapToInt(Order::size).max().orElse(0);
+        for (int i = 0; i < maxSize; i++) {
+          for (Order innerList : orders) {
+            if (i < innerList.size()) {
+              result.add(innerList.get(i));
+            }
+          }
+        }
+        return result;
+      };
 
   public void addOrder(Order order, Function<List<Order>, List<Position>> flattenFunction) {
     orders.add(order.snapshot());
