@@ -47,5 +47,6 @@ public class World {
   public void reset() {
     this.taxis.clear();
     this.clients.clear();
+    this.currentTime = 0;
   }
 }
