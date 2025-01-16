@@ -62,8 +62,23 @@ public class EntityUtils {
    */
   public static <T extends Entity> List<Tuple<T, Double>> sortByNearest(
       Position position, Collection<T> others, Function<Entity, Position> distanceFunction) {
-    return others.stream()
-        .map(e -> new Tuple<>(e, distanceFunction.apply(e).distance(position)))
+    return sortBy(others, entity -> distanceFunction.apply(entity).distance(position));
+  }
+
+  /**
+   * Sorts a collection of {@link Entity}s by a double value attribute (defined by a mapping
+   * function) and returns a list of tuples, where each tuple contains the entity and its double
+   * value used for sorting.
+   *
+   * @param elements the collection of {@link Entity}s to sort
+   * @param mappingFunction the function to convert an entity to it's double value
+   * @param <T> the type of the positions in the collection, which must extend Position
+   * @return a list of tuples, sorted by the distance to the given position
+   */
+  public static <T extends Entity> List<Tuple<T, Double>> sortBy(
+      Collection<T> elements, Function<Entity, Double> mappingFunction) {
+    return elements.stream()
+        .map(e -> new Tuple<>(e, mappingFunction.apply(e)))
         .sorted(Comparator.comparingDouble(Tuple::v2))
         .toList();
   }

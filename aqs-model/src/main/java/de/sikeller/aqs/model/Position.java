@@ -40,4 +40,19 @@ public class Position {
     int newY = (int) Math.round(y + directionY * moveDistance);
     return new Position(newX, newY);
   }
+
+  /**
+   * Calculates the angle in degrees between two position.
+   *
+   * @param other position
+   * @return The angle in degrees between the two position.
+   */
+  public double calculateAngle(Position other) {
+    double angleRad = Math.atan2(other.y - y, other.x - x);
+    double angleDeg = Math.toDegrees(angleRad);
+    if (angleDeg < 0) {
+      angleDeg += 360;
+    }
+    return angleDeg;
+  }
 }
