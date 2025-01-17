@@ -4,7 +4,9 @@ import de.sikeller.aqs.model.events.EventClientEntersTaxi;
 import de.sikeller.aqs.model.events.EventClientLeaveTaxi;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Data;
@@ -65,8 +67,22 @@ public class Taxi implements Entity {
     this.position = position;
     this.lastUpdate = currentTime;
     checkTargetReached(position);
-    checkClientEntering(position, currentTime);
     checkClientLeaving(position, currentTime);
+    checkClientEntering(position, currentTime);
+  }
+
+  public void planClient(Client client) {
+    client.setMode(ClientMode.MOVING);
+    plannedPassengers.add(client);
+  }
+
+  public void forgetClient(Client client) {
+    client.setMode(ClientMode.WAITING);
+    plannedPassengers.remove(client);
+  }
+
+  public void addOrder(Order order, Function<List<Order>, List<Position>> flattenFunction) {
+    targets.addOrder(order, flattenFunction);
   }
 
   private void checkTargetReached(Position position) {
@@ -90,6 +106,14 @@ public class Taxi implements Entity {
   private void checkClientEntering(Position position, long currentTime) {
     for (Client client : new HashSet<>(plannedPassengers)) {
       if (client.getPosition().equals(position)) {
+        if (containedPassengers.size() >= capacity) {
+          log.warn(
+              "Client {} should enter taxi {} but capacity reached. Client does not enter taxi!",
+              client.getName(),
+              this.getName());
+          forgetClient(client);
+          return;
+        }
         plannedPassengers.remove(client);
         containedPassengers.add(client);
         EventDispatcher.dispatch(new EventClientEntersTaxi(currentTime, client, this));

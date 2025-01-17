@@ -3,24 +3,20 @@ package de.sikeller.aqs.taxi.algorithm;
 import static de.sikeller.aqs.model.ClientMode.WAITING;
 
 import de.sikeller.aqs.model.*;
-
+import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class AbstractTaxiAlgorithm implements TaxiAlgorithm {
-  protected AlgorithmResult fail(String message) {
-    return AlgorithmResult.builder()
-        .status(AlgorithmResult.Result.EXCEPTION)
-        .message(message)
-        .build();
-  }
+public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
 
-  protected AlgorithmResult stop(String message) {
-    return AlgorithmResult.builder().status(AlgorithmResult.Result.STOP).message(message).build();
-  }
+  protected abstract AlgorithmResult nextStep(World world, Set<Client> waitingClients);
 
-  protected AlgorithmResult ok() {
-    return AlgorithmResult.builder().status(AlgorithmResult.Result.FOUND).build();
+  @Override
+  public AlgorithmResult nextStep(World world) {
+    var waitingClients = getWaitingClients(world);
+    if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");
+    return nextStep(world, waitingClients);
   }
 
   protected Set<Client> getWaitingClients(World world) {
@@ -35,5 +31,11 @@ public abstract class AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
   protected Set<Taxi> getEmptyTaxis(World world) {
     return world.getTaxis().stream().filter(Taxi::isEmpty).collect(Collectors.toSet());
+  }
+
+  protected void planClientForTaxi(
+      Taxi taxi, Client client, Function<List<Order>, List<Position>> flattenFunction) {
+    taxi.planClient(client);
+    taxi.addOrder(Order.of(client.getPosition(), client.getTarget()), flattenFunction);
   }
 }

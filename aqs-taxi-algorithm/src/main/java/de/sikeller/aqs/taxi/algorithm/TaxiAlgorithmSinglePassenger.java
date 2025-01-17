@@ -1,11 +1,9 @@
 package de.sikeller.aqs.taxi.algorithm;
 
-import static de.sikeller.aqs.model.ClientMode.MOVING;
-
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
-
 
 @Slf4j
 public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
@@ -16,9 +14,7 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
   }
 
   @Override
-  public AlgorithmResult nextStep(World world) {
-    var waitingClients = getWaitingClients(world);
-    if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");
+  public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
     var nextClient = waitingClients.iterator().next();
 
     var taxiCandidates = getEmptyTaxis(world);
@@ -28,19 +24,11 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
         EntityUtils.findNearestNeighbor(nextClient.getPosition(), taxiCandidates);
     if (nearestTaxiWithCapacity == null) return fail("No nearest taxi found.");
 
-    nextClient.setMode(MOVING);
     Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
-    nearestTaxi.getPlannedPassengers().add(nextClient);
 
-    nearestTaxi
-        .getTargets()
-        .addOrder(
-            Order.of(nextClient.getPosition(), nextClient.getTarget()),
-            TargetList.sequentialOrders);
+    planClientForTaxi(nearestTaxi, nextClient, TargetList.sequentialOrders);
     log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
 
     return ok();
   }
-
-
 }
