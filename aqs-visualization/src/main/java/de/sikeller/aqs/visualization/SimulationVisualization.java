@@ -5,6 +5,7 @@ import de.sikeller.aqs.model.SimulationObserver;
 import de.sikeller.aqs.model.World;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -16,11 +17,16 @@ public class SimulationVisualization extends AbstractVisualization implements Si
 
   public SimulationVisualization(World world, SimulationControl simulation) {
     super("Taxi Scenario Simulation");
-    canvas = new TaxiScenarioCanvas(world);
-    var control = new TaxiScenarioControl(simulation);
+    var controls = new JPanel();
+    controls.setLayout(new GridLayout(2, 1));
+    controls.add(new TaxiScenarioControl(simulation));
+    var visuProperties = new VisualizationProperties();
+    controls.add(new VisualizationControl(visuProperties));
+
+    canvas = new TaxiScenarioCanvas(world, visuProperties);
 
     frame.setLayout(new GridLayout(1, 2));
-    frame.add(control);
+    frame.add(controls);
     frame.add(canvas);
     frame.setVisible(true);
     frame.pack();

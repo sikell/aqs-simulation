@@ -1,21 +1,22 @@
 package de.sikeller.aqs.visualization;
 
 import de.sikeller.aqs.model.World;
-
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import javax.swing.*;
 
 public class TaxiScenarioCanvas extends JPanel {
   private final double height;
   private final double width;
+  private final VisualizationProperties visuProperties;
   private final int canvasHeight;
   private final int canvasWidth;
   private final BufferedImage bufferedImage;
 
-  public TaxiScenarioCanvas(World world) {
+  public TaxiScenarioCanvas(World world, VisualizationProperties visuProperties) {
     this.height = world.getMaxY();
     this.width = world.getMaxX();
+    this.visuProperties = visuProperties;
     this.canvasHeight = 800;
     this.canvasWidth = 800;
     setSize(canvasWidth, canvasHeight);
@@ -36,8 +37,8 @@ public class TaxiScenarioCanvas extends JPanel {
           double widthRatio = canvasWidth / width;
           double heightRatio = canvasHeight / height;
 
-          var taxis = TaxiDrawing.of(world.getTaxis());
-          var clients = ClientDrawing.of(world.getClients());
+          var taxis = TaxiDrawing.of(world.getTaxis(), visuProperties);
+          var clients = ClientDrawing.of(world.getClients(), visuProperties);
 
           clients.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
           taxis.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));

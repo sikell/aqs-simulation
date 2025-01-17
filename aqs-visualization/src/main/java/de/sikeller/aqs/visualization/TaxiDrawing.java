@@ -1,30 +1,43 @@
 package de.sikeller.aqs.visualization;
 
+import static java.lang.Math.round;
+
 import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.model.Taxi;
-import lombok.RequiredArgsConstructor;
-
 import java.awt.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static java.lang.Math.round;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class TaxiDrawing extends EntityDrawing {
   private final int TAXI_MARKER_SIZE = 30;
   private final Taxi taxi;
+  private final TaxiDrawingProperties properties;
 
-  public static Collection<TaxiDrawing> of(Collection<Taxi> collection) {
-    return collection.stream().map(TaxiDrawing::new).collect(Collectors.toSet());
+  public interface TaxiDrawingProperties {
+    boolean isShowTaxiPaths();
+
+    boolean isShowTaxiNames();
+  }
+
+  public static Collection<TaxiDrawing> of(
+      Collection<Taxi> collection, TaxiDrawingProperties properties) {
+    return collection.stream()
+        .map((Taxi t) -> new TaxiDrawing(t, properties))
+        .collect(Collectors.toSet());
   }
 
   @Override
   public void printBackgroundShape(
       Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
-    printTarget(g, canvasWidthRatio, canvasHeightRatio);
-    printName(g, canvasWidthRatio, canvasHeightRatio);
+    if (properties.isShowTaxiPaths()) {
+      printTarget(g, canvasWidthRatio, canvasHeightRatio);
+    }
+    if (properties.isShowTaxiNames()) {
+      printName(g, canvasWidthRatio, canvasHeightRatio);
+    }
   }
 
   @Override

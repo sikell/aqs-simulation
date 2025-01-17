@@ -1,28 +1,41 @@
 package de.sikeller.aqs.visualization;
 
-import de.sikeller.aqs.model.Client;
-import lombok.RequiredArgsConstructor;
+import static java.lang.Math.round;
 
+import de.sikeller.aqs.model.Client;
 import java.awt.*;
 import java.util.Collection;
 import java.util.stream.Collectors;
-
-import static java.lang.Math.round;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class ClientDrawing extends EntityDrawing {
   private final int CLIENT_MARKER_SIZE = 10;
   private final Client client;
+  private final ClientDrawingProperties properties;
 
-  public static Collection<ClientDrawing> of(Collection<Client> collection) {
-    return collection.stream().map(ClientDrawing::new).collect(Collectors.toSet());
+  public interface ClientDrawingProperties {
+    boolean isShowClientPaths();
+
+    boolean isShowClientNames();
+  }
+
+  public static Collection<ClientDrawing> of(
+      Collection<Client> collection, ClientDrawingProperties properties) {
+    return collection.stream()
+        .map((Client c) -> new ClientDrawing(c, properties))
+        .collect(Collectors.toSet());
   }
 
   @Override
   public void printBackgroundShape(
       Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
-    printTarget(g, canvasWidthRatio, canvasHeightRatio);
-    printName(g, canvasWidthRatio, canvasHeightRatio);
+    if (properties.isShowClientPaths()) {
+      printTarget(g, canvasWidthRatio, canvasHeightRatio);
+    }
+    if (properties.isShowClientNames()) {
+      printName(g, canvasWidthRatio, canvasHeightRatio);
+    }
   }
 
   @Override
