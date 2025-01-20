@@ -2,6 +2,8 @@ package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.*;
 
+import java.util.Set;
+
 import static de.sikeller.aqs.model.ClientMode.MOVING;
 import static org.reflections.Reflections.log;
 
@@ -12,12 +14,7 @@ public class TaxiAlgorithmShortestToLongestDistance extends AbstractTaxiAlgorith
     }
 
     @Override
-    public AlgorithmResult nextStep(World world) {
-        var waitingClients = getWaitingClients(world);
-        if (waitingClients.isEmpty()) {
-            return stop("No clients waiting for a taxi");
-        }
-
+    public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
         var nextClient = waitingClients.iterator().next();
         for (Client client : waitingClients) {
             double distanceNextClient = nextClient.getPosition().distance(nextClient.getTarget());
