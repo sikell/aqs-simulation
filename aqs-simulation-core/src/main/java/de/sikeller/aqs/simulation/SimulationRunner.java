@@ -117,7 +117,6 @@ public class SimulationRunner implements SimulationControl {
   public void init(Map<String, Integer> parameters) {
     if (!world.getClients().isEmpty()) {
       world.reset();
-      this.running = false;
     }
     System.out.println(world.getClients());
     System.out.println(world.getTaxis());
@@ -137,7 +136,7 @@ public class SimulationRunner implements SimulationControl {
     this.simulationFinished = flag;
   }
 
-  public ResultVisualization getResultVisualization() {
-    return this.resultVisualization;
+  public void showResultVisualization() {
+    this.resultVisualization.openResults();
   }
 }

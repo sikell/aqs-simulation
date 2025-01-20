@@ -36,6 +36,7 @@ public class TaxiScenarioControl extends JPanel {
     buttons.add(startButton());
     buttons.add(stopButton());
     buttons.add(initializeSimulationButton());
+    buttons.add(showResultsButton());
     selection.add(algorithmSelectionLabel());
     selection.add(algorithmSelectionBox());
     selection.add(algorithmSelectionButton());
@@ -103,6 +104,7 @@ public class TaxiScenarioControl extends JPanel {
       simulation.start();
       button.setEnabled(false);
       Objects.requireNonNull(getComponentByName("initializeSimulationButton")).setEnabled(true);
+      Objects.requireNonNull(getComponentByName("stopButton")).setEnabled(true);
     });
     return button;
   }
@@ -110,7 +112,11 @@ public class TaxiScenarioControl extends JPanel {
   private JButton stopButton() {
     JButton button = new JButton("Stop");
     button.setName("stopButton");
-    button.addActionListener(e -> simulation.stop());
+    button.setEnabled(false);
+    button.addActionListener(e -> {
+      simulation.stop();
+      Objects.requireNonNull(getComponentByName("startButton")).setEnabled(true);
+    });
     return button;
   }
 
@@ -142,12 +148,20 @@ public class TaxiScenarioControl extends JPanel {
     return textField;
   }
 
+  private JButton showResultsButton() {
+    JButton button = new JButton("Show Results");
+    button.setName("showResultsButton");
+    button.addActionListener(e -> simulation.showResultVisualization());
+    return button;
+  }
+
   private JButton initializeSimulationButton() {
     JButton button = new JButton("Initialize Simulation");
     button.setName("initializeSimulationButton");
 
     button.addActionListener(
         e -> {
+          simulation.stop();
           Component startButton = getComponentByName("startButton");
           if (startButton != null) {
             startButton.setEnabled(true);

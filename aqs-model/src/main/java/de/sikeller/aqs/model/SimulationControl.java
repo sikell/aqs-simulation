@@ -1,9 +1,7 @@
 package de.sikeller.aqs.model;
 
-import lombok.Getter;
 
 import java.util.Map;
-import java.util.Set;
 
 public interface SimulationControl {
 
@@ -18,4 +16,8 @@ public interface SimulationControl {
   Algorithm getAlgorithm();
 
   void setSimulationFinished(Boolean flag);
+
+  void showResultVisualization();
+
+
 }
