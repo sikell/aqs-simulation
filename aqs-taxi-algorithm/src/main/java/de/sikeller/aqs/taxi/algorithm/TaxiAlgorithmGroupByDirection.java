@@ -1,9 +1,9 @@
 package de.sikeller.aqs.taxi.algorithm;
 
-import static de.sikeller.aqs.model.ClientMode.MOVING;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
+import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -15,9 +15,7 @@ public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm impleme
   }
 
   @Override
-  public AlgorithmResult nextStep(World world) {
-    var waitingClients = getWaitingClients(world);
-    if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");
+  public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
     var nextClient = waitingClients.iterator().next();
 
     var taxiCandidates = getEmptyTaxis(world);
@@ -27,14 +25,10 @@ public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm impleme
         EntityUtils.findNearestNeighbor(nextClient.getPosition(), taxiCandidates);
     if (nearestTaxiWithCapacity == null) return fail("No nearest taxi found.");
 
-    nextClient.setMode(MOVING);
     Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
 
-    nearestTaxi.getPlannedPassengers().add(nextClient);
-    nearestTaxi
-        .getTargets()
-        .addOrder(
-            Order.of(nextClient.getPosition(), nextClient.getTarget()), TargetList.mergeOrders);
+    planClientForTaxi(nearestTaxi, nextClient, TargetList.mergeOrders);
+
     log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
     var direction = nextClient.getPosition().calculateAngle(nextClient.getTarget());
 
@@ -43,16 +37,15 @@ public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm impleme
         EntityUtils.sortBy(
             waitingClients, entity -> entity.getPosition().calculateAngle(entity.getTarget()));
     for (Tuple<Client, Double> otherClient : clientsOrderedBySameTarget) {
+      if (!nearestTaxi.hasCapacity()) {
+        break;
+      }
       // todo this number should be configurable by parameter:
       if (!otherClient.v1().equals(nextClient)
           && isDifferenceSmallerThan(direction, otherClient.v2(), 10)
           && nextClient.getPosition().distance(otherClient.v1().getPosition()) < 100) {
         Client client = otherClient.v1();
-        client.setMode(MOVING);
-        nearestTaxi.getPlannedPassengers().add(client);
-        nearestTaxi
-            .getTargets()
-            .addOrder(Order.of(client.getPosition(), client.getTarget()), TargetList.mergeOrders);
+        planClientForTaxi(nearestTaxi, client, TargetList.mergeOrders);
       }
     }
 

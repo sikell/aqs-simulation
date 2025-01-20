@@ -1,9 +1,8 @@
 package de.sikeller.aqs.taxi.algorithm;
 
-import static de.sikeller.aqs.model.ClientMode.MOVING;
-
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
+import java.util.Set;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,10 +16,7 @@ public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements 
   }
 
   @Override
-  public AlgorithmResult nextStep(World world) {
-    var waitingClients = getWaitingClients(world);
-    if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");
-
+  public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
     var taxiCandidates = getTaxisWithCapacity(world);
     if (taxiCandidates.isEmpty()) return stop("No taxis with capacity found.");
     var nextTaxi = taxiCandidates.iterator().next();
@@ -29,12 +25,7 @@ public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements 
 
     for (int taxiSeat = 0; taxiSeat < capacity && taxiSeat < nearestClients.size(); taxiSeat++) {
       var nextClient = nearestClients.get(taxiSeat).v1();
-      nextClient.setMode(MOVING);
-      nextTaxi.getPlannedPassengers().add(nextClient);
-      nextTaxi
-          .getTargets()
-          .addOrder(
-              Order.of(nextClient.getPosition(), nextClient.getTarget()), TargetList.mergeOrders);
+      planClientForTaxi(nextTaxi, nextClient, TargetList.mergeOrders);
       log.debug("Taxi {} plan client {}", nextTaxi.getName(), nextClient.getName());
     }
 
