@@ -18,6 +18,8 @@ public class ResultVisualization extends AbstractVisualization {
   private DefaultTableModel model;
   private JScrollPane scrollPane;
   private JPanel panel;
+  private final DefaultCategoryDataset taxiDataset = new DefaultCategoryDataset();
+  private final DefaultCategoryDataset clientDataset = new DefaultCategoryDataset();
 
   public ResultVisualization() {
     super("Taxi Scenario Results");
@@ -28,54 +30,55 @@ public class ResultVisualization extends AbstractVisualization {
   public void showResults(ResultTable resultTable) {
 
     if (table == null) {
-      model =new DefaultTableModel(resultTable.getData(), resultTable.getColumns());
+      model = new DefaultTableModel(resultTable.getData(), resultTable.getColumns());
       table = new JTable(model);
       scrollPane = new JScrollPane(table);
-      scrollPane.setMaximumSize(new Dimension(500,200));
+      scrollPane.setMaximumSize(new Dimension(500, 200));
       showDiagram(resultTable);
-      frame.setLayout(new GridLayout(0,1));
+      frame.setLayout(new GridLayout(0, 1));
       frame.add(scrollPane);
       frame.add(panel);
       frame.pack();
       openResults();
     } else {
 
-      for(int i = 0; i < resultTable.getData().length; i++) {
+      for (int i = 0; i < resultTable.getData().length; i++) {
         model.addRow(resultTable.getData()[i]);
       }
       SwingUtilities.updateComponentTreeUI(frame);
     }
-
   }
 
   public void showDiagram(ResultTable resultTable) {
-    DefaultCategoryDataset taxiDataset = new DefaultCategoryDataset();
-    DefaultCategoryDataset clientDataset = new DefaultCategoryDataset();
-    for(int i = 1; i < 4; i++) {
-      taxiDataset.addValue(Double.parseDouble( resultTable.getData()[0][i].toString()) , resultTable.getColumns()[i], resultTable.getData()[0][0].toString());
-      clientDataset.addValue(Double.parseDouble( resultTable.getData()[1][i].toString()), resultTable.getColumns()[i], resultTable.getData()[1][0].toString());
+    for (int i = 1; i < 4; i++) {
+      taxiDataset.addValue(
+          Double.parseDouble(resultTable.getData()[0][i].toString()),
+          resultTable.getData()[0][0].toString(),
+          resultTable.getColumns()[i]);
+      clientDataset.addValue(
+          Double.parseDouble(resultTable.getData()[1][i].toString()),
+          resultTable.getData()[1][0].toString(),
+          resultTable.getColumns()[i]);
     }
-    JFreeChart taxiChart = ChartFactory.createBarChart("Taxi-Data", "test1","test2", taxiDataset );
-    JFreeChart clientChart = ChartFactory.createBarChart("Taxi-Data", "test1","test2", clientDataset );
-    ChartPanel taxiChartPanel = new ChartPanel(taxiChart);
-    ChartPanel clientChartPanel = new ChartPanel(clientChart);
-    taxiChartPanel.setSize(new Dimension(300,50));
-    clientChartPanel.setSize(new Dimension(300,50));
-    panel = new JPanel();
-    panel.setLayout(new GridLayout(0,2 ));
-    panel.add(taxiChartPanel);
-    panel.add(clientChartPanel);
+
+    if (panel == null) {
+      JFreeChart taxiChart =
+          ChartFactory.createBarChart("Taxi-Data", "Categories", "Time", taxiDataset);
+      JFreeChart clientChart =
+          ChartFactory.createBarChart("Client-Data", "Categories", "Time", clientDataset);
+      ChartPanel taxiChartPanel = new ChartPanel(taxiChart);
+      ChartPanel clientChartPanel = new ChartPanel(clientChart);
+      taxiChartPanel.setSize(new Dimension(300, 50));
+      clientChartPanel.setSize(new Dimension(300, 50));
+      panel = new JPanel();
+      panel.setLayout(new GridLayout(0, 2));
+      panel.add(taxiChartPanel);
+      panel.add(clientChartPanel);
+    }
     frame.pack();
-    try {
-      UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    System.out.println(Arrays.toString(scrollPane.getComponents()));
   }
 
   public void openResults() {
     frame.setVisible(true);
   }
-
 }

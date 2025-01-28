@@ -15,19 +15,22 @@ public class StatsCollector {
   private static final String DOUBLE_FORMAT = "%.02f";
   private Result<Double> travelDistance;
   private Result<Long> travelTime;
+  private int runCounter;
 
   public void collect(EventList eventList, World world) {
     collectClientTravelTime(eventList);
     collectTaxiTravelDistance(world);
+    runCounter = 0;
   }
 
   public ResultTable tableResults() {
+    runCounter++;
     var columns = new String[] {"Result", "Min", "Max", "Avg", "Sum", "Count"};
 
     var data = new Object[2][];
     data[0] =
         new Object[] {
-          "Taxi Travel Distance",
+          "Taxi Travel Distance, Run: " + runCounter,
           format(DOUBLE_FORMAT, travelDistance.min()),
           format(DOUBLE_FORMAT, travelDistance.max()),
           format(DOUBLE_FORMAT, travelDistance.avg()),
@@ -36,7 +39,7 @@ public class StatsCollector {
         };
     data[1] =
         new Object[] {
-          "Client Travel Time",
+          "Client Travel Time, Run: " + runCounter,
           travelTime.min(),
           travelTime.max(),
           format(DOUBLE_FORMAT, travelTime.avg()),
@@ -50,7 +53,8 @@ public class StatsCollector {
   public void print() {
     if (travelDistance != null)
       log.info(
-          "[Taxi travel distance] min: {}, max: {}, avg: {}, sum: {}, count: {}",
+          "[Run:{}, Taxi travel distance ] min: {}, max: {}, avg: {}, sum: {}, count: {}",
+          runCounter,
           format(DOUBLE_FORMAT, travelDistance.min()),
           format(DOUBLE_FORMAT, travelDistance.max()),
           format(DOUBLE_FORMAT, travelDistance.avg()),
@@ -58,7 +62,8 @@ public class StatsCollector {
           travelDistance.count());
     if (travelTime != null)
       log.info(
-          "[Client travel time] min: {}, max: {}, avg: {}, sum: {}, count: {}",
+          "[Run:{}, Client travel time ] min: {}, max: {}, avg: {}, sum: {}, count: {}",
+          runCounter,
           travelTime.min(),
           travelTime.max(),
           format(DOUBLE_FORMAT, travelTime.avg()),
