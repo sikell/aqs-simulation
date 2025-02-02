@@ -26,6 +26,7 @@ public class SimulationVisualization extends AbstractVisualization implements Si
     canvas = new TaxiScenarioCanvas(world, visuProperties);
 
     frame.setLayout(new GridLayout(1, 2));
+    frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
     frame.add(controls);
     frame.add(canvas);
     frame.setVisible(true);
