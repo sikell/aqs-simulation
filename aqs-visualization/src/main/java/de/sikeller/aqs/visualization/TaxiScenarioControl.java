@@ -8,7 +8,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class TaxiScenarioControl extends JPanel {
   private List<Class<?>> algorithmList;
   private final SimulationControl simulation;
@@ -163,30 +165,35 @@ public class TaxiScenarioControl extends JPanel {
         e -> {
           simulation.stop();
           Component startButton = getComponentByName("startButton");
-          if (startButton != null) {
+          if (startButton == null) return;
+          try {
+            Map<String, Integer> input = new HashMap<>();
+            for (Component component : worldInputs.getComponents()) {
+              if (component instanceof JTextField textField) {
+                System.out.println(textField.getName());
+                System.out.println(textField.getText());
+                input.put(textField.getName(), Integer.parseInt(textField.getText()));
+              }
+            }
+
+            for (Component component : algorithmInputs.getComponents()) {
+              if (component instanceof JTextField textField) {
+                System.out.println(textField.getName());
+                System.out.println(textField.getText());
+                input.put(textField.getName(), Integer.parseInt(textField.getText()));
+              }
+            }
+
+            inputParameters.putAll(input);
+
             startButton.setEnabled(true);
             button.setEnabled(false);
-          }
-          Map<String, Integer> input = new HashMap<>();
-          for (Component component : worldInputs.getComponents()) {
-            if (component instanceof JTextField textField) {
-              System.out.println(textField.getName());
-              System.out.println(textField.getText());
-              input.put(textField.getName(), Integer.parseInt(textField.getText()));
-            }
-          }
 
-          for (Component component : algorithmInputs.getComponents()) {
-            if (component instanceof JTextField textField) {
-              System.out.println(textField.getName());
-              System.out.println(textField.getText());
-              input.put(textField.getName(), Integer.parseInt(textField.getText()));
-            }
+            simulation.init(inputParameters);
+          } catch (Exception exception) {
+            log.error(exception.getMessage(), exception);
+            JOptionPane.showMessageDialog(this, "No valid input parameters provided!");
           }
-
-          inputParameters.putAll(input);
-
-          simulation.init(inputParameters);
           simulation.setSimulationFinished(true);
         });
     return button;
