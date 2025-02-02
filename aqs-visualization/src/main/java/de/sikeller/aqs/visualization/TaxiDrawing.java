@@ -8,15 +8,20 @@ import java.awt.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 
-@RequiredArgsConstructor
 public class TaxiDrawing extends EntityDrawing {
-  private final int TAXI_MARKER_SIZE = 30;
+  private static final int DEFAULT_MARKER_SIZE = 5;
+  private final int markerSize;
   private final Taxi taxi;
   private final TaxiDrawingProperties properties;
 
-  public interface TaxiDrawingProperties {
+  public TaxiDrawing(Taxi taxi, TaxiDrawingProperties properties) {
+    this.taxi = taxi;
+    this.properties = properties;
+    this.markerSize = DEFAULT_MARKER_SIZE * properties.getScale();
+  }
+
+  public interface TaxiDrawingProperties extends DrawingProperties {
     boolean isShowTaxiPaths();
 
     boolean isShowTaxiNames();
@@ -85,10 +90,10 @@ public class TaxiDrawing extends EntityDrawing {
   private void printPosition(Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
     g.setColor(Color.RED);
     g.fillOval(
-        (int) round(taxi.getPosition().getX() * canvasWidthRatio) - TAXI_MARKER_SIZE / 2,
-        (int) round(taxi.getPosition().getY() * canvasHeightRatio) - TAXI_MARKER_SIZE / 2,
-        TAXI_MARKER_SIZE,
-        TAXI_MARKER_SIZE);
+        (int) round(taxi.getPosition().getX() * canvasWidthRatio) - markerSize / 2,
+        (int) round(taxi.getPosition().getY() * canvasHeightRatio) - markerSize / 2,
+            markerSize,
+            markerSize);
   }
 
   private void printName(Graphics g, double canvasWidthRatio, double canvasHeightRatio) {
@@ -96,11 +101,11 @@ public class TaxiDrawing extends EntityDrawing {
     g.setFont(defaultFont());
     g.drawString(
         taxi.getName(),
-        (int) round(taxi.getPosition().getX() * canvasWidthRatio - ((double) TAXI_MARKER_SIZE / 2)),
+        (int) round(taxi.getPosition().getX() * canvasWidthRatio - ((double) markerSize / 2)),
         (int)
             round(
                 taxi.getPosition().getY() * canvasHeightRatio
-                    + ((double) TAXI_MARKER_SIZE / 2)
+                    + ((double) markerSize / 2)
                     + 15));
   }
 }

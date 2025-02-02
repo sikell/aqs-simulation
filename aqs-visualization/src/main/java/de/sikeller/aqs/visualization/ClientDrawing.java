@@ -14,7 +14,7 @@ public class ClientDrawing extends EntityDrawing {
   private final Client client;
   private final ClientDrawingProperties properties;
 
-  public interface ClientDrawingProperties {
+  public interface ClientDrawingProperties extends DrawingProperties {
     boolean isShowClientPaths();
 
     boolean isShowClientNames();
