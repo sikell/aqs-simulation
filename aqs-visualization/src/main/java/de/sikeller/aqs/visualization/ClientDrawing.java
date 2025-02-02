@@ -5,14 +5,20 @@ import static java.lang.Math.round;
 import de.sikeller.aqs.model.Client;
 import java.awt.*;
 import java.util.Collection;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
+import java.util.Comparator;
+import java.util.List;
 
-@RequiredArgsConstructor
 public class ClientDrawing extends EntityDrawing {
-  private final int CLIENT_MARKER_SIZE = 10;
+  private final int DEFAULT_MARKER_SIZE = 2;
+  private final int markerSize;
   private final Client client;
   private final ClientDrawingProperties properties;
+
+  public ClientDrawing(Client client, ClientDrawingProperties properties) {
+    this.client = client;
+    this.properties = properties;
+    this.markerSize = DEFAULT_MARKER_SIZE * properties.getScale();
+  }
 
   public interface ClientDrawingProperties extends DrawingProperties {
     boolean isShowClientPaths();
@@ -20,11 +26,12 @@ public class ClientDrawing extends EntityDrawing {
     boolean isShowClientNames();
   }
 
-  public static Collection<ClientDrawing> of(
+  public static List<ClientDrawing> of(
       Collection<Client> collection, ClientDrawingProperties properties) {
     return collection.stream()
+        .sorted(Comparator.comparing(Client::getName))
         .map((Client c) -> new ClientDrawing(c, properties))
-        .collect(Collectors.toSet());
+        .toList();
   }
 
   @Override
@@ -47,10 +54,10 @@ public class ClientDrawing extends EntityDrawing {
   private void printTarget(Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
     g.setColor(Color.LIGHT_GRAY);
     g.fillOval(
-        (int) round(client.getTarget().getX() * canvasWidthRatio) - CLIENT_MARKER_SIZE / 3,
-        (int) round(client.getTarget().getY() * canvasHeightRatio) - CLIENT_MARKER_SIZE / 3,
-        (int) round(CLIENT_MARKER_SIZE / 1.5),
-        (int) round(CLIENT_MARKER_SIZE / 1.5));
+        (int) round(client.getTarget().getX() * canvasWidthRatio) - markerSize / 3,
+        (int) round(client.getTarget().getY() * canvasHeightRatio) - markerSize / 3,
+        (int) round(markerSize / 1.5),
+        (int) round(markerSize / 1.5));
     g.setStroke(
         new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[] {9}, 0));
     g.drawLine(
@@ -67,10 +74,10 @@ public class ClientDrawing extends EntityDrawing {
       g.setColor(Color.BLUE);
     }
     g.fillOval(
-        (int) round(client.getPosition().getX() * canvasWidthRatio) - CLIENT_MARKER_SIZE / 2,
-        (int) round(client.getPosition().getY() * canvasHeightRatio) - CLIENT_MARKER_SIZE / 2,
-        CLIENT_MARKER_SIZE,
-        CLIENT_MARKER_SIZE);
+        (int) round(client.getPosition().getX() * canvasWidthRatio) - markerSize / 2,
+        (int) round(client.getPosition().getY() * canvasHeightRatio) - markerSize / 2,
+        markerSize,
+        markerSize);
   }
 
   private void printName(Graphics g, double canvasWidthRatio, double canvasHeightRatio) {
@@ -84,7 +91,8 @@ public class ClientDrawing extends EntityDrawing {
         client.getName(),
         (int)
             round(
-                client.getPosition().getX() * canvasWidthRatio + ((double) CLIENT_MARKER_SIZE / 2)),
-        (int) round(client.getPosition().getY() * canvasHeightRatio + CLIENT_MARKER_SIZE + 15));
+                client.getPosition().getX() * canvasWidthRatio
+                    + ((double) DEFAULT_MARKER_SIZE / 2)),
+        (int) round(client.getPosition().getY() * canvasHeightRatio + DEFAULT_MARKER_SIZE + 15));
   }
 }

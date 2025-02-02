@@ -6,8 +6,8 @@ import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.model.Taxi;
 import java.awt.*;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TaxiDrawing extends EntityDrawing {
   private static final int DEFAULT_MARKER_SIZE = 5;
@@ -27,11 +27,12 @@ public class TaxiDrawing extends EntityDrawing {
     boolean isShowTaxiNames();
   }
 
-  public static Collection<TaxiDrawing> of(
+  public static List<TaxiDrawing> of(
       Collection<Taxi> collection, TaxiDrawingProperties properties) {
     return collection.stream()
+        .sorted(Comparator.comparing(Taxi::getName))
         .map((Taxi t) -> new TaxiDrawing(t, properties))
-        .collect(Collectors.toSet());
+        .toList();
   }
 
   @Override
@@ -92,8 +93,8 @@ public class TaxiDrawing extends EntityDrawing {
     g.fillOval(
         (int) round(taxi.getPosition().getX() * canvasWidthRatio) - markerSize / 2,
         (int) round(taxi.getPosition().getY() * canvasHeightRatio) - markerSize / 2,
-            markerSize,
-            markerSize);
+        markerSize,
+        markerSize);
   }
 
   private void printName(Graphics g, double canvasWidthRatio, double canvasHeightRatio) {
@@ -103,9 +104,6 @@ public class TaxiDrawing extends EntityDrawing {
         taxi.getName(),
         (int) round(taxi.getPosition().getX() * canvasWidthRatio - ((double) markerSize / 2)),
         (int)
-            round(
-                taxi.getPosition().getY() * canvasHeightRatio
-                    + ((double) markerSize / 2)
-                    + 15));
+            round(taxi.getPosition().getY() * canvasHeightRatio + ((double) markerSize / 2) + 15));
   }
 }

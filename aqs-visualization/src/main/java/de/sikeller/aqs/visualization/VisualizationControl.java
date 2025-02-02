@@ -20,9 +20,9 @@ public class VisualizationControl extends JPanel {
     GridBagConstraints bagConstraints = new GridBagConstraints();
     bagConstraints.anchor = GridBagConstraints.WEST;
 
-    bagConstraints.gridy = 0;
-    bagConstraints.gridx = 0;
     add(
+        0,
+        0,
         checkBox(
             "Show client paths",
             "showClientPaths",
@@ -31,9 +31,9 @@ public class VisualizationControl extends JPanel {
             properties::setShowClientPaths),
         bagConstraints);
 
-    bagConstraints.gridy = 0;
-    bagConstraints.gridx = 1;
     add(
+        0,
+        1,
         checkBox(
             "Show client names",
             "showClientNames",
@@ -42,9 +42,9 @@ public class VisualizationControl extends JPanel {
             properties::setShowClientNames),
         bagConstraints);
 
-    bagConstraints.gridy = 1;
-    bagConstraints.gridx = 0;
     add(
+        1,
+        0,
         checkBox(
             "Show taxi paths",
             "showTaxiPaths",
@@ -53,9 +53,9 @@ public class VisualizationControl extends JPanel {
             properties::setShowTaxiPaths),
         bagConstraints);
 
-    bagConstraints.gridy = 1;
-    bagConstraints.gridx = 1;
     add(
+        1,
+        1,
         checkBox(
             "Show taxi names",
             "showTaxiNames",
@@ -64,13 +64,11 @@ public class VisualizationControl extends JPanel {
             properties::setShowTaxiNames),
         bagConstraints);
 
-    bagConstraints.gridy = 2;
-    bagConstraints.gridx = 0;
-    add(label("Scale", "scaleLabel"), bagConstraints);
+    add(2, 0, label("Scale", "scaleLabel"), bagConstraints);
 
-    bagConstraints.gridy = 3;
-    bagConstraints.gridx = 0;
     add(
+        3,
+        0,
         slider(
             "scaleSlider",
             "Scale the rendered visualization.",
@@ -79,6 +77,12 @@ public class VisualizationControl extends JPanel {
             properties.getScale(),
             properties::setScale),
         bagConstraints);
+  }
+
+  private void add(int y, int x, Component component, GridBagConstraints bagConstraints) {
+    bagConstraints.gridy = y;
+    bagConstraints.gridx = x;
+    add(component, bagConstraints);
   }
 
   private JLabel label(String displayName, String name) {

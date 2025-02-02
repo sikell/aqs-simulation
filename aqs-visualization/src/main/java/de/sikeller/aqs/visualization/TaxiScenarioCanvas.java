@@ -4,7 +4,9 @@ import de.sikeller.aqs.model.World;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.swing.*;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class TaxiScenarioCanvas extends JPanel {
   private final double height;
   private final double width;
@@ -23,33 +25,29 @@ public class TaxiScenarioCanvas extends JPanel {
     this.bufferedImage = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_RGB);
   }
 
-  public void update(World world) {
-    SwingUtilities.invokeLater(
-        () -> {
-          Graphics2D g2d = bufferedImage.createGraphics();
-          g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-          g2d.setRenderingHint(
-              RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+  public void repaint(World world) {
+    Graphics2D g2d = bufferedImage.createGraphics();
+    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    g2d.setRenderingHint(
+        RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-          g2d.setColor(Color.WHITE);
-          g2d.fillRect(0, 0, canvasWidth, canvasHeight);
+    g2d.setColor(Color.WHITE);
+    g2d.fillRect(0, 0, canvasWidth, canvasHeight);
 
-          double widthRatio = canvasWidth / width;
-          double heightRatio = canvasHeight / height;
+    double widthRatio = canvasWidth / width;
+    double heightRatio = canvasHeight / height;
 
-          var taxis = TaxiDrawing.of(world.getTaxis(), visuProperties);
-          var clients = ClientDrawing.of(world.getClients(), visuProperties);
+    var taxis = TaxiDrawing.of(world.getTaxis(), visuProperties);
+    var clients = ClientDrawing.of(world.getClients(), visuProperties);
 
-          clients.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
-          taxis.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
+    clients.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
+    taxis.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
 
-          clients.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
-          taxis.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
+    clients.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
+    taxis.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
 
-          g2d.dispose();
-
-          repaint();
-        });
+    g2d.dispose();
+    SwingUtilities.invokeLater(this::repaint);
   }
 
   @Override
