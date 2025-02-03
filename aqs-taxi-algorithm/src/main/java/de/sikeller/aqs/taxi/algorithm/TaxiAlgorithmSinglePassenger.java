@@ -18,7 +18,7 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
 
   @Override
   public SimulationConfiguration getParameters() {
-    return new SimulationConfiguration("DetectionRadius", "Color");
+    return new SimulationConfiguration();
   }
 
   @Override

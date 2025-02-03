@@ -25,19 +25,21 @@ public class ResultVisualization extends AbstractVisualization {
     super("Taxi Scenario Results");
     frame.setMinimumSize(new Dimension(600, 200));
     frame.setLayout(new GridLayout());
+    showDiagram();
+
   }
 
   public void showResults(ResultTable resultTable) {
-
+    updateChart(resultTable);
     if (table == null) {
       model = new DefaultTableModel(resultTable.getData(), resultTable.getColumns());
       table = new JTable(model);
       scrollPane = new JScrollPane(table);
       scrollPane.setMaximumSize(new Dimension(500, 200));
-      showDiagram(resultTable);
+
       frame.setLayout(new GridLayout(0, 1));
-      frame.add(scrollPane);
       frame.add(panel);
+      frame.add(scrollPane);
       frame.pack();
       openResults();
     } else {
@@ -49,19 +51,7 @@ public class ResultVisualization extends AbstractVisualization {
     }
   }
 
-  public void showDiagram(ResultTable resultTable) {
-    for (int i = 1; i < 4; i++) {
-      taxiDataset.addValue(
-          Double.parseDouble(resultTable.getData()[0][i].toString()),
-          resultTable.getData()[0][0].toString(),
-          resultTable.getColumns()[i]);
-      clientDataset.addValue(
-          Double.parseDouble(resultTable.getData()[1][i].toString()),
-          resultTable.getData()[1][0].toString(),
-          resultTable.getColumns()[i]);
-    }
-
-    if (panel == null) {
+  public void showDiagram() {
       JFreeChart taxiChart =
           ChartFactory.createBarChart("Taxi-Data", "Categories", "Time", taxiDataset);
       JFreeChart clientChart =
@@ -74,6 +64,26 @@ public class ResultVisualization extends AbstractVisualization {
       panel.setLayout(new GridLayout(0, 2));
       panel.add(taxiChartPanel);
       panel.add(clientChartPanel);
+
+    frame.pack();
+  }
+
+  public void updateChart(ResultTable resultTable) {
+    for (int i = 1; i < 4; i++) {
+      taxiDataset.addValue(
+              Double.parseDouble(resultTable.getData()[0][i].toString()),
+              resultTable.getData()[0][0].toString(),
+              resultTable.getColumns()[i]);
+      clientDataset.addValue(
+              Double.parseDouble(resultTable.getData()[1][i].toString()),
+              resultTable.getData()[1][0].toString(),
+              resultTable.getColumns()[i]);
+    }
+    for(int i = 0; i < taxiDataset.getColumnCount(); i++) {
+      for(int j = 0; j < taxiDataset.getRowCount(); j++) {
+
+        System.out.println(taxiDataset.getValue(j,i));
+      }
     }
     frame.pack();
   }

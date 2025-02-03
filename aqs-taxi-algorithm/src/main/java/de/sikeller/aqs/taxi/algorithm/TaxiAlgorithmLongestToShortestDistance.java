@@ -18,7 +18,7 @@ public class TaxiAlgorithmLongestToShortestDistance extends AbstractTaxiAlgorith
 
     @Override
     public SimulationConfiguration getParameters() {
-        return new SimulationConfiguration("test1", "test2");
+        return new SimulationConfiguration();
     }
 
     @Override
