@@ -2,12 +2,20 @@ package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.*;
 
+import java.util.Map;
 import java.util.Set;
 
 import static de.sikeller.aqs.model.ClientMode.MOVING;
 import static org.reflections.Reflections.log;
 
 public class TaxiAlgorithmShortestToLongestDistance extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
+
+    private Map<String, Integer> parameters;
+
+    public void setParameters(Map<String, Integer> parameters) {
+        this.parameters = parameters;
+    }
+
     @Override
     public SimulationConfiguration getParameters() {
         return new SimulationConfiguration("test1", "test2");

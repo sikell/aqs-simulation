@@ -3,15 +3,23 @@ package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
+
+import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
+  private Map<String, Integer> parameters;
+
+  public void setParameters(Map<String, Integer> parameters) {
+    this.parameters = parameters;
+  }
+
   @Override
   public SimulationConfiguration getParameters() {
-    return new SimulationConfiguration("DetectionRadius", "Color");
+    return new SimulationConfiguration("DetectionRadius", "MaxDegree");
   }
 
   @Override
@@ -42,8 +50,8 @@ public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm impleme
       }
       // todo this number should be configurable by parameter:
       if (!otherClient.v1().equals(nextClient)
-          && isDifferenceSmallerThan(direction, otherClient.v2(), 10)
-          && nextClient.getPosition().distance(otherClient.v1().getPosition()) < 100) {
+          && isDifferenceSmallerThan(direction, otherClient.v2(), parameters.get("MaxDegree"))
+          && nextClient.getPosition().distance(otherClient.v1().getPosition()) < parameters.get("DetectionRadius")) {
         Client client = otherClient.v1();
         planClientForTaxi(nearestTaxi, client, TargetList.mergeOrders);
       }

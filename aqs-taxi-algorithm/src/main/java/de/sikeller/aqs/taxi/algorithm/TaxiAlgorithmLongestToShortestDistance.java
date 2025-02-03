@@ -10,6 +10,12 @@ import static org.reflections.Reflections.log;
 
 public class TaxiAlgorithmLongestToShortestDistance extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
+    private Map<String, Integer> parameters;
+
+    public void setParameters(Map<String, Integer> parameters) {
+        this.parameters = parameters;
+    }
+
     @Override
     public SimulationConfiguration getParameters() {
         return new SimulationConfiguration("test1", "test2");

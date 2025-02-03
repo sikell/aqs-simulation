@@ -2,11 +2,19 @@ package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
+
+import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
+
+  private Map<String, Integer> parameters;
+
+  public void setParameters(Map<String, Integer> parameters) {
+    this.parameters = parameters;
+  }
 
   @Override
   public SimulationConfiguration getParameters() {

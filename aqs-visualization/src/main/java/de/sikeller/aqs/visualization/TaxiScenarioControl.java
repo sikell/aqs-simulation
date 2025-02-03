@@ -13,6 +13,7 @@ public class TaxiScenarioControl extends JPanel {
   private List<Class<?>> algorithmList;
   private final SimulationControl simulation;
   private Map<String, Integer> inputParameters;
+  private Map<String, Integer> algorithmParameters;
   private HashMap<String, Component> componentMap;
   private JPanel buttons;
   private JPanel worldInputs;
@@ -30,6 +31,7 @@ public class TaxiScenarioControl extends JPanel {
     buttons = new JPanel();
     worldInputs = new JPanel();
     algorithmInputs = new JPanel();
+    algorithmParameters = new HashMap<>();
     selection = new JPanel();
     buttons.setName("buttons");
     buttons.setName("inputs");
@@ -88,7 +90,7 @@ public class TaxiScenarioControl extends JPanel {
               }
             }
 
-            simulation.getAlgorithm().setAlgorithm(instantiateAlgorithm(selectedAlgorithm));
+            simulation.getAlgorithm().setAlgorithm(instantiateAlgorithm(selectedAlgorithm, algorithmParameters));
           }
           generateParameters();
         });
@@ -181,6 +183,7 @@ public class TaxiScenarioControl extends JPanel {
               System.out.println(textField.getName());
               System.out.println(textField.getText());
               input.put(textField.getName(), Integer.parseInt(textField.getText()));
+              algorithmParameters.put(textField.getName(), Integer.parseInt(textField.getText()));
             }
           }
 
@@ -211,10 +214,12 @@ public class TaxiScenarioControl extends JPanel {
     return null;
   }
 
-  private static TaxiAlgorithm instantiateAlgorithm(String algorithmName) {
+  private static TaxiAlgorithm instantiateAlgorithm(String algorithmName, Map<String, Integer>parameters) {
     try {
-      Class<?> algorithm = Class.forName(algorithmName);
-      return (TaxiAlgorithm) algorithm.getDeclaredConstructor().newInstance();
+      Class<?> algorithmClassName = Class.forName(algorithmName);
+      TaxiAlgorithm algorithm = (TaxiAlgorithm) algorithmClassName.getDeclaredConstructor().newInstance();
+      algorithm.setParameters(parameters);
+      return algorithm;
     } catch (ClassNotFoundException
         | InvocationTargetException
         | InstantiationException
@@ -227,6 +232,9 @@ public class TaxiScenarioControl extends JPanel {
   private void generateParameters() {
     Set<String> parameters = simulation.getSimulationParameters().getParameters();
     algorithmInputs.removeAll();
+    if (!algorithmParameters.isEmpty()) {
+      algorithmParameters.clear();
+    }
     inputParameters = new HashMap<>();
     inputParameters.put("taxiCount", 0);
     inputParameters.put("clientCount", 0);
@@ -241,6 +249,7 @@ public class TaxiScenarioControl extends JPanel {
           textField.setName(parameter);
           algorithmInputs.add(textField);
           inputParameters.put(parameter, 0);
+          algorithmParameters.put(parameter, 0);
         });
     SwingUtilities.updateComponentTreeUI(worldInputs);
   }

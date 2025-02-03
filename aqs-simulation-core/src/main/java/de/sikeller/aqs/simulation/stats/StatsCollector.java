@@ -15,16 +15,15 @@ public class StatsCollector {
   private static final String DOUBLE_FORMAT = "%.02f";
   private Result<Double> travelDistance;
   private Result<Long> travelTime;
-  private int runCounter;
+  private int runCounter = 0;
 
   public void collect(EventList eventList, World world) {
     collectClientTravelTime(eventList);
     collectTaxiTravelDistance(world);
-    runCounter = 0;
+    runCounter++;
   }
 
   public ResultTable tableResults() {
-    runCounter++;
     var columns = new String[] {"Result", "Min", "Max", "Avg", "Sum", "Count"};
 
     var data = new Object[2][];
