@@ -4,7 +4,9 @@ import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.util.function.Consumer;
 import javax.swing.*;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class VisualizationControl extends JPanel {
   private final VisualizationProperties properties;
 
@@ -18,9 +20,9 @@ public class VisualizationControl extends JPanel {
     GridBagConstraints bagConstraints = new GridBagConstraints();
     bagConstraints.anchor = GridBagConstraints.WEST;
 
-    bagConstraints.gridy = 0;
-    bagConstraints.gridx = 0;
     add(
+        0,
+        0,
         checkBox(
             "Show client paths",
             "showClientPaths",
@@ -29,9 +31,9 @@ public class VisualizationControl extends JPanel {
             properties::setShowClientPaths),
         bagConstraints);
 
-    bagConstraints.gridy = 0;
-    bagConstraints.gridx = 1;
     add(
+        0,
+        1,
         checkBox(
             "Show client names",
             "showClientNames",
@@ -40,9 +42,9 @@ public class VisualizationControl extends JPanel {
             properties::setShowClientNames),
         bagConstraints);
 
-    bagConstraints.gridy = 1;
-    bagConstraints.gridx = 0;
     add(
+        1,
+        0,
         checkBox(
             "Show taxi paths",
             "showTaxiPaths",
@@ -51,9 +53,9 @@ public class VisualizationControl extends JPanel {
             properties::setShowTaxiPaths),
         bagConstraints);
 
-    bagConstraints.gridy = 1;
-    bagConstraints.gridx = 1;
     add(
+        1,
+        1,
         checkBox(
             "Show taxi names",
             "showTaxiNames",
@@ -61,6 +63,26 @@ public class VisualizationControl extends JPanel {
             properties.isShowTaxiNames(),
             properties::setShowTaxiNames),
         bagConstraints);
+
+    add(2, 0, label("Scale", "scaleLabel"), bagConstraints);
+
+    add(
+        3,
+        0,
+        slider(
+            "scaleSlider",
+            "Scale the rendered visualization.",
+            1,
+            10,
+            properties.getScale(),
+            properties::setScale),
+        bagConstraints);
+  }
+
+  private void add(int y, int x, Component component, GridBagConstraints bagConstraints) {
+    bagConstraints.gridy = y;
+    bagConstraints.gridx = x;
+    add(component, bagConstraints);
   }
 
   private JLabel label(String displayName, String name) {
@@ -82,5 +104,24 @@ public class VisualizationControl extends JPanel {
     checkBox.setSelected(defaultValue);
     checkBox.addItemListener(e -> onChange.accept(e.getStateChange() == ItemEvent.SELECTED));
     return checkBox;
+  }
+
+  private JSlider slider(
+      String name, String tooltip, int min, int max, int defaultValue, Consumer<Integer> onChange) {
+    JSlider slider = new JSlider();
+    slider.setName(name);
+    slider.setToolTipText(tooltip);
+    slider.setMaximum(max);
+    slider.setMinimum(min);
+    slider.setValue(defaultValue);
+    slider.addChangeListener(
+        e -> {
+          JSlider source = (JSlider) e.getSource();
+          if (!source.getValueIsAdjusting()) {
+            int value = source.getValue();
+            onChange.accept(value);
+          }
+        });
+    return slider;
   }
 }

@@ -4,7 +4,7 @@ import java.awt.*;
 
 public abstract class EntityDrawing {
 
-  private static final Font DEFAULT_FONT = new Font("Arial", Font.BOLD, 16);
+  private static final Font DEFAULT_FONT = new Font("Arial", Font.BOLD, 11);
 
   public abstract void printBackgroundShape(
       Graphics2D g, double canvasWidthRatio, double canvasHeightRatio);

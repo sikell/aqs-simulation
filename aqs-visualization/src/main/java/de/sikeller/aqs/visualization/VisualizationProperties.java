@@ -9,4 +9,5 @@ public class VisualizationProperties
   private boolean showClientNames = true;
   private boolean showTaxiPaths = true;
   private boolean showTaxiNames = true;
+  private int scale = 6;
 }

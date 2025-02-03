@@ -15,6 +15,7 @@ public class Main {
 
     var runner = new SimulationRunner(world, algorithm);
     var visualisation = new SimulationVisualization(world, runner);
+    visualisation.start();
 
     runner.registerObserver(visualisation);
     do {

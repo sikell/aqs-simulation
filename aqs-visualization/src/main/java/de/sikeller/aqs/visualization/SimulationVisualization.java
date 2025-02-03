@@ -3,17 +3,16 @@ package de.sikeller.aqs.visualization;
 import de.sikeller.aqs.model.SimulationControl;
 import de.sikeller.aqs.model.SimulationObserver;
 import de.sikeller.aqs.model.World;
-import lombok.extern.slf4j.Slf4j;
-
-import javax.swing.*;
 import java.awt.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.swing.*;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SimulationVisualization extends AbstractVisualization implements SimulationObserver {
+  private static final int REPAINT_INTERVAL_MS = 50;
   private final TaxiScenarioCanvas canvas;
-  private final ExecutorService service = Executors.newSingleThreadExecutor();
+  private final AtomicReference<World> snapshot = new AtomicReference<>();
 
   public SimulationVisualization(World world, SimulationControl simulation) {
     super("Taxi Scenario Simulation");
@@ -26,6 +25,7 @@ public class SimulationVisualization extends AbstractVisualization implements Si
     canvas = new TaxiScenarioCanvas(world, visuProperties);
 
     frame.setLayout(new GridLayout(1, 2));
+    frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
     frame.add(controls);
     frame.add(canvas);
     frame.setVisible(true);
@@ -33,14 +33,23 @@ public class SimulationVisualization extends AbstractVisualization implements Si
   }
 
   @Override
+  public void run() {
+    Timer timer =
+        new Timer(
+            REPAINT_INTERVAL_MS,
+            e -> {
+              World world = snapshot.get();
+              if (world == null) return;
+              canvas.repaint(world);
+              if (!frame.isVisible()) {
+                frame.setVisible(true);
+              }
+            });
+    timer.start();
+  }
+
+  @Override
   public void onUpdate(World world) {
-    var snapshot = world.snapshot();
-    service.submit(
-        () -> {
-          canvas.update(snapshot);
-          if (!frame.isVisible()) {
-            frame.setVisible(true);
-          }
-        });
+    snapshot.set(world.snapshot());
   }
 }

@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.net.URL;
 import java.util.Objects;
 
-public abstract class AbstractVisualization {
+public abstract class AbstractVisualization extends Thread {
   protected final JFrame frame;
 
   protected AbstractVisualization(String title) {
