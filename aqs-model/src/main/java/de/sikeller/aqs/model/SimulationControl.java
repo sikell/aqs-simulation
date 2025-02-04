@@ -1,6 +1,5 @@
 package de.sikeller.aqs.model;
 
-
 import java.util.Map;
 
 public interface SimulationControl {
@@ -19,5 +18,7 @@ public interface SimulationControl {
 
   void showResultVisualization();
 
+  int getSpeed();
 
+  void setSpeed(int speed);
 }
