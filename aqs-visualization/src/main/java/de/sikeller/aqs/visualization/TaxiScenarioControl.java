@@ -35,26 +35,32 @@ public class TaxiScenarioControl extends JPanel {
     algorithmInputs = new JPanel();
     algorithmParameters = new HashMap<>();
     selection = new JPanel();
+
     buttons.setName("buttons");
     buttons.setName("inputs");
     buttons.add(startButton());
     buttons.add(stopButton());
     buttons.add(initializeSimulationButton());
     buttons.add(showResultsButton());
+
     selection.add(algorithmSelectionLabel());
     selection.add(algorithmSelectionBox());
     selection.add(algorithmSelectionButton());
+
     worldInputs.add(taxiCountLabel());
     worldInputs.add(taxiCountTextField());
     worldInputs.add(clientCountLabel());
     worldInputs.add(clientCountTextField());
-    controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
     worldInputs.setLayout(new GridLayout(5, 2));
+
+    controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
     controls.add(selection);
     controls.add(buttons);
     controls.add(worldInputs);
     controls.add(algorithmInputs);
+
     createComponentMap();
+
     return controls;
   }
 
@@ -65,6 +71,7 @@ public class TaxiScenarioControl extends JPanel {
     JComboBox<String> algorithms = new JComboBox<>();
     algorithms.setName("algorithmSelectionBox");
     choices.forEach(algorithms::addItem);
+    algorithms.setSelectedItem(simulation.getAlgorithm().getAlgorithm().getClass().getSimpleName());
     return algorithms;
   }
 
@@ -190,7 +197,6 @@ public class TaxiScenarioControl extends JPanel {
             inputParameters.putAll(input);
 
             startButton.setEnabled(true);
-            button.setEnabled(false);
 
             simulation.init(inputParameters);
           } catch (Exception exception) {

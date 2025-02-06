@@ -79,12 +79,6 @@ public class ResultVisualization extends AbstractVisualization {
               resultTable.getData()[1][0].toString(),
               resultTable.getColumns()[i]);
     }
-    for(int i = 0; i < taxiDataset.getColumnCount(); i++) {
-      for(int j = 0; j < taxiDataset.getRowCount(); j++) {
-
-        System.out.println(taxiDataset.getValue(j,i));
-      }
-    }
     frame.pack();
   }
 
