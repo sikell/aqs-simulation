@@ -11,7 +11,7 @@ import javax.swing.*;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TaxiScenarioControl extends JPanel {
+public class TaxiScenarioControl extends AbstractControl {
   private List<Class<?>> algorithmList;
   private final SimulationControl simulation;
   private Map<String, Integer> inputParameters;
