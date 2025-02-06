@@ -4,13 +4,12 @@ import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import de.sikeller.aqs.simulation.stats.StatsCollector;
 import de.sikeller.aqs.visualization.ResultVisualization;
+import java.util.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -24,6 +23,7 @@ public class SimulationRunner implements SimulationControl {
   private final EventDispatcher eventDispatcher = EventDispatcher.instance();
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
+  private volatile int speed = 10;
   private volatile boolean simulationFinished;
 
   private void initWorld(Map<String, Integer> parameters) {
@@ -60,19 +60,20 @@ public class SimulationRunner implements SimulationControl {
 
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
-  public void run(long sleep) {
+  public void run() {
     simulationFinished = false;
+    WorldSimulator worldSimulator = new WorldSimulator(world);
     do {
-      Thread.sleep(sleep);
       while (!world.isFinished()) {
-        Thread.sleep(sleep);
+        int sleepMillis = (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1));
+        Thread.sleep(sleepMillis);
         if (!running) {
           continue;
         }
         var currentTime = world.getCurrentTime() + 1;
         var result = algorithm.getAlgorithm().nextStep(world);
         log.debug("Step {}: {}", currentTime, result);
-        new WorldSimulator(world).move(currentTime);
+        worldSimulator.move(currentTime);
         listeners.forEach(l -> l.onUpdate(world));
       }
 
@@ -118,8 +119,8 @@ public class SimulationRunner implements SimulationControl {
     if (!world.getClients().isEmpty()) {
       world.reset();
     }
-    System.out.println(world.getClients());
-    System.out.println(world.getTaxis());
+    log.debug("{}", world.getClients());
+    log.debug("{}", world.getTaxis());
     initWorld(parameters);
     algorithm.getAlgorithm().init(world);
     listeners.forEach(l -> l.onUpdate(world));

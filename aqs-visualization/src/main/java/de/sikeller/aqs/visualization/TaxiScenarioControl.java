@@ -35,25 +35,22 @@ public class TaxiScenarioControl extends JPanel {
     algorithmInputs = new JPanel();
     algorithmParameters = new HashMap<>();
     selection = new JPanel();
-
-    buttons.setName("buttons");
-    buttons.setName("inputs");
+    buttons.add(initializeSimulationButton());
     buttons.add(startButton());
     buttons.add(stopButton());
-    buttons.add(initializeSimulationButton());
     buttons.add(showResultsButton());
-
-    selection.add(algorithmSelectionLabel());
+    selection.add(label("Select algorithm", "algoSelectionLabel"));
     selection.add(algorithmSelectionBox());
     selection.add(algorithmSelectionButton());
-
-    worldInputs.add(taxiCountLabel());
+    worldInputs.add(label("Taxi count", "taxiCountLabel"));
     worldInputs.add(taxiCountTextField());
-    worldInputs.add(clientCountLabel());
+    worldInputs.add(label("Client count", "clientCountLabel"));
     worldInputs.add(clientCountTextField());
+    worldInputs.add(label("Simulation speed", "simulationSpeedLabel"));
+    worldInputs.add(simulationSpeed());
+    controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
     worldInputs.setLayout(new GridLayout(5, 2));
 
-    controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
     controls.add(selection);
     controls.add(buttons);
     controls.add(worldInputs);
@@ -71,12 +68,7 @@ public class TaxiScenarioControl extends JPanel {
     JComboBox<String> algorithms = new JComboBox<>();
     algorithms.setName("algorithmSelectionBox");
     choices.forEach(algorithms::addItem);
-    algorithms.setSelectedItem(simulation.getAlgorithm().getAlgorithm().getClass().getSimpleName());
     return algorithms;
-  }
-
-  private JLabel algorithmSelectionLabel() {
-    return new JLabel("Selected Algorithm");
   }
 
   private JButton algorithmSelectionButton() {
@@ -99,7 +91,9 @@ public class TaxiScenarioControl extends JPanel {
               }
             }
 
-            simulation.getAlgorithm().setAlgorithm(instantiateAlgorithm(selectedAlgorithm, algorithmParameters));
+            simulation
+                .getAlgorithm()
+                .setAlgorithm(instantiateAlgorithm(selectedAlgorithm, algorithmParameters));
           }
           generateParameters();
         });
@@ -111,12 +105,13 @@ public class TaxiScenarioControl extends JPanel {
     JButton button = new JButton("Start");
     button.setName("startButton");
     button.setEnabled(false);
-    button.addActionListener(e -> {
-      simulation.start();
-      button.setEnabled(false);
-      Objects.requireNonNull(getComponentByName("initializeSimulationButton")).setEnabled(true);
-      Objects.requireNonNull(getComponentByName("stopButton")).setEnabled(true);
-    });
+    button.addActionListener(
+        e -> {
+          simulation.start();
+          button.setEnabled(false);
+          Objects.requireNonNull(getComponentByName("initializeSimulationButton")).setEnabled(true);
+          Objects.requireNonNull(getComponentByName("stopButton")).setEnabled(true);
+        });
     return button;
   }
 
@@ -124,37 +119,46 @@ public class TaxiScenarioControl extends JPanel {
     JButton button = new JButton("Stop");
     button.setName("stopButton");
     button.setEnabled(false);
-    button.addActionListener(e -> {
-      simulation.stop();
-      Objects.requireNonNull(getComponentByName("startButton")).setEnabled(true);
-    });
+    button.addActionListener(
+        e -> {
+          simulation.stop();
+          Objects.requireNonNull(getComponentByName("startButton")).setEnabled(true);
+        });
     return button;
   }
 
-  private JLabel taxiCountLabel() {
-    JLabel label = new JLabel("TaxiCount:");
-    label.setName("taxiCountLabel");
-    return label;
+  private JSlider simulationSpeed() {
+    JSlider slider = new JSlider();
+    slider.setName("simulationSpeedSlider");
+    slider.setToolTipText("Speed of simulation");
+    slider.setMaximum(100);
+    slider.setMinimum(1);
+    slider.setValue(simulation.getSpeed());
+    slider.addChangeListener(
+        e -> {
+          JSlider source = (JSlider) e.getSource();
+          if (!source.getValueIsAdjusting()) {
+            int value = source.getValue();
+            simulation.setSpeed(value);
+          }
+        });
+    return slider;
   }
 
   private JTextField taxiCountTextField() {
     JTextField textField = new JTextField();
     textField.setName("taxiCount");
     textField.setColumns(4);
+    textField.setText("5");
     textField.setToolTipText("Set the Count of Taxis for the Simulation");
     return textField;
-  }
-
-  private JLabel clientCountLabel() {
-    JLabel label = new JLabel("ClientCount:");
-    label.setName("clientCountLabel");
-    return label;
   }
 
   private JTextField clientCountTextField() {
     JTextField textField = new JTextField();
     textField.setName("clientCount");
     textField.setColumns(4);
+    textField.setText("100");
     textField.setToolTipText("Set the Count of Clients for the Simulation");
     return textField;
   }
@@ -167,7 +171,7 @@ public class TaxiScenarioControl extends JPanel {
   }
 
   private JButton initializeSimulationButton() {
-    JButton button = new JButton("Initialize Simulation");
+    JButton button = new JButton("Initialize");
     button.setName("initializeSimulationButton");
 
     button.addActionListener(
@@ -185,14 +189,14 @@ public class TaxiScenarioControl extends JPanel {
               }
             }
 
-          for (Component component : algorithmInputs.getComponents()) {
-            if (component instanceof JTextField textField) {
-              System.out.println(textField.getName());
-              System.out.println(textField.getText());
-              input.put(textField.getName(), Integer.parseInt(textField.getText()));
-              algorithmParameters.put(textField.getName(), Integer.parseInt(textField.getText()));
+            for (Component component : algorithmInputs.getComponents()) {
+              if (component instanceof JTextField textField) {
+                System.out.println(textField.getName());
+                System.out.println(textField.getText());
+                input.put(textField.getName(), Integer.parseInt(textField.getText()));
+                algorithmParameters.put(textField.getName(), Integer.parseInt(textField.getText()));
+              }
             }
-          }
 
             inputParameters.putAll(input);
 
@@ -227,10 +231,12 @@ public class TaxiScenarioControl extends JPanel {
     return null;
   }
 
-  private static TaxiAlgorithm instantiateAlgorithm(String algorithmName, Map<String, Integer>parameters) {
+  private static TaxiAlgorithm instantiateAlgorithm(
+      String algorithmName, Map<String, Integer> parameters) {
     try {
       Class<?> algorithmClassName = Class.forName(algorithmName);
-      TaxiAlgorithm algorithm = (TaxiAlgorithm) algorithmClassName.getDeclaredConstructor().newInstance();
+      TaxiAlgorithm algorithm =
+          (TaxiAlgorithm) algorithmClassName.getDeclaredConstructor().newInstance();
       algorithm.setParameters(parameters);
       return algorithm;
     } catch (ClassNotFoundException
