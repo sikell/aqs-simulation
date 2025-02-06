@@ -62,6 +62,7 @@ public class SimulationRunner implements SimulationControl {
   @SuppressWarnings(value = "BusyWait")
   public void run() {
     simulationFinished = false;
+
     WorldSimulator worldSimulator = new WorldSimulator(world);
     do {
       while (!world.isFinished()) {
@@ -84,6 +85,7 @@ public class SimulationRunner implements SimulationControl {
     statsCollector.print();
 
     resultVisualization.showResults(statsCollector.tableResults());
+    eventDispatcher.resetEvents();
   }
 
   public void print() {

@@ -36,4 +36,6 @@ public class EventDispatcher implements EventList {
   public static void dispatch(Event event) {
     instance.dispatchEvent(event);
   }
-}
+
+  public void resetEvents() { this.eventList.clear();}
+  }
