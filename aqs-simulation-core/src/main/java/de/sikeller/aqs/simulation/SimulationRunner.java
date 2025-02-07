@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SimulationRunner implements SimulationControl {
   private final World world;
   private final Algorithm algorithm;
+  private final WorldGenerator worldGenerator;
   private final ResultVisualization resultVisualization = new ResultVisualization();
   private final StatsCollector statsCollector = new StatsCollector();
   private final EventDispatcher eventDispatcher = EventDispatcher.instance();
@@ -25,38 +26,6 @@ public class SimulationRunner implements SimulationControl {
   private volatile boolean running = false;
   private volatile int speed = 10;
   private volatile boolean simulationFinished;
-
-  private void initWorld(Map<String, Integer> parameters) {
-
-    parameters.forEach(
-        (parameter, value) -> {
-          if (parameter.contains("client")) {
-            for (int i = 0; i < value; i++) {
-              world
-                  .getClients()
-                  .add(
-                      Client.builder()
-                          .name("c" + i)
-                          .position(randomPosition())
-                          .target(randomPosition())
-                          .build());
-            }
-          } else if (parameter.contains("taxi")) {
-            for (int i = 0; i < value; i++) {
-              Position taxiPosition = randomPosition();
-              world
-                  .getTaxis()
-                  .add(
-                      Taxi.builder()
-                          .name("t" + i)
-                          .capacity(parameters.getOrDefault("taxiSeatCount", 2))
-                          .position(taxiPosition)
-                          .currentSpeed(parameters.getOrDefault("taxiSpeed", 1))
-                          .build());
-            }
-          }
-        });
-  }
 
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
@@ -97,11 +66,6 @@ public class SimulationRunner implements SimulationControl {
     log.info("=========================");
   }
 
-  private Position randomPosition() {
-    return new Position(
-        world.getRandom().nextInt(world.getMaxX()), world.getRandom().nextInt(world.getMaxY()));
-  }
-
   public void registerObserver(SimulationObserver observer) {
     listeners.add(observer);
   }
@@ -118,12 +82,7 @@ public class SimulationRunner implements SimulationControl {
 
   @Override
   public void init(Map<String, Integer> parameters) {
-    if (!world.getClients().isEmpty()) {
-      world.reset();
-    }
-    log.debug("{}", world.getClients());
-    log.debug("{}", world.getTaxis());
-    initWorld(parameters);
+    worldGenerator.init(world, parameters);
     algorithm.get().init(world);
     listeners.forEach(l -> l.onUpdate(world));
     print();

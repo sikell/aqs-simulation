@@ -36,6 +36,15 @@ public interface Entity {
   long getLastUpdate();
 
   /**
+   * Check whether this entity is spawned in a given point in time. Returns false if it will spawn
+   * in the future.
+   *
+   * @param currentTime the point in time to check
+   * @return false if it spawns in future and true if already spawned
+   */
+  boolean isSpawned(long currentTime);
+
+  /**
    * Returns true if the entity is currently moving towards its target, false otherwise.
    *
    * <p>This method is used to determine if the entity is currently moving towards its target. If

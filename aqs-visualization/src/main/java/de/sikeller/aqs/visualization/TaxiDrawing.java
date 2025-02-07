@@ -1,6 +1,7 @@
 package de.sikeller.aqs.visualization;
 
 import static de.sikeller.aqs.visualization.VisualizationUtils.defaultFont;
+import static de.sikeller.aqs.visualization.VisualizationUtils.taxiColor;
 import static java.lang.Math.round;
 
 import de.sikeller.aqs.model.Position;
@@ -90,7 +91,7 @@ public class TaxiDrawing extends EntityDrawing {
   }
 
   private void printPosition(Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
-    g.setColor(Color.RED);
+    g.setColor(taxiColor());
     g.fillOval(
         (int) round(taxi.getPosition().getX() * canvasWidthRatio) - markerSize / 2,
         (int) round(taxi.getPosition().getY() * canvasHeightRatio) - markerSize / 2,

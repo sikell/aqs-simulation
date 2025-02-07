@@ -20,7 +20,7 @@ public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
   }
 
   protected Set<Client> getWaitingClients(World world) {
-    return world.getClients().stream()
+    return world.getSpawnedClients().stream()
         .filter(client -> WAITING.equals(client.getMode()))
         .collect(Collectors.toSet());
   }

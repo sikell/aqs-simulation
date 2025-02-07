@@ -1,5 +1,8 @@
 package de.sikeller.aqs.visualization;
 
+import static de.sikeller.aqs.visualization.VisualizationUtils.successColor;
+import static de.sikeller.aqs.visualization.VisualizationUtils.todoColor;
+
 import de.sikeller.aqs.model.World;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -15,6 +18,8 @@ public class TaxiScenarioCanvas extends JPanel {
   private final int canvasWidth;
   private final int scale = 4;
   private final BufferedImage bufferedImage;
+  private final JProgressBar spawnProgressBar;
+  private final JProgressBar finishedProgressBar;
 
   public TaxiScenarioCanvas(World world, VisualizationProperties visuProperties) {
     this.height = world.getMaxY();
@@ -25,7 +30,23 @@ public class TaxiScenarioCanvas extends JPanel {
     setSize(canvasWidth, canvasHeight);
     this.bufferedImage =
         new BufferedImage(canvasWidth * scale, canvasHeight * scale, BufferedImage.TYPE_INT_RGB);
+
+    spawnProgressBar = createProgressBar(todoColor());
+    finishedProgressBar = createProgressBar(successColor());
+
     clear();
+  }
+
+  private JProgressBar createProgressBar(Color color) {
+    final JProgressBar progressBar;
+    progressBar = new JProgressBar(0, 100);
+    progressBar.setValue(0);
+    progressBar.setForeground(color);
+    progressBar.setMaximum(100);
+    progressBar.setStringPainted(true);
+    progressBar.setPreferredSize(new Dimension(300, 10));
+    add(progressBar);
+    return progressBar;
   }
 
   public void clear() {
@@ -34,6 +55,8 @@ public class TaxiScenarioCanvas extends JPanel {
     g2d.setColor(Color.WHITE);
     g2d.fillRect(0, 0, canvasWidth, canvasHeight);
     g2d.dispose();
+    spawnProgressBar.setValue(0);
+    finishedProgressBar.setValue(0);
     SwingUtilities.invokeLater(this::repaint);
   }
 
@@ -42,7 +65,8 @@ public class TaxiScenarioCanvas extends JPanel {
     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
     g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+    g2d.setRenderingHint(
+        RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
     g2d.scale(scale, scale);
 
     g2d.setColor(Color.WHITE);
@@ -52,15 +76,17 @@ public class TaxiScenarioCanvas extends JPanel {
     double heightRatio = canvasHeight / height;
 
     var taxis = TaxiDrawing.of(world.getTaxis(), visuProperties);
-    var clients = ClientDrawing.of(world.getClients(), visuProperties);
+    var clients = ClientDrawing.of(world.getSpawnedClients(), visuProperties);
 
     clients.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
     taxis.forEach(t -> t.printBackgroundShape(g2d, widthRatio, heightRatio));
 
     clients.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
     taxis.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
-
     g2d.dispose();
+
+    spawnProgressBar.setValue(world.getSpawnProgress());
+    finishedProgressBar.setValue(world.getFinishedProgress());
     SwingUtilities.invokeLater(this::repaint);
   }
 

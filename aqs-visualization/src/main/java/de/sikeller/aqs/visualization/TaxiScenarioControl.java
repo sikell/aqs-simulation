@@ -46,6 +46,8 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(taxiCountTextField());
     worldInputs.add(label("Client count", "clientCountLabel"));
     worldInputs.add(clientCountTextField());
+    worldInputs.add(label("Client spawn window", "clientSpawnWindowLabel"));
+    worldInputs.add(clientSpawnWindowTextField());
     worldInputs.add(label("Taxi seats", "taxiSeatCount"));
     worldInputs.add(taxiSeatCountTextField());
     worldInputs.add(label("Taxi speed", "taxiSpeed"));
@@ -53,7 +55,7 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(label("Simulation speed", "simulationSpeedLabel"));
     worldInputs.add(simulationSpeed());
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
-    worldInputs.setLayout(new GridLayout(5, 2));
+    worldInputs.setLayout(new GridLayout(6, 2));
 
     controls.add(selection);
     controls.add(buttons);
@@ -85,7 +87,6 @@ public class TaxiScenarioControl extends AbstractControl {
               (JComboBox<String>) getComponentByName("algorithmSelectionBox");
           String selectedItem;
 
-          System.out.println(selection);
           if (selection != null) {
             selectedItem = Objects.requireNonNull(selection.getSelectedItem()).toString();
             String selectedAlgorithm = "";
@@ -168,6 +169,15 @@ public class TaxiScenarioControl extends AbstractControl {
     return textField;
   }
 
+  private JTextField clientSpawnWindowTextField() {
+    JTextField textField = new JTextField();
+    textField.setName("clientSpawnWindow");
+    textField.setColumns(4);
+    textField.setText("1000");
+    textField.setToolTipText("Set the spawn time window in which clients can randomly spawn");
+    return textField;
+  }
+
   private JTextField taxiSeatCountTextField() {
     JTextField textField = new JTextField();
     textField.setName("taxiSeatCount");
@@ -206,16 +216,12 @@ public class TaxiScenarioControl extends AbstractControl {
             Map<String, Integer> input = new HashMap<>();
             for (Component component : worldInputs.getComponents()) {
               if (component instanceof JTextField textField) {
-                System.out.println(textField.getName());
-                System.out.println(textField.getText());
                 input.put(textField.getName(), Integer.parseInt(textField.getText()));
               }
             }
 
             for (Component component : algorithmInputs.getComponents()) {
               if (component instanceof JTextField textField) {
-                System.out.println(textField.getName());
-                System.out.println(textField.getText());
                 input.put(textField.getName(), Integer.parseInt(textField.getText()));
                 algorithmParameters.put(textField.getName(), Integer.parseInt(textField.getText()));
               }

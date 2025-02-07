@@ -29,6 +29,24 @@ public class World {
   private Function<World, Boolean> isFinished =
       world -> world.getClients().stream().allMatch(Client::isFinished);
 
+  public Set<Client> getSpawnedClients() {
+    return clients.stream()
+        .filter(client -> client.isSpawned(currentTime))
+        .collect(Collectors.toSet());
+  }
+
+  public Set<Client> getFinishedClients() {
+    return clients.stream().filter(Client::isFinished).collect(Collectors.toSet());
+  }
+
+  public int getSpawnProgress() {
+    return Math.round(1.0f * getSpawnedClients().size() / getClients().size() * 100);
+  }
+
+  public int getFinishedProgress() {
+    return Math.round(1.0f * getFinishedClients().size() / getClients().size() * 100);
+  }
+
   public boolean isFinished() {
     return isFinished.apply(this);
   }

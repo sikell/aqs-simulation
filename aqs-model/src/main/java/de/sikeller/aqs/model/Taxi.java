@@ -128,6 +128,11 @@ public class Taxi implements Entity {
   }
 
   @Override
+  public boolean isSpawned(long currentTime) {
+    return true;
+  }
+
+  @Override
   public boolean isMoving() {
     return !targets.isEmpty() && !position.equals(getTarget());
   }

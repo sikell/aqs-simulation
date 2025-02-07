@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(of = "name")
 public class Client implements Entity {
   private final String name;
+  @Builder.Default private long spawnTime = 0;
   @Builder.Default private ClientMode mode = ClientMode.WAITING;
   private Position position;
   private Position target;
@@ -20,12 +21,18 @@ public class Client implements Entity {
   public Client snapshot() {
     return Client.builder()
         .name(name)
+        .spawnTime(spawnTime)
         .mode(mode)
         .position(position)
         .target(target)
         .lastUpdate(lastUpdate)
         .currentSpeed(currentSpeed)
         .build();
+  }
+
+  @Override
+  public boolean isSpawned(long currentTime) {
+    return currentTime > spawnTime;
   }
 
   @Override
