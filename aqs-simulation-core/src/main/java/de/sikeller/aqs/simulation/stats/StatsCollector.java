@@ -59,7 +59,7 @@ public class StatsCollector {
   public void print() {
     if (travelDistance != null)
       log.info(
-          "[ Taxi travel distance ] run:{}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
+          "[ Taxi travel distance ] run: {}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
           runCounter,
           format(DOUBLE_FORMAT, travelDistance.min()),
           format(DOUBLE_FORMAT, travelDistance.max()),
