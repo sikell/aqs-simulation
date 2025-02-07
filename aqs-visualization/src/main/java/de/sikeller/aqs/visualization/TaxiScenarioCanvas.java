@@ -13,7 +13,7 @@ public class TaxiScenarioCanvas extends JPanel {
   private final VisualizationProperties visuProperties;
   private final int canvasHeight;
   private final int canvasWidth;
-  private final int scale = 2;
+  private final int scale = 4;
   private final BufferedImage bufferedImage;
 
   public TaxiScenarioCanvas(World world, VisualizationProperties visuProperties) {
@@ -42,6 +42,7 @@ public class TaxiScenarioCanvas extends JPanel {
     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
     g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
     g2d.scale(scale, scale);
 
     g2d.setColor(Color.WHITE);

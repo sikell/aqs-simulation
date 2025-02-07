@@ -1,5 +1,6 @@
 package de.sikeller.aqs.visualization;
 
+import static de.sikeller.aqs.visualization.VisualizationUtils.defaultFont;
 import static java.lang.Math.round;
 
 import de.sikeller.aqs.model.Client;

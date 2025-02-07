@@ -1,13 +1,18 @@
 package de.sikeller.aqs.visualization;
 
-import javax.swing.*;
+import com.formdev.flatlaf.FlatLightLaf;
+import lombok.extern.slf4j.Slf4j;
+
 import java.net.URL;
 import java.util.Objects;
+import javax.swing.*;
 
+@Slf4j
 public abstract class AbstractVisualization extends Thread {
   protected final JFrame frame;
 
   protected AbstractVisualization(String title) {
+    FlatLightLaf.setup();
     frame = new JFrame(title);
     setIcon();
   }
