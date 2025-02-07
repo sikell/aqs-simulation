@@ -13,6 +13,7 @@ public class TaxiScenarioCanvas extends JPanel {
   private final VisualizationProperties visuProperties;
   private final int canvasHeight;
   private final int canvasWidth;
+  private final int scale = 2;
   private final BufferedImage bufferedImage;
 
   public TaxiScenarioCanvas(World world, VisualizationProperties visuProperties) {
@@ -22,14 +23,26 @@ public class TaxiScenarioCanvas extends JPanel {
     this.canvasHeight = 800;
     this.canvasWidth = 800;
     setSize(canvasWidth, canvasHeight);
-    this.bufferedImage = new BufferedImage(canvasWidth, canvasHeight, BufferedImage.TYPE_INT_RGB);
+    this.bufferedImage =
+        new BufferedImage(canvasWidth * scale, canvasHeight * scale, BufferedImage.TYPE_INT_RGB);
+    clear();
+  }
+
+  public void clear() {
+    Graphics2D g2d = bufferedImage.createGraphics();
+    g2d.scale(scale, scale);
+    g2d.setColor(Color.WHITE);
+    g2d.fillRect(0, 0, canvasWidth, canvasHeight);
+    g2d.dispose();
+    SwingUtilities.invokeLater(this::repaint);
   }
 
   public void repaint(World world) {
     Graphics2D g2d = bufferedImage.createGraphics();
     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    g2d.setRenderingHint(
-        RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+    g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+    g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+    g2d.scale(scale, scale);
 
     g2d.setColor(Color.WHITE);
     g2d.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -58,6 +71,12 @@ public class TaxiScenarioCanvas extends JPanel {
   @Override
   protected void paintComponent(Graphics g) {
     super.paintComponent(g);
-    g.drawImage(bufferedImage, 0, 0, null);
+    Graphics2D g2draw = (Graphics2D) g.create();
+    try {
+      g2draw.scale(1.0 / scale, 1.0 / scale);
+      g2draw.drawImage(bufferedImage, 0, 0, null);
+    } finally {
+      g2draw.dispose();
+    }
   }
 }
