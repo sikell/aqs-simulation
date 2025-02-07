@@ -46,6 +46,10 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(taxiCountTextField());
     worldInputs.add(label("Client count", "clientCountLabel"));
     worldInputs.add(clientCountTextField());
+    worldInputs.add(label("Taxi seats", "taxiSeatCount"));
+    worldInputs.add(taxiSeatCountTextField());
+    worldInputs.add(label("Taxi speed", "taxiSpeed"));
+    worldInputs.add(taxiSpeedTextField());
     worldInputs.add(label("Simulation speed", "simulationSpeedLabel"));
     worldInputs.add(simulationSpeed());
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
@@ -161,6 +165,24 @@ public class TaxiScenarioControl extends AbstractControl {
     textField.setColumns(4);
     textField.setText("100");
     textField.setToolTipText("Set the Count of Clients for the Simulation");
+    return textField;
+  }
+
+  private JTextField taxiSeatCountTextField() {
+    JTextField textField = new JTextField();
+    textField.setName("taxiSeatCount");
+    textField.setColumns(4);
+    textField.setText("2");
+    textField.setToolTipText("Set the Count of seats in the Taxi");
+    return textField;
+  }
+
+  private JTextField taxiSpeedTextField() {
+    JTextField textField = new JTextField();
+    textField.setName("taxiSpeed");
+    textField.setColumns(4);
+    textField.setText("1");
+    textField.setToolTipText("Set the initial Speed of the Taxi");
     return textField;
   }
 

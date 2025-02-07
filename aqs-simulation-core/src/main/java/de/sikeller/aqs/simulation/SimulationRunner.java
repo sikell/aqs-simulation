@@ -49,9 +49,9 @@ public class SimulationRunner implements SimulationControl {
                   .add(
                       Taxi.builder()
                           .name("t" + i)
-                          .capacity(2)
+                          .capacity(parameters.getOrDefault("taxiSeatCount", 2))
                           .position(taxiPosition)
-                          .currentSpeed(1)
+                          .currentSpeed(parameters.getOrDefault("taxiSpeed", 1))
                           .build());
             }
           }
