@@ -14,7 +14,7 @@ public class Algorithm {
         this.algorithm = algorithm;
     }
 
-    public TaxiAlgorithm getAlgorithm() {
+    public TaxiAlgorithm get() {
         return algorithm;
     }
 

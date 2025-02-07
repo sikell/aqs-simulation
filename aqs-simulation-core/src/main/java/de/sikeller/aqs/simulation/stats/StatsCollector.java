@@ -1,5 +1,6 @@
 package de.sikeller.aqs.simulation.stats;
 
+import de.sikeller.aqs.model.Algorithm;
 import de.sikeller.aqs.model.ResultTable;
 import de.sikeller.aqs.model.Taxi;
 import de.sikeller.aqs.model.World;
@@ -15,35 +16,41 @@ public class StatsCollector {
   private static final String DOUBLE_FORMAT = "%.02f";
   private Result<Double> travelDistance;
   private Result<Long> travelTime;
+  private Algorithm algorithm;
   private int runCounter = 0;
 
-  public void collect(EventList eventList, World world) {
+  public void collect(EventList eventList, World world, Algorithm algorithm) {
     collectClientTravelTime(eventList);
     collectTaxiTravelDistance(world);
+    this.algorithm = algorithm;
     runCounter++;
   }
 
   public ResultTable tableResults() {
-    var columns = new String[] {"Result", "Min", "Max", "Avg", "Sum", "Count"};
+    var columns = new String[] {"Result", "Min", "Max", "Avg", "Sum", "Count", "Algorithm", "Run"};
 
     var data = new Object[2][];
     data[0] =
         new Object[] {
-          "Taxi Travel Distance, Run: " + runCounter,
+          "Taxi Travel Distance",
           format(DOUBLE_FORMAT, travelDistance.min()),
           format(DOUBLE_FORMAT, travelDistance.max()),
           format(DOUBLE_FORMAT, travelDistance.avg()),
           format(DOUBLE_FORMAT, travelDistance.sum()),
-          travelDistance.count()
+          travelDistance.count(),
+          algorithm.get().getClass().getSimpleName(),
+          runCounter
         };
     data[1] =
         new Object[] {
-          "Client Travel Time, Run: " + runCounter,
+          "Client Travel Time",
           travelTime.min(),
           travelTime.max(),
           format(DOUBLE_FORMAT, travelTime.avg()),
           travelTime.sum(),
-          travelTime.count()
+          travelTime.count(),
+          algorithm.get().getClass().getSimpleName(),
+          runCounter
         };
 
     return new ResultTable(columns, data);
@@ -52,22 +59,24 @@ public class StatsCollector {
   public void print() {
     if (travelDistance != null)
       log.info(
-          "[Run:{}, Taxi travel distance ] min: {}, max: {}, avg: {}, sum: {}, count: {}",
+          "[ Taxi travel distance ] run:{}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
           runCounter,
           format(DOUBLE_FORMAT, travelDistance.min()),
           format(DOUBLE_FORMAT, travelDistance.max()),
           format(DOUBLE_FORMAT, travelDistance.avg()),
           format(DOUBLE_FORMAT, travelDistance.sum()),
-          travelDistance.count());
+          travelDistance.count(),
+          algorithm.get().getClass().getSimpleName());
     if (travelTime != null)
       log.info(
-          "[Run:{}, Client travel time ] min: {}, max: {}, avg: {}, sum: {}, count: {}",
+          "[Client travel time ] run: {}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
           runCounter,
           travelTime.min(),
           travelTime.max(),
           format(DOUBLE_FORMAT, travelTime.avg()),
           travelTime.sum(),
-          travelTime.count());
+          travelTime.count(),
+          algorithm.get().getClass().getSimpleName());
   }
 
   private void collectTaxiTravelDistance(World world) {

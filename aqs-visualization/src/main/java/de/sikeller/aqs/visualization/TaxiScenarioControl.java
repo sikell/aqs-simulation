@@ -72,7 +72,7 @@ public class TaxiScenarioControl extends AbstractControl {
     JComboBox<String> algorithms = new JComboBox<>();
     algorithms.setName("algorithmSelectionBox");
     choices.forEach(algorithms::addItem);
-    algorithms.setSelectedItem(simulation.getAlgorithm().getAlgorithm().getClass().getSimpleName());
+    algorithms.setSelectedItem(simulation.getAlgorithm().get().getClass().getSimpleName());
     return algorithms;
   }
 

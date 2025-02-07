@@ -70,13 +70,14 @@ public class ResultVisualization extends AbstractVisualization {
 
   public void updateChart(ResultTable resultTable) {
     for (int i = 1; i < 4; i++) {
+      String algorithmRun = resultTable.getData()[0][resultTable.getColumns().length - 2].toString() + " Run: " + resultTable.getData()[0][resultTable.getColumns().length - 1].toString();
       taxiDataset.addValue(
               Double.parseDouble(resultTable.getData()[0][i].toString()),
-              resultTable.getData()[0][0].toString(),
+              algorithmRun,
               resultTable.getColumns()[i]);
       clientDataset.addValue(
               Double.parseDouble(resultTable.getData()[1][i].toString()),
-              resultTable.getData()[1][0].toString(),
+              algorithmRun,
               resultTable.getColumns()[i]);
     }
     frame.pack();

@@ -72,7 +72,7 @@ public class SimulationRunner implements SimulationControl {
           continue;
         }
         var currentTime = world.getCurrentTime() + 1;
-        var result = algorithm.getAlgorithm().nextStep(world);
+        var result = algorithm.get().nextStep(world);
         log.debug("Step {}: {}", currentTime, result);
         worldSimulator.move(currentTime);
         listeners.forEach(l -> l.onUpdate(world));
@@ -81,7 +81,7 @@ public class SimulationRunner implements SimulationControl {
     } while (world.getClients().isEmpty());
 
     eventDispatcher.print();
-    statsCollector.collect(eventDispatcher, world);
+    statsCollector.collect(eventDispatcher, world, getAlgorithm());
     statsCollector.print();
 
     resultVisualization.showResults(statsCollector.tableResults());
@@ -124,14 +124,14 @@ public class SimulationRunner implements SimulationControl {
     log.debug("{}", world.getClients());
     log.debug("{}", world.getTaxis());
     initWorld(parameters);
-    algorithm.getAlgorithm().init(world);
+    algorithm.get().init(world);
     listeners.forEach(l -> l.onUpdate(world));
     print();
   }
 
   @Override
   public SimulationConfiguration getSimulationParameters() {
-    return algorithm.getAlgorithm().getParameters();
+    return algorithm.get().getParameters();
   }
 
   @Override
