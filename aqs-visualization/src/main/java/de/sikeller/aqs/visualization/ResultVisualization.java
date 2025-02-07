@@ -1,6 +1,10 @@
 package de.sikeller.aqs.visualization;
 
 import de.sikeller.aqs.model.ResultTable;
+import java.awt.*;
+import java.text.NumberFormat;
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -9,13 +13,6 @@ import org.jfree.chart.labels.StandardCategoryItemLabelGenerator;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.renderer.category.CategoryItemRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
-
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.lang.reflect.Field;
-import java.text.NumberFormat;
-import java.util.Arrays;
 
 public class ResultVisualization extends AbstractVisualization {
 
@@ -86,17 +83,12 @@ public class ResultVisualization extends AbstractVisualization {
   public void updateChart(ResultTable resultTable) {
     for (int i = 1; i < 4; i++) {
       String algorithmRun =
-          resultTable.getData()[0][resultTable.getColumns().length - 2].toString()
+          resultTable.getString(0, resultTable.getColumns().length - 2)
               + " Run: "
-              + resultTable.getData()[0][resultTable.getColumns().length - 1].toString();
-      taxiDataset.addValue(
-          Double.parseDouble(resultTable.getData()[0][i].toString()),
-          algorithmRun,
-          resultTable.getColumns()[i]);
+              + resultTable.getString(0, resultTable.getColumns().length - 1);
+      taxiDataset.addValue(resultTable.getDouble(0, i), algorithmRun, resultTable.getColumns()[i]);
       clientDataset.addValue(
-          Double.parseDouble(resultTable.getData()[1][i].toString()),
-          algorithmRun,
-          resultTable.getColumns()[i]);
+          resultTable.getDouble(1, i), algorithmRun, resultTable.getColumns()[i]);
     }
     frame.pack();
   }

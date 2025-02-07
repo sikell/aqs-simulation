@@ -24,4 +24,16 @@ import lombok.Data;
 public class ResultTable {
   private final String[] columns;
   private final Object[][] data;
+
+  public Object getData(int row, int column) {
+    return data[row][column];
+  }
+
+  public String getString(int row, int column) {
+    return getData(row, column).toString();
+  }
+
+  public Double getDouble(int row, int column) {
+    return ResultTableUtils.parseDouble(getString(row, column));
+  }
 }
