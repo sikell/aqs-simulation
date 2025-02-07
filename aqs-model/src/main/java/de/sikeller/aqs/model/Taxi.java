@@ -62,10 +62,10 @@ public class Taxi implements Entity {
    */
   @Override
   public void updatePosition(Position position, long currentTime) {
-    log.trace("Taxi {} update position: {}", name, position);
+    this.lastUpdate = currentTime;
+    if(!isMoving()) return;
     this.travelDistance += this.position.distance(position);
     this.position = position;
-    this.lastUpdate = currentTime;
     checkTargetReached(position);
     checkClientLeaving(position, currentTime);
     checkClientEntering(position, currentTime);

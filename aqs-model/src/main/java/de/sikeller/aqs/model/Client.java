@@ -45,8 +45,9 @@ public class Client implements Entity {
   }
 
   public void updatePosition(Position position, long currentTime) {
-    this.position = position;
     this.lastUpdate = currentTime;
+    if(!isMoving()) return;
+    this.position = position;
     if (this.position.equals(target)) {
       EventDispatcher.dispatch(new EventClientFinished(currentTime, this));
       mode = ClientMode.FINISHED;
