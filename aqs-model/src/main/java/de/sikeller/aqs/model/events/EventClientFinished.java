@@ -13,7 +13,7 @@ public class EventClientFinished extends Event {
   public EventClientFinished(long currentTime, Client client) {
     super(currentTime);
     this.client = client;
-    this.travelTime = currentTime;
+    this.travelTime = currentTime - client.getSpawnTime();
   }
 
   @Override
