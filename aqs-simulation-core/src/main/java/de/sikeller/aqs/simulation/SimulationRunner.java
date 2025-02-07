@@ -24,7 +24,7 @@ public class SimulationRunner implements SimulationControl {
   private final EventDispatcher eventDispatcher = EventDispatcher.instance();
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
-  private volatile int speed = 10;
+  private volatile int speed = 15;
   private volatile boolean simulationFinished;
 
   @SneakyThrows

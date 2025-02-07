@@ -2,7 +2,6 @@ package de.sikeller.aqs.visualization;
 
 import de.sikeller.aqs.model.SimulationControl;
 import de.sikeller.aqs.model.TaxiAlgorithm;
-
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -42,6 +41,8 @@ public class TaxiScenarioControl extends AbstractControl {
     selection.add(label("Select algorithm", "algoSelectionLabel"));
     selection.add(algorithmSelectionBox());
     selection.add(algorithmSelectionButton());
+    worldInputs.add(label("World seed", "worldSeed"));
+    worldInputs.add(worldSeedTextField());
     worldInputs.add(label("Taxi count", "taxiCountLabel"));
     worldInputs.add(taxiCountTextField());
     worldInputs.add(label("Client count", "clientCountLabel"));
@@ -55,7 +56,7 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(label("Simulation speed", "simulationSpeedLabel"));
     worldInputs.add(simulationSpeed());
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
-    worldInputs.setLayout(new GridLayout(6, 2));
+    worldInputs.setLayout(new GridLayout(7, 2));
 
     controls.add(selection);
     controls.add(buttons);
@@ -149,6 +150,15 @@ public class TaxiScenarioControl extends AbstractControl {
           }
         });
     return slider;
+  }
+
+  private JTextField worldSeedTextField() {
+    JTextField textField = new JTextField();
+    textField.setName("worldSeed");
+    textField.setColumns(4);
+    textField.setText("" + new Random().nextInt(Integer.MAX_VALUE));
+    textField.setToolTipText("Set a simulation random seed");
+    return textField;
   }
 
   private JTextField taxiCountTextField() {

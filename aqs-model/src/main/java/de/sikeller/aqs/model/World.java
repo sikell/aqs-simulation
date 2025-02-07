@@ -1,7 +1,6 @@
 package de.sikeller.aqs.model;
 
 import java.util.HashSet;
-import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -20,7 +19,6 @@ import lombok.Data;
 public class World {
   private final int maxX;
   private final int maxY;
-  private final Random random = new Random(1L);
   @Builder.Default private final Set<Taxi> taxis = new HashSet<>();
   @Builder.Default private final Set<Client> clients = new HashSet<>();
   @Builder.Default private long currentTime = 0;
