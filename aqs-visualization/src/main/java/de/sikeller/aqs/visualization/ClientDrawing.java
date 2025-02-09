@@ -25,6 +25,8 @@ public class ClientDrawing extends EntityDrawing {
     boolean isShowClientPaths();
 
     boolean isShowClientNames();
+
+    boolean isShowFinishedClients();
   }
 
   public static List<ClientDrawing> of(
@@ -38,6 +40,9 @@ public class ClientDrawing extends EntityDrawing {
   @Override
   public void printBackgroundShape(
       Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
+    if (client.isFinished() && !properties.isShowFinishedClients()) {
+      return;
+    }
     if (properties.isShowClientPaths()) {
       printTarget(g, canvasWidthRatio, canvasHeightRatio);
     }
@@ -49,6 +54,9 @@ public class ClientDrawing extends EntityDrawing {
   @Override
   public void printForegroundShape(
       Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
+    if (client.isFinished() && !properties.isShowFinishedClients()) {
+      return;
+    }
     printPosition(g, canvasWidthRatio, canvasHeightRatio);
   }
 

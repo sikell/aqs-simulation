@@ -44,6 +44,17 @@ public class VisualizationControl extends AbstractControl {
         1,
         0,
         checkBox(
+            "Show finished clients",
+            "showFinishedClients",
+            "Show clients which are finished.",
+            properties.isShowFinishedClients(),
+            properties::setShowFinishedClients),
+        bagConstraints);
+
+    add(
+        2,
+        0,
+        checkBox(
             "Show taxi paths",
             "showTaxiPaths",
             "Display the planned path for each taxi.",
@@ -52,7 +63,7 @@ public class VisualizationControl extends AbstractControl {
         bagConstraints);
 
     add(
-        1,
+        2,
         1,
         checkBox(
             "Show taxi names",
@@ -62,10 +73,10 @@ public class VisualizationControl extends AbstractControl {
             properties::setShowTaxiNames),
         bagConstraints);
 
-    add(2, 0, label("Scale", "scaleLabel"), bagConstraints);
+    add(3, 0, label("Scale", "scaleLabel"), bagConstraints);
 
     add(
-        3,
+        4,
         0,
         slider(
             "scaleSlider",
