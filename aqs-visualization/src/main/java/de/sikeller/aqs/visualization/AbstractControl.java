@@ -1,5 +1,7 @@
 package de.sikeller.aqs.visualization;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.util.function.Consumer;
 import javax.swing.*;
@@ -43,5 +45,20 @@ public abstract class AbstractControl extends JPanel {
           }
         });
     return slider;
+  }
+
+  protected JSpinner spinner(String name, String tooltip, int min, int max, int initialValue, int step) {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(initialValue, min, max, step);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    spinner.setName(name);
+    spinner.setToolTipText(tooltip);
+    return spinner;
+  }
+
+  protected JButton button(String displayName, String name, ActionListener event) {
+    JButton button = new JButton(displayName);
+    button.setName(name);
+    button.addActionListener(event);
+    return button;
   }
 }

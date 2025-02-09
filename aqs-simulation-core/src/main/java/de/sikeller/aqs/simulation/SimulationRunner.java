@@ -25,7 +25,7 @@ public class SimulationRunner implements SimulationControl {
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
   private volatile int speed = 15;
-  private volatile boolean simulationFinished;
+  private volatile boolean simulationFinished = false;
 
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
@@ -96,6 +96,11 @@ public class SimulationRunner implements SimulationControl {
   @Override
   public void setSimulationFinished(Boolean flag) {
     this.simulationFinished = flag;
+  }
+
+  @Override
+  public Boolean getSimulationFinished() {
+    return this.simulationFinished;
   }
 
   public void showResultVisualization() {

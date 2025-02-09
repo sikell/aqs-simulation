@@ -7,20 +7,25 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TaxiScenarioControl extends AbstractControl {
   private List<Class<?>> algorithmList;
   private final SimulationControl simulation;
-  private Map<String, Integer> inputParameters;
-  private Map<String, Integer> algorithmParameters;
+  private Map<String, Integer> inputParameterMap;
+  private Map<String, Integer> algorithmParameterMap;
+  private Map<String, Integer> allParameterMap = new HashMap<>();
   private HashMap<String, Component> componentMap;
+  private BatchProcessingProperties batchProperties = new BatchProcessingProperties();
   private JPanel buttons;
   private JPanel worldInputs;
   private JPanel algorithmInputs;
   private JPanel controls;
   private JPanel selection;
+  private JPanel batchProcessing;
 
   public TaxiScenarioControl(SimulationControl simulation) {
     this.simulation = simulation;
@@ -32,7 +37,7 @@ public class TaxiScenarioControl extends AbstractControl {
     buttons = new JPanel();
     worldInputs = new JPanel();
     algorithmInputs = new JPanel();
-    algorithmParameters = new HashMap<>();
+    algorithmParameterMap = new HashMap<>();
     selection = new JPanel();
     buttons.add(initializeSimulationButton());
     buttons.add(startButton());
@@ -44,24 +49,26 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(label("World seed", "worldSeed"));
     worldInputs.add(worldSeedTextField());
     worldInputs.add(label("Taxi count", "taxiCountLabel"));
-    worldInputs.add(taxiCountTextField());
+    worldInputs.add(taxiCountSpinner());
     worldInputs.add(label("Client count", "clientCountLabel"));
-    worldInputs.add(clientCountTextField());
+    worldInputs.add(clientCountSpinner());
     worldInputs.add(label("Client spawn window", "clientSpawnWindowLabel"));
-    worldInputs.add(clientSpawnWindowTextField());
+    worldInputs.add(clientSpawnWindowSpinner());
     worldInputs.add(label("Taxi seats", "taxiSeatCount"));
-    worldInputs.add(taxiSeatCountTextField());
+    worldInputs.add(taxiSeatCountSpinner());
     worldInputs.add(label("Taxi speed", "taxiSpeed"));
-    worldInputs.add(taxiSpeedTextField());
+    worldInputs.add(taxiSpeedSpinner());
     worldInputs.add(label("Simulation speed", "simulationSpeedLabel"));
     worldInputs.add(simulationSpeed());
+    worldInputs.setBorder(new TitledBorder("World Parameters"));
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
     worldInputs.setLayout(new GridLayout(7, 2));
-
+    batchProcessing = new BatchProcessingControl(batchProperties);
     controls.add(selection);
     controls.add(buttons);
     controls.add(worldInputs);
     controls.add(algorithmInputs);
+    controls.add(batchProcessing);
 
     createComponentMap();
 
@@ -100,7 +107,7 @@ public class TaxiScenarioControl extends AbstractControl {
 
             simulation
                 .getAlgorithm()
-                .setAlgorithm(instantiateAlgorithm(selectedAlgorithm, algorithmParameters));
+                .setAlgorithm(instantiateAlgorithm(selectedAlgorithm, algorithmParameterMap));
           }
           generateParameters();
         });
@@ -134,6 +141,45 @@ public class TaxiScenarioControl extends AbstractControl {
     return button;
   }
 
+  private JButton showResultsButton() {
+    JButton button = new JButton("Show Results");
+    button.setName("showResultsButton");
+    button.addActionListener(e -> simulation.showResultVisualization());
+    return button;
+  }
+
+  private JButton initializeSimulationButton() {
+    JButton button = new JButton("Initialize");
+    button.setName("initializeSimulationButton");
+
+    button.addActionListener(
+        e -> {
+          // TODO: ActionListener des neuen Buttons so konfigurieren, dass die Sequenzen korrekt
+          // hintereinander laufen
+          int batchCount = (int) ((JSpinner) getComponentByName("batchCount")).getValue();
+          if (batchCount == 1) {
+            initializeSimulation();
+          } else {
+            for (int i = 0; i < batchCount; i++) {
+              initializeSimulation();
+              do {
+              }
+              while(!simulation.getSimulationFinished());
+              simulation.start();
+              int newTaxiCount =
+                  ((int) ((JSpinner) getComponentByName("taxiCount")).getValue())
+                      + ((int) ((JSpinner) getComponentByName("taxiIncrement")).getValue());
+              ((JSpinner) getComponentByName("taxiCount")).setValue(newTaxiCount);
+              int newClientCount =
+                      ((int) ((JSpinner) getComponentByName("clientCount")).getValue())
+                              + ((int) ((JSpinner) getComponentByName("clientIncrement")).getValue());
+              ((JSpinner) getComponentByName("clientCount")).setValue(newClientCount);
+            }
+          }
+        });
+    return button;
+  }
+
   private JSlider simulationSpeed() {
     JSlider slider = new JSlider();
     slider.setName("simulationSpeedSlider");
@@ -161,103 +207,54 @@ public class TaxiScenarioControl extends AbstractControl {
     return textField;
   }
 
-  private JTextField taxiCountTextField() {
-    JTextField textField = new JTextField();
-    textField.setName("taxiCount");
-    textField.setColumns(4);
-    textField.setText("5");
-    textField.setToolTipText("Set the Count of Taxis for the Simulation");
-    return textField;
+  private JSpinner taxiCountSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(5, 1, 1_000_000_000, 1);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    spinner.setName("taxiCount");
+    spinner.setToolTipText("Set the Count of Taxis for the Simulation");
+    return spinner;
   }
 
-  private JTextField clientCountTextField() {
-    JTextField textField = new JTextField();
-    textField.setName("clientCount");
-    textField.setColumns(4);
-    textField.setText("100");
-    textField.setToolTipText("Set the Count of Clients for the Simulation");
-    return textField;
+  private JSpinner clientCountSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(100, 1, 1_000_000_000, 1);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    spinner.setName("clientCount");
+    spinner.setToolTipText("Set the Count of Clients for the Simulation");
+    return spinner;
   }
 
-  private JTextField clientSpawnWindowTextField() {
-    JTextField textField = new JTextField();
-    textField.setName("clientSpawnWindow");
-    textField.setColumns(4);
-    textField.setText("1000");
-    textField.setToolTipText("Set the spawn time window in which clients can randomly spawn");
-    return textField;
+  private JSpinner clientSpawnWindowSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(100_00, 1, 1_000_000_000, 1);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    spinner.setName("clientSpawnWindow");
+    spinner.setToolTipText("Set the spawn time window in which clients can randomly spawn");
+    return spinner;
   }
 
-  private JTextField taxiSeatCountTextField() {
-    JTextField textField = new JTextField();
-    textField.setName("taxiSeatCount");
-    textField.setColumns(4);
-    textField.setText("2");
-    textField.setToolTipText("Set the Count of seats in the Taxi");
-    return textField;
+  private JSpinner taxiSeatCountSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(2, 1, 1_000_000_000, 1);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    spinner.setName("taxiSeatCount");
+    spinner.setToolTipText("Set the Count of seats in the Taxi");
+    return spinner;
   }
 
-  private JTextField taxiSpeedTextField() {
-    JTextField textField = new JTextField();
-    textField.setName("taxiSpeed");
-    textField.setColumns(4);
-    textField.setText("1");
-    textField.setToolTipText("Set the initial Speed of the Taxi");
-    return textField;
-  }
-
-  private JButton showResultsButton() {
-    JButton button = new JButton("Show Results");
-    button.setName("showResultsButton");
-    button.addActionListener(e -> simulation.showResultVisualization());
-    return button;
-  }
-
-  private JButton initializeSimulationButton() {
-    JButton button = new JButton("Initialize");
-    button.setName("initializeSimulationButton");
-
-    button.addActionListener(
-        e -> {
-          simulation.stop();
-          Component startButton = getComponentByName("startButton");
-          if (startButton == null) return;
-          try {
-            Map<String, Integer> input = new HashMap<>();
-            for (Component component : worldInputs.getComponents()) {
-              if (component instanceof JTextField textField) {
-                input.put(textField.getName(), Integer.parseInt(textField.getText()));
-              }
-            }
-
-            for (Component component : algorithmInputs.getComponents()) {
-              if (component instanceof JTextField textField) {
-                input.put(textField.getName(), Integer.parseInt(textField.getText()));
-                algorithmParameters.put(textField.getName(), Integer.parseInt(textField.getText()));
-              }
-            }
-
-            inputParameters.putAll(input);
-
-            startButton.setEnabled(true);
-
-            simulation.init(inputParameters);
-          } catch (Exception exception) {
-            log.error(exception.getMessage(), exception);
-            JOptionPane.showMessageDialog(this, "No valid input parameters provided!");
-          }
-          simulation.setSimulationFinished(true);
-        });
-    return button;
+  private JSpinner taxiSpeedSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(1, 1, 1_000_000_000, 1);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    spinner.setName("taxiSpeed");
+    spinner.setToolTipText("Set the initial Speed of the Taxi");
+    return spinner;
   }
 
   private void createComponentMap() {
-    componentMap = new HashMap<>();
+    componentMap = new LinkedHashMap<>();
     List<Component> components = new ArrayList<>();
     Collections.addAll(components, controls.getComponents());
     Collections.addAll(components, buttons.getComponents());
     Collections.addAll(components, worldInputs.getComponents());
     Collections.addAll(components, selection.getComponents());
+    Collections.addAll(components, batchProcessing.getComponents());
     for (Component component : components) {
       componentMap.put(component.getName(), component);
     }
@@ -289,13 +286,18 @@ public class TaxiScenarioControl extends AbstractControl {
 
   private void generateParameters() {
     Set<String> parameters = simulation.getSimulationParameters().getParameters();
-    algorithmInputs.removeAll();
-    if (!algorithmParameters.isEmpty()) {
-      algorithmParameters.clear();
+    if (parameters.isEmpty()) {
+      algorithmInputs.setBorder(null);
+    } else {
+      algorithmInputs.setBorder(new TitledBorder("Algorithm Parameters"));
     }
-    inputParameters = new HashMap<>();
-    inputParameters.put("taxiCount", 0);
-    inputParameters.put("clientCount", 0);
+    algorithmInputs.removeAll();
+    if (!algorithmParameterMap.isEmpty()) {
+      algorithmParameterMap.clear();
+    }
+    inputParameterMap = new HashMap<>();
+    inputParameterMap.put("taxiCount", 0);
+    inputParameterMap.put("clientCount", 0);
     parameters.forEach(
         parameter -> {
           JLabel label = new JLabel(parameter);
@@ -306,8 +308,40 @@ public class TaxiScenarioControl extends AbstractControl {
           textField.setColumns(4);
           textField.setName(parameter);
           algorithmInputs.add(textField);
-          inputParameters.put(parameter, 0);
+          inputParameterMap.put(parameter, 0);
         });
     SwingUtilities.updateComponentTreeUI(worldInputs);
+  }
+
+  private void initializeSimulation() {
+    simulation.stop();
+    JButton startButton = (JButton) getComponentByName("startButton");
+    try {
+      for (Component component : worldInputs.getComponents()) {
+        if (component instanceof JTextField textField) {
+          allParameterMap.put(textField.getName(), Integer.parseInt(textField.getText()));
+        }
+        if (component instanceof JSpinner spinner) {
+          allParameterMap.put(spinner.getName(), (int) spinner.getValue());
+        }
+      }
+
+      for (Component component : algorithmInputs.getComponents()) {
+        if (component instanceof JSpinner spinner) {
+          allParameterMap.put(spinner.getName(), (int) spinner.getValue());
+          algorithmParameterMap.put(spinner.getName(), (int) spinner.getValue());
+        }
+      }
+
+      inputParameterMap.putAll(allParameterMap);
+
+      startButton.setEnabled(true);
+
+      simulation.init(inputParameterMap);
+    } catch (Exception exception) {
+      log.error(exception.getMessage(), exception);
+      JOptionPane.showMessageDialog(this, "No valid input parameters provided!");
+    }
+    simulation.setSimulationFinished(true);
   }
 }

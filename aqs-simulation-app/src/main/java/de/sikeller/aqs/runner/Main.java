@@ -20,7 +20,7 @@ public class Main {
 
     runner.registerObserver(visualisation);
     do {
-      if (runner.isSimulationFinished()) {
+      if (runner.getSimulationFinished()) {
         runner.run();
       }
     } while (true);

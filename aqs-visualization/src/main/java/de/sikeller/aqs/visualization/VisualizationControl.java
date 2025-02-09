@@ -2,6 +2,8 @@ package de.sikeller.aqs.visualization;
 
 import java.awt.*;
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -15,6 +17,7 @@ public class VisualizationControl extends AbstractControl {
 
   private void setup() {
     setLayout(new GridBagLayout());
+    setBorder(new TitledBorder("Visualization Control"));
     GridBagConstraints bagConstraints = new GridBagConstraints();
     bagConstraints.anchor = GridBagConstraints.WEST;
 
