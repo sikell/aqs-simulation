@@ -54,16 +54,6 @@ public class BatchProcessingControl extends AbstractControl {
     add(2, 0, label("Increment of Clients", "clientIncrementLabel"), bagConstraints);
     add(
         3,
-        0,
-        checkBox(
-            "Randomize World Seed?",
-            "batchWorldSeedRandomization",
-            "Sets the number of Sequences of chosen Algorithm",
-            false,
-            properties::setWorldSeedRandomization),
-        bagConstraints);
-    add(
-        3,
         1,
         button(
             "Reset",

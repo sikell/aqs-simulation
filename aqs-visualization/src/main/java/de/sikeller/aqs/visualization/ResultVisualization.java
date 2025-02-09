@@ -5,6 +5,8 @@ import static de.sikeller.aqs.visualization.VisualizationUtils.smallFont;
 
 import de.sikeller.aqs.model.ResultTable;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.text.NumberFormat;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -33,6 +35,14 @@ public class ResultVisualization extends AbstractVisualization {
     frame.setMinimumSize(new Dimension(600, 200));
     frame.setPreferredSize(new Dimension(1000, 400));
     frame.setLayout(new GridLayout());
+    frame.addWindowListener(new WindowAdapter() {
+      @Override
+      public void windowDeactivated(WindowEvent e) {
+        // Wenn das Fenster den Fokus verliert, schließen wir es
+        System.out.println("Close Result-Window");
+        frame.dispose();  // Schließt das Fenster
+      }
+    });
     showDiagram();
   }
 
