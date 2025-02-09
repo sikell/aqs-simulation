@@ -12,4 +12,6 @@ public interface TaxiAlgorithm {
 
   default void setParameters(Map<String, Integer> parameters) {}
 
+  String getName();
+
 }

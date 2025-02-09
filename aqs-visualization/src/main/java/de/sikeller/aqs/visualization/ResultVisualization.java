@@ -31,6 +31,7 @@ public class ResultVisualization extends AbstractVisualization {
   public ResultVisualization() {
     super("Taxi Scenario Results");
     frame.setMinimumSize(new Dimension(600, 200));
+    frame.setPreferredSize(new Dimension(1000, 400));
     frame.setLayout(new GridLayout());
     showDiagram();
   }
@@ -41,9 +42,9 @@ public class ResultVisualization extends AbstractVisualization {
       model = new DefaultTableModel(resultTable.getData(), resultTable.getColumns());
       table = new JTable(model);
       JScrollPane scrollPane = new JScrollPane(table);
-      scrollPane.setMaximumSize(new Dimension(500, 200));
-
-      frame.setLayout(new GridLayout(0, 1));
+      int frameWidth = frame.getWidth();
+      scrollPane.setPreferredSize(new Dimension((int) (frameWidth * 0.8), table.getPreferredSize().height));
+      frame.setLayout(new GridLayout(2, 1));
       frame.add(panel);
       frame.add(scrollPane);
       frame.pack();
@@ -63,7 +64,7 @@ public class ResultVisualization extends AbstractVisualization {
     ChartPanel clientChartPanel = createBarChart("Client Travel Time", null, "Time", clientDataset);
 
     panel = new JPanel();
-    panel.setLayout(new GridLayout(0, 2));
+    panel.setLayout(new GridLayout(0,2));
     panel.add(taxiChartPanel);
     panel.add(clientChartPanel);
 

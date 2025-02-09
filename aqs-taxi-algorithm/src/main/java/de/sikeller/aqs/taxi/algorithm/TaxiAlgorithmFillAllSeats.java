@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
   private Map<String, Integer> parameters;
+  private final String name = "FillAllSeats";
 
   public void setParameters(Map<String, Integer> parameters) {
     this.parameters = parameters;

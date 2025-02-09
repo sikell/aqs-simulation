@@ -38,7 +38,7 @@ public class StatsCollector {
           format(DOUBLE_FORMAT, travelDistance.avg()),
           format(DOUBLE_FORMAT, travelDistance.sum()),
           travelDistance.count(),
-          algorithm.get().getClass().getSimpleName(),
+          algorithm.get().getName(),
           runCounter
         };
     data[1] =
@@ -49,7 +49,7 @@ public class StatsCollector {
           format(DOUBLE_FORMAT, travelTime.avg()),
           travelTime.sum(),
           travelTime.count(),
-          algorithm.get().getClass().getSimpleName(),
+          algorithm.get().getName(),
           runCounter
         };
 
@@ -66,7 +66,7 @@ public class StatsCollector {
           format(DOUBLE_FORMAT, travelDistance.avg()),
           format(DOUBLE_FORMAT, travelDistance.sum()),
           travelDistance.count(),
-          algorithm.get().getClass().getSimpleName());
+          algorithm.get().getName());
     if (travelTime != null)
       log.info(
           "[Client travel time ] run: {}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
@@ -76,7 +76,7 @@ public class StatsCollector {
           format(DOUBLE_FORMAT, travelTime.avg()),
           travelTime.sum(),
           travelTime.count(),
-          algorithm.get().getClass().getSimpleName());
+          algorithm.get().getName());
   }
 
   private void collectTaxiTravelDistance(World world) {

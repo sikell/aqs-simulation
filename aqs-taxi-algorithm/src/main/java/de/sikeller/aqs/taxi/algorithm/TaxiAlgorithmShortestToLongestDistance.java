@@ -1,6 +1,8 @@
 package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.*;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.Set;
@@ -8,10 +10,12 @@ import java.util.Set;
 import static de.sikeller.aqs.model.ClientMode.MOVING;
 import static org.reflections.Reflections.log;
 
+@Slf4j
+@Getter
 public class TaxiAlgorithmShortestToLongestDistance extends AbstractTaxiAlgorithm implements TaxiAlgorithm {
 
     private Map<String, Integer> parameters;
-
+    private final String name = "ShortestToLongestDistance";
     public void setParameters(Map<String, Integer> parameters) {
         this.parameters = parameters;
     }
