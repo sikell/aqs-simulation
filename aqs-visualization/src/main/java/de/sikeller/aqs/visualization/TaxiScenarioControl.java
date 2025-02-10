@@ -148,6 +148,7 @@ public class TaxiScenarioControl extends AbstractControl {
     return button;
   }
 
+  @SuppressWarnings(value = "BusyWait")
   private JButton initializeSimulationButton() {
     JButton button = new JButton("Initialize");
     button.setName("initializeSimulationButton");
@@ -162,10 +163,16 @@ public class TaxiScenarioControl extends AbstractControl {
           } else {
             for (int i = 0; i < batchCount; i++) {
               initializeSimulation();
+              simulation.start();
               do {
+                try {
+                  Thread.sleep(10);
+                } catch (InterruptedException ex) {
+                  throw new RuntimeException(ex);
+                }
               }
               while(!simulation.getSimulationFinished());
-              simulation.start();
+
               int newTaxiCount =
                   ((int) ((JSpinner) getComponentByName("taxiCount")).getValue())
                       + ((int) ((JSpinner) getComponentByName("taxiIncrement")).getValue());
@@ -174,6 +181,7 @@ public class TaxiScenarioControl extends AbstractControl {
                       ((int) ((JSpinner) getComponentByName("clientCount")).getValue())
                               + ((int) ((JSpinner) getComponentByName("clientIncrement")).getValue());
               ((JSpinner) getComponentByName("clientCount")).setValue(newClientCount);
+
             }
           }
         });

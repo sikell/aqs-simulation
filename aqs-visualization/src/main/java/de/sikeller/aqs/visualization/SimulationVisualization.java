@@ -17,11 +17,10 @@ public class SimulationVisualization extends AbstractVisualization implements Si
   public SimulationVisualization(World world, SimulationControl simulation) {
     super("Taxi Scenario Simulation");
     var controls = new JPanel();
-    controls.setLayout(new GridLayout(2, 1));
-    controls.add(new TaxiScenarioControl(simulation));
+    controls.setLayout(new BorderLayout());
+    controls.add(new TaxiScenarioControl(simulation), BorderLayout.CENTER);
     var visuProperties = new VisualizationProperties();
-    controls.add(new VisualizationControl(visuProperties));
-
+    controls.add(new VisualizationControl(visuProperties), BorderLayout.SOUTH);
     canvas = new TaxiScenarioCanvas(world, visuProperties);
 
     frame.setLayout(new GridLayout(1, 2));
