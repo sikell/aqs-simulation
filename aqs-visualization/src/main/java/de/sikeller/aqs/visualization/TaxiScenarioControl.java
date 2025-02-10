@@ -172,6 +172,7 @@ public class TaxiScenarioControl extends AbstractControl {
     return button;
   }
 
+  @SuppressWarnings(value = "BusyWait")
   private JButton initializeSimulationButton() {
     JButton button = new JButton("Initialize");
     button.setName("initializeSimulationButton");
