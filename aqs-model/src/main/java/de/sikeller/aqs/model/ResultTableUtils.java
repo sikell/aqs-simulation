@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ResultTableUtils {
-  private static final NumberFormat format = NumberFormat.getInstance(Locale.getDefault());
+  private static final NumberFormat format = NumberFormat.getInstance(Locale.US);
 
   public static Double parseDouble(String value) {
     try {

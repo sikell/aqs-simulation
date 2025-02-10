@@ -121,10 +121,34 @@ public class TaxiScenarioControl extends AbstractControl {
     button.setEnabled(false);
     button.addActionListener(
         e -> {
-          simulation.start();
           button.setEnabled(false);
           Objects.requireNonNull(getComponentByName("initializeSimulationButton")).setEnabled(true);
           Objects.requireNonNull(getComponentByName("stopButton")).setEnabled(true);
+
+          int batchCount = (int) ((JSpinner) getComponentByName("batchCount")).getValue();
+          if (batchCount == 1) {
+            simulation.start();
+          } else {
+            new Thread(
+                    () -> {
+                      for (int i = 0; i < batchCount; i++) {
+                        simulation.start();
+                        do {} while (!simulation.isSimulationFinished());
+                        int newTaxiCount =
+                            ((int) ((JSpinner) getComponentByName("taxiCount")).getValue())
+                                + ((int)
+                                    ((JSpinner) getComponentByName("taxiIncrement")).getValue());
+                        ((JSpinner) getComponentByName("taxiCount")).setValue(newTaxiCount);
+                        int newClientCount =
+                            ((int) ((JSpinner) getComponentByName("clientCount")).getValue())
+                                + ((int)
+                                    ((JSpinner) getComponentByName("clientIncrement")).getValue());
+                        ((JSpinner) getComponentByName("clientCount")).setValue(newClientCount);
+                        initializeSimulation();
+                      }
+                    })
+                .start();
+          }
         });
     return button;
   }
@@ -151,32 +175,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private JButton initializeSimulationButton() {
     JButton button = new JButton("Initialize");
     button.setName("initializeSimulationButton");
-
-    button.addActionListener(
-        e -> {
-          // TODO: ActionListener des neuen Buttons so konfigurieren, dass die Sequenzen korrekt
-          // hintereinander laufen
-          int batchCount = (int) ((JSpinner) getComponentByName("batchCount")).getValue();
-          if (batchCount == 1) {
-            initializeSimulation();
-          } else {
-            for (int i = 0; i < batchCount; i++) {
-              initializeSimulation();
-              do {
-              }
-              while(!simulation.getSimulationFinished());
-              simulation.start();
-              int newTaxiCount =
-                  ((int) ((JSpinner) getComponentByName("taxiCount")).getValue())
-                      + ((int) ((JSpinner) getComponentByName("taxiIncrement")).getValue());
-              ((JSpinner) getComponentByName("taxiCount")).setValue(newTaxiCount);
-              int newClientCount =
-                      ((int) ((JSpinner) getComponentByName("clientCount")).getValue())
-                              + ((int) ((JSpinner) getComponentByName("clientIncrement")).getValue());
-              ((JSpinner) getComponentByName("clientCount")).setValue(newClientCount);
-            }
-          }
-        });
+    button.addActionListener(e -> initializeSimulation());
     return button;
   }
 
@@ -342,6 +341,5 @@ public class TaxiScenarioControl extends AbstractControl {
       log.error(exception.getMessage(), exception);
       JOptionPane.showMessageDialog(this, "No valid input parameters provided!");
     }
-    simulation.setSimulationFinished(true);
   }
 }

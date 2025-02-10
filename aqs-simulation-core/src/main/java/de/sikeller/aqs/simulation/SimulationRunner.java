@@ -25,29 +25,32 @@ public class SimulationRunner implements SimulationControl {
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
   private volatile int speed = 15;
+  private volatile boolean simulationInitialized = false;
   private volatile boolean simulationFinished = false;
 
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
   public void run() {
+    if (!simulationInitialized) {
+      return;
+    }
+
     simulationFinished = false;
+    simulationInitialized = false;
 
     WorldSimulator worldSimulator = new WorldSimulator(world);
-    do {
-      while (!world.isFinished()) {
-        int sleepMillis = (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1));
-        Thread.sleep(sleepMillis);
-        if (!running) {
-          continue;
-        }
-        var currentTime = world.getCurrentTime() + 1;
-        var result = algorithm.get().nextStep(world);
-        log.debug("Step {}: {}", currentTime, result);
-        worldSimulator.move(currentTime);
-        listeners.forEach(l -> l.onUpdate(world));
+    while (!world.isFinished()) {
+      int sleepMillis = (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1));
+      Thread.sleep(sleepMillis);
+      if (!running) {
+        continue;
       }
-
-    } while (world.getClients().isEmpty());
+      var currentTime = world.getCurrentTime() + 1;
+      var result = algorithm.get().nextStep(world);
+      log.debug("Step {}: {}", currentTime, result);
+      worldSimulator.move(currentTime);
+      listeners.forEach(l -> l.onUpdate(world));
+    }
 
     eventDispatcher.print();
     statsCollector.collect(eventDispatcher, world, getAlgorithm());
@@ -55,6 +58,8 @@ public class SimulationRunner implements SimulationControl {
 
     resultVisualization.showResults(statsCollector.tableResults());
     eventDispatcher.resetEvents();
+
+    simulationFinished = true;
   }
 
   public void print() {
@@ -86,21 +91,13 @@ public class SimulationRunner implements SimulationControl {
     algorithm.get().init(world);
     listeners.forEach(l -> l.onUpdate(world));
     print();
+    simulationFinished = false;
+    simulationInitialized = true;
   }
 
   @Override
   public SimulationConfiguration getSimulationParameters() {
     return algorithm.get().getParameters();
-  }
-
-  @Override
-  public void setSimulationFinished(Boolean flag) {
-    this.simulationFinished = flag;
-  }
-
-  @Override
-  public Boolean getSimulationFinished() {
-    return this.simulationFinished;
   }
 
   public void showResultVisualization() {

@@ -14,8 +14,7 @@ public interface SimulationControl {
 
   Algorithm getAlgorithm();
 
-  void setSimulationFinished(Boolean flag);
-  Boolean getSimulationFinished();
+  boolean isSimulationFinished();
 
   void showResultVisualization();
 
