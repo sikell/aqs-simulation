@@ -121,6 +121,7 @@ public class TaxiScenarioControl extends AbstractControl {
     button.setEnabled(false);
     button.addActionListener(
         e -> {
+          simulation.start();
           button.setEnabled(false);
           Objects.requireNonNull(getComponentByName("initializeSimulationButton")).setEnabled(true);
           Objects.requireNonNull(getComponentByName("stopButton")).setEnabled(true);

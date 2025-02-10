@@ -52,6 +52,7 @@ public class SimulationRunner implements SimulationControl {
       listeners.forEach(l -> l.onUpdate(world));
     }
 
+
     eventDispatcher.print();
     statsCollector.collect(eventDispatcher, world, getAlgorithm());
     statsCollector.print();
