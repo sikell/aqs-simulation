@@ -70,8 +70,8 @@ public class ResultVisualization extends AbstractVisualization {
 
   public void showDiagram() {
     ChartPanel taxiChartPanel =
-        createBarChart("Taxi Travel Distance", null, "Distance", taxiDataset);
-    ChartPanel clientChartPanel = createBarChart("Client Travel Time", null, "Time", clientDataset);
+        createBarChart("Taxi Travel Distance", null, "Distance in Kilometers", taxiDataset);
+    ChartPanel clientChartPanel = createBarChart("Client Travel Time", null, "Time in Minutes", clientDataset);
 
     panel = new JPanel();
     panel.setLayout(new GridLayout(0,2));
@@ -116,9 +116,9 @@ public class ResultVisualization extends AbstractVisualization {
           resultTable.getString(0, resultTable.getColumns().length - 2)
               + " | Run "
               + resultTable.getString(0, resultTable.getColumns().length - 1);
-      taxiDataset.addValue(resultTable.getDouble(0, i), algorithmRun, resultTable.getColumns()[i]);
+      taxiDataset.addValue(convertDistanceToKilometers(resultTable.getDouble(0, i)), algorithmRun, resultTable.getColumns()[i]);
       clientDataset.addValue(
-          resultTable.getDouble(1, i), algorithmRun, resultTable.getColumns()[i]);
+          convertTimeToMinutes(resultTable.getDouble(1, i)), algorithmRun, resultTable.getColumns()[i]);
     }
     frame.pack();
   }
@@ -127,11 +127,11 @@ public class ResultVisualization extends AbstractVisualization {
     frame.setVisible(true);
   }
 
-  private double convertDistanceToMeters(double value) {
-    return 0.00;
+  private double convertDistanceToKilometers(double value) {
+    return value / 1000;
   };
 
-  private double convertTimeToSeconds(double value) {
-    return 0.00;
+  private double convertTimeToMinutes(double value) {
+    return value / 60;
   }
 }
