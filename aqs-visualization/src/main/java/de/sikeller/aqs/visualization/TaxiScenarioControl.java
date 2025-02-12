@@ -304,11 +304,11 @@ public class TaxiScenarioControl extends AbstractControl {
           JLabel label = new JLabel(parameter);
           label.setName(parameter + "Label");
           algorithmInputs.add(label);
-          JTextField textField = new JTextField();
-          label.setLabelFor(textField);
-          textField.setColumns(4);
-          textField.setName(parameter);
-          algorithmInputs.add(textField);
+          SpinnerModel model = new SpinnerNumberModel(1, 0,  1_000_000_000, 1);
+          JSpinner spinner = new JSpinner(model);
+          label.setLabelFor(spinner);
+          spinner.setName(parameter);
+          algorithmInputs.add(spinner);
           inputParameterMap.put(parameter, 0);
         });
     SwingUtilities.updateComponentTreeUI(worldInputs);
