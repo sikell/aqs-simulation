@@ -104,6 +104,8 @@ public class ResultVisualization extends AbstractVisualization {
     renderer.setDefaultItemLabelFont(smallFont());
     renderer.setDefaultItemLabelsVisible(true);
     renderer.setShadowVisible(false);
+    renderer.setItemMargin(0.5);
+
     renderer.setBarPainter(new StandardBarPainter());
     return new ChartPanel(barChart);
   }
@@ -123,5 +125,13 @@ public class ResultVisualization extends AbstractVisualization {
 
   public void openResults() {
     frame.setVisible(true);
+  }
+
+  private double convertDistanceToMeters(double value) {
+    return 0.00;
+  };
+
+  private double convertTimeToSeconds(double value) {
+    return 0.00;
   }
 }
