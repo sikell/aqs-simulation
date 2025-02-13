@@ -21,7 +21,7 @@ public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements 
 
   @Override
   public SimulationConfiguration getParameters() {
-    return new SimulationConfiguration("DetectionRadius");
+    return new SimulationConfiguration();
   }
 
   @Override

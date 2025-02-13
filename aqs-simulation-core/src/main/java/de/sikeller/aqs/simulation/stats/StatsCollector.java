@@ -32,7 +32,7 @@ public class StatsCollector {
     var data = new Object[2][];
     data[0] =
         new Object[] {
-          "Taxi Travel Distance",
+          "Taxi Travel Distance in KM",
           format(DOUBLE_FORMAT, travelDistance.min()),
           format(DOUBLE_FORMAT, travelDistance.max()),
           format(DOUBLE_FORMAT, travelDistance.avg()),
@@ -43,7 +43,7 @@ public class StatsCollector {
         };
     data[1] =
         new Object[] {
-          "Client Travel Time",
+          "Client Travel Time in Min",
           travelTime.min(),
           travelTime.max(),
           format(DOUBLE_FORMAT, travelTime.avg()),
@@ -59,7 +59,7 @@ public class StatsCollector {
   public void print() {
     if (travelDistance != null)
       log.info(
-          "[ Taxi travel distance ] run: {}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
+          "[ Taxi travel distance in KM ] run: {}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
           runCounter,
           format(DOUBLE_FORMAT, travelDistance.min()),
           format(DOUBLE_FORMAT, travelDistance.max()),
@@ -69,7 +69,7 @@ public class StatsCollector {
           algorithm.get().getName());
     if (travelTime != null)
       log.info(
-          "[Client travel time ] run: {}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
+          "[ Client travel time in Min ] run: {}, min: {}, max: {}, avg: {}, sum: {}, count: {}, algorithm: {}",
           runCounter,
           travelTime.min(),
           travelTime.max(),
