@@ -58,9 +58,10 @@ public class ResultVisualization extends AbstractVisualization {
       JScrollPane scrollPane = new JScrollPane(table);
       int frameWidth = frame.getWidth();
       scrollPane.setPreferredSize(new Dimension((int) (frameWidth * 0.8), table.getPreferredSize().height));
-      frame.setLayout(new GridLayout(2, 1));
+      frame.setLayout(new GridLayout(3, 1));
       frame.add(panel);
       frame.add(scrollPane);
+      frame.add(resetButton());
       frame.pack();
       openResults();
     } else {
@@ -154,5 +155,18 @@ public class ResultVisualization extends AbstractVisualization {
     BigDecimal bd = BigDecimal.valueOf(value);
     bd = bd.setScale(places, RoundingMode.HALF_UP);
     return bd.doubleValue();
+  }
+
+  private void resetData() {
+    model.getDataVector().removeAllElements();
+    taxiDataset.clear();
+    clientDataset.clear();
+    SwingUtilities.updateComponentTreeUI(table);
+  }
+
+  private JButton resetButton() {
+    JButton button = new JButton("Reset Data");
+    button.addActionListener(e -> resetData());
+    return button;
   }
 }
