@@ -10,7 +10,6 @@ import java.awt.event.WindowEvent;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
-import java.util.Arrays;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import org.jfree.chart.ChartFactory;
@@ -29,15 +28,16 @@ public class ResultVisualization extends AbstractVisualization {
 
   private JTable table;
   private DefaultTableModel model;
-  private JPanel panel;
+  private JPanel chartPanel;
+  private JScrollPane scrollPane;
   private final DefaultCategoryDataset taxiDataset = new DefaultCategoryDataset();
   private final DefaultCategoryDataset clientDataset = new DefaultCategoryDataset();
 
   public ResultVisualization() {
     super("Taxi Scenario Results");
     frame.setMinimumSize(new Dimension(600, 200));
-    frame.setPreferredSize(new Dimension(1000, 400));
-    frame.setLayout(new GridLayout());
+    frame.setPreferredSize(new Dimension(1000, 500));
+    frame.setLayout(new BorderLayout());
     frame.addWindowListener(new WindowAdapter() {
       @Override
       public void windowDeactivated(WindowEvent e) {
@@ -55,13 +55,24 @@ public class ResultVisualization extends AbstractVisualization {
     if (table == null) {
       model = new DefaultTableModel(convertedResultTable.getData(), resultTable.getColumns());
       table = new JTable(model);
-      JScrollPane scrollPane = new JScrollPane(table);
+      scrollPane = new JScrollPane(table);
       int frameWidth = frame.getWidth();
-      scrollPane.setPreferredSize(new Dimension((int) (frameWidth * 0.8), table.getPreferredSize().height));
-      frame.setLayout(new GridLayout(3, 1));
-      frame.add(panel);
-      frame.add(scrollPane);
-      frame.add(resetButton());
+      scrollPane.setMinimumSize(new Dimension((int) (frameWidth * 0.8), table.getPreferredSize().height * table.getRowCount()));
+      scrollPane.setPreferredSize(new Dimension((int) (frameWidth * 0.8), table.getPreferredSize().height * table.getRowCount()));
+      chartPanel.setPreferredSize(new Dimension(frameWidth, 700));
+      frame.add(chartPanel, BorderLayout.CENTER);
+      JPanel tablePanel = new JPanel(new GridBagLayout());
+      GridBagConstraints constraints = new GridBagConstraints();
+      constraints.gridx = 0;
+      constraints.gridy = 0;
+      constraints.weightx = 1.0;
+      constraints.fill = GridBagConstraints.HORIZONTAL;
+      tablePanel.add(scrollPane, constraints);
+      constraints.gridy = 1;
+      constraints.fill = GridBagConstraints.NONE;
+      tablePanel.add(resetButton(), constraints);
+
+      frame.add(tablePanel, BorderLayout.SOUTH);
       frame.pack();
       openResults();
     } else {
@@ -78,10 +89,10 @@ public class ResultVisualization extends AbstractVisualization {
         createBarChart("Taxi Travel Distance", null, "Distance in Kilometers", taxiDataset);
     ChartPanel clientChartPanel = createBarChart("Client Travel Time", null, "Time in Minutes", clientDataset);
 
-    panel = new JPanel();
-    panel.setLayout(new GridLayout(0,2));
-    panel.add(taxiChartPanel);
-    panel.add(clientChartPanel);
+    chartPanel = new JPanel();
+    chartPanel.setLayout(new GridLayout(0,2));
+    chartPanel.add(taxiChartPanel);
+    chartPanel.add(clientChartPanel);
 
     frame.pack();
   }
@@ -167,6 +178,8 @@ public class ResultVisualization extends AbstractVisualization {
   private JButton resetButton() {
     JButton button = new JButton("Reset Data");
     button.addActionListener(e -> resetData());
+    button.setPreferredSize(new Dimension(200, 50));
+    button.setMaximumSize(new Dimension(300, 60));
     return button;
   }
 }
