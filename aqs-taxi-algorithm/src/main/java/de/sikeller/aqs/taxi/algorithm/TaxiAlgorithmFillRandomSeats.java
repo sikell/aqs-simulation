@@ -30,8 +30,8 @@ public class TaxiAlgorithmFillRandomSeats extends AbstractTaxiAlgorithm implemen
     var taxiCandidates = getTaxisWithCapacity(world);
     if (taxiCandidates.isEmpty()) return stop("No taxis with capacity found.");
     var nextTaxi = taxiCandidates.iterator().next();
-    var capacity = (int) (new Random(parameters.get("SeatRandomizationSeed")).nextDouble()  * nextTaxi.getCurrentCapacity() + 1);
-    System.out.println(new Random(parameters.get("SeatRandomizationSeed") + counter++).nextDouble());
+    var capacity = (int) (new Random(parameters.get("SeatRandomizationSeed")+ counter++).nextFloat()  * nextTaxi.getCurrentCapacity() + 1);
+    System.out.println(new Random(parameters.get("SeatRandomizationSeed")+ counter++));
     var nearestClients = EntityUtils.sortByNearest(nextTaxi.getPosition(), waitingClients);
 
     for (int taxiSeat = 0; taxiSeat < capacity && taxiSeat < nearestClients.size(); taxiSeat++) {
