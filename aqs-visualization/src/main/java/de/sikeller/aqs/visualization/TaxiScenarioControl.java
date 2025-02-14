@@ -145,6 +145,11 @@ public class TaxiScenarioControl extends AbstractControl {
                                 + ((int)
                                     ((JSpinner) getComponentByName("clientIncrement")).getValue());
                         ((JSpinner) getComponentByName("clientCount")).setValue(newClientCount);
+                        int newTaxiSeatCount =
+                                ((int) ((JSpinner) getComponentByName("taxiSeatCount")).getValue())
+                                        + ((int)
+                                        ((JSpinner) getComponentByName("taxiSeatIncrement")).getValue());
+                        ((JSpinner) getComponentByName("taxiSeatCount")).setValue(newTaxiSeatCount);
                         initializeSimulation();
                       }
                     })

@@ -53,7 +53,14 @@ public class BatchProcessingControl extends AbstractControl {
         bagConstraints);
     add(2, 0, label("Increment of Clients", "clientIncrementLabel"), bagConstraints);
     add(
-        3,
+            3,
+            1,
+            spinner("taxiSeatIncrement", "Sets the Increment of the Taxi-Seat-Parameter", 0, 1000000, 0, 1),
+            bagConstraints);
+    add(3, 0, label("Increment of Taxi-Seats", "taxiSeatIncrementLabel"), bagConstraints);
+
+    add(
+        4,
         1,
         button(
             "Reset",
