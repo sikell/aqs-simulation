@@ -47,7 +47,7 @@ public class TaxiScenarioControl extends AbstractControl {
     selection.add(algorithmSelectionBox());
     selection.add(algorithmSelectionButton());
     worldInputs.add(label("World seed", "worldSeed"));
-    worldInputs.add(worldSeedTextField());
+    worldInputs.add(worldSeedSpinner());
     worldInputs.add(label("Taxi count", "taxiCountLabel"));
     worldInputs.add(taxiCountSpinner());
     worldInputs.add(label("Client count", "clientCountLabel"));
@@ -204,13 +204,12 @@ public class TaxiScenarioControl extends AbstractControl {
     return slider;
   }
 
-  private JTextField worldSeedTextField() {
-    JTextField textField = new JTextField();
-    textField.setName("worldSeed");
-    textField.setColumns(4);
-    textField.setText("" + new Random().nextInt(Integer.MAX_VALUE));
-    textField.setToolTipText("Set a simulation random seed");
-    return textField;
+  private JSpinner worldSeedSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel( new Random().nextInt(Integer.MAX_VALUE), 1, Integer.MAX_VALUE, 1);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    spinner.setName("worldSeed");
+    spinner.setToolTipText("Set a simulation random seed");
+    return spinner;
   }
 
   private JSpinner taxiCountSpinner() {
@@ -309,7 +308,11 @@ public class TaxiScenarioControl extends AbstractControl {
           JLabel label = new JLabel(parameter);
           label.setName(parameter + "Label");
           algorithmInputs.add(label);
-          SpinnerModel model = new SpinnerNumberModel(1, 0,  1_000_000_000, 1);
+          int defaultValue = 1;
+          if (parameter.equals("SeatRandomizationSeed")) {
+            defaultValue = new Random().nextInt(Integer.MAX_VALUE - 1);
+          }
+          SpinnerModel model = new SpinnerNumberModel(defaultValue, 0,  Integer.MAX_VALUE, 1);
           JSpinner spinner = new JSpinner(model);
           label.setLabelFor(spinner);
           spinner.setName(parameter);

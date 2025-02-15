@@ -57,8 +57,7 @@ public class ResultVisualization extends AbstractVisualization {
       table = new JTable(model);
       scrollPane = new JScrollPane(table);
       int frameWidth = frame.getWidth();
-      scrollPane.setMinimumSize(new Dimension((int) (frameWidth * 0.8), table.getPreferredSize().height * table.getRowCount()));
-      scrollPane.setPreferredSize(new Dimension((int) (frameWidth * 0.8), table.getPreferredSize().height * table.getRowCount()));
+      scrollPane.setMinimumSize(new Dimension((int) (frameWidth * 0.8), table.getRowHeight() * (model.getRowCount()+2)));
       chartPanel.setPreferredSize(new Dimension(frameWidth, 700));
       frame.add(chartPanel, BorderLayout.CENTER);
       JPanel tablePanel = new JPanel(new GridBagLayout());

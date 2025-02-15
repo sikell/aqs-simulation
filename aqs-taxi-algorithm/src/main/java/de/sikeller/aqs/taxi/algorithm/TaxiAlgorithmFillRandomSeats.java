@@ -14,7 +14,6 @@ public class TaxiAlgorithmFillRandomSeats extends AbstractTaxiAlgorithm implemen
 
   private Map<String, Integer> parameters;
   private final String name = "FillRandomSeats";
-  private int counter = 0;
 
   public void setParameters(Map<String, Integer> parameters) {
     this.parameters = parameters;
@@ -30,8 +29,7 @@ public class TaxiAlgorithmFillRandomSeats extends AbstractTaxiAlgorithm implemen
     var taxiCandidates = getTaxisWithCapacity(world);
     if (taxiCandidates.isEmpty()) return stop("No taxis with capacity found.");
     var nextTaxi = taxiCandidates.iterator().next();
-    var capacity = (int) (new Random(parameters.get("SeatRandomizationSeed")+ counter++).nextFloat()  * nextTaxi.getCurrentCapacity() + 1);
-    System.out.println(new Random(parameters.get("SeatRandomizationSeed")+ counter++));
+    var capacity = (int) (new Random(parameters.get("SeatRandomizationSeed")).nextFloat()  * nextTaxi.getCurrentCapacity() + 1);
     var nearestClients = EntityUtils.sortByNearest(nextTaxi.getPosition(), waitingClients);
 
     for (int taxiSeat = 0; taxiSeat < capacity && taxiSeat < nearestClients.size(); taxiSeat++) {
