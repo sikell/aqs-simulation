@@ -63,7 +63,7 @@ public class Taxi implements Entity {
   @Override
   public void updatePosition(Position position, long currentTime) {
     this.lastUpdate = currentTime;
-    if(!isMoving()) return;
+    if (!isMoving()) return;
     this.travelDistance += this.position.distance(position);
     this.position = position;
     checkTargetReached(position);
@@ -83,6 +83,10 @@ public class Taxi implements Entity {
 
   public void addOrder(Order order, Function<List<Order>, List<Position>> flattenFunction) {
     targets.addOrder(order, flattenFunction);
+  }
+
+  public void planOrderPath(Function<List<Order>, List<Position>> flattenFunction) {
+    targets.planOrders(flattenFunction);
   }
 
   private void checkTargetReached(Position position) {

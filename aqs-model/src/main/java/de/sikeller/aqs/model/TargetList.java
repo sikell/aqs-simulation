@@ -1,11 +1,10 @@
 package de.sikeller.aqs.model;
 
-import lombok.Builder;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import lombok.Builder;
 
 @Builder
 public class TargetList {
@@ -41,6 +40,10 @@ public class TargetList {
 
   public void addOrder(Order order, Function<List<Order>, List<Position>> flattenFunction) {
     orders.add(order.snapshot());
+    planOrders(flattenFunction);
+  }
+
+  public void planOrders(Function<List<Order>, List<Position>> flattenFunction) {
     flattenedTargets.clear();
     flattenedTargets.addAll(flattenFunction.apply(orders));
   }

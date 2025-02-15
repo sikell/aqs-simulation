@@ -33,6 +33,10 @@ public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
     return world.getTaxis().stream().filter(Taxi::isEmpty).collect(Collectors.toSet());
   }
 
+  protected void planOrderPath(Taxi taxi, Function<List<Order>, List<Position>> flattenFunction) {
+    taxi.planOrderPath(flattenFunction);
+  }
+
   protected void planClientForTaxi(
       Taxi taxi, Client client, Function<List<Order>, List<Position>> flattenFunction) {
     taxi.planClient(client);
