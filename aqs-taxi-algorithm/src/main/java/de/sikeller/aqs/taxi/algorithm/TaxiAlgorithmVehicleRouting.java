@@ -20,6 +20,7 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
   private static final String ENTITY_TYPE_CLIENT_START = "[start-%s]";
   private static final String ENTITY_TYPE_CLIENT_TARGET = "[target-%s]";
   private static final String ENTITY_TYPE_TAXI = "[taxiSpawn-%s]";
+  private static final String ENTITY_TYPE_DEPOT = "[taxiDepot]";
   private Map<String, Integer> parameters;
   private final String name = "VehicleRouting";
 
@@ -41,7 +42,7 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
 
     var waitingClientsList = new LinkedList<>(waitingClients);
 
-    int entityCount = 2 * waitingClients.size() + taxiCandidatesCount;
+    int entityCount = 2 * waitingClients.size() + taxiCandidatesCount + 1;
     String[] entityTypes = new String[entityCount];
     Position[] entityPositions = new Position[entityCount];
     int[] demands = new int[entityCount];
@@ -70,12 +71,16 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
       entityPositions[i] = taxiCandidate.getPosition();
       demands[i] = 0;
       starts[f] = i;
-      // todo ends should be arbitrary - so set distance matrix to end position always zero
-      ends[f] = i;
+      // ends should be arbitrary - so set distance matrix to depot position (last entry) to which
+      // the distance is always zero:
+      ends[f] = entityCount - 1;
       taxiCapacities[f] = taxiCandidate.getCapacity();
       i++;
       f++;
     }
+    entityTypes[i] = ENTITY_TYPE_DEPOT;
+    entityPositions[i] = null;
+    demands[i] = 0;
 
     long[][] distanceMatrix = createDistanceMatrix(entityPositions);
 
@@ -152,6 +157,7 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
           }
         }
       }
+      // todo fix this if the spawn window of clients are larger and clients dynamically spawns...
       planOrderPath(taxi, orders -> path);
     }
     return ok();
@@ -164,7 +170,8 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
       var c = entityPositions[k];
       for (int j = 0; j < entityCount; j++) {
         var o = entityPositions[j];
-        distanceMatrix[k][j] = Math.round(c.distance(o));
+        boolean isVirtualDepot = c == null || o == null;
+        distanceMatrix[k][j] = isVirtualDepot ? 0 : Math.round(c.distance(o));
       }
     }
     return distanceMatrix;
