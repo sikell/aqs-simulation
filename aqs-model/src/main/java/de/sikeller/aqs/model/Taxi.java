@@ -72,7 +72,7 @@ public class Taxi implements Entity {
   }
 
   public void planClient(Client client) {
-    client.setMode(ClientMode.MOVING);
+    client.setMode(ClientMode.PLANNED);
     plannedPassengers.add(client);
   }
 
@@ -118,6 +118,7 @@ public class Taxi implements Entity {
           forgetClient(client);
           return;
         }
+        client.setMode(ClientMode.MOVING);
         plannedPassengers.remove(client);
         containedPassengers.add(client);
         EventDispatcher.dispatch(new EventClientEntersTaxi(currentTime, client, this));
