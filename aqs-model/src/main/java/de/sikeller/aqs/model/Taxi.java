@@ -39,6 +39,7 @@ public class Taxi implements Entity {
   @Builder.Default private long lastUpdate = 0;
   @Builder.Default private double currentSpeed = 1;
   @Builder.Default private double travelDistance = 0;
+  private final ErrorHandler errorHandler = ErrorHandlerFactory.getInstance();
 
   public Taxi snapshot() {
     return Taxi.builder()
@@ -76,9 +77,44 @@ public class Taxi implements Entity {
     plannedPassengers.add(client);
   }
 
+  public void pickupClient(Client client) {
+    if (!client.getPosition().equals(position)) {
+      errorHandler.error("Try to pickup a client which is too far away :-(");
+      return;
+    }
+    client.setMode(ClientMode.MOVING);
+    plannedPassengers.remove(client);
+    containedPassengers.add(client);
+  }
+
   public void forgetClient(Client client) {
+    if (!plannedPassengers.contains(client)) {
+      errorHandler.error("Try to forget a client which is unknown to the given taxi!");
+      return;
+    }
     client.setMode(ClientMode.WAITING);
     plannedPassengers.remove(client);
+  }
+
+  public void forgetAllClients() {
+    for (Client client : new HashSet<>(plannedPassengers)) {
+      forgetClient(client);
+    }
+  }
+
+  public void dropOffClient(Client client) {
+    if (!containedPassengers.contains(client)) {
+      errorHandler.error("Try to drop off a client which is not contained in the given taxi!");
+      return;
+    }
+    client.setMode(ClientMode.WAITING);
+    containedPassengers.remove(client);
+  }
+
+  public void dropOffAllClients() {
+    for (Client client : new HashSet<>(containedPassengers)) {
+      dropOffClient(client);
+    }
   }
 
   public void addOrder(Order order, Function<List<Order>, List<Position>> flattenFunction) {
@@ -111,16 +147,13 @@ public class Taxi implements Entity {
     for (Client client : new HashSet<>(plannedPassengers)) {
       if (client.getPosition().equals(position)) {
         if (containedPassengers.size() >= capacity) {
-          log.warn(
-              "Client {} should enter taxi {} but capacity reached. Client does not enter taxi!",
-              client.getName(),
-              this.getName());
+          errorHandler.error(
+              "Client %s should enter taxi %s but capacity reached. Client does not enter taxi!",
+              client.getName(), this.getName());
           forgetClient(client);
           return;
         }
-        client.setMode(ClientMode.MOVING);
-        plannedPassengers.remove(client);
-        containedPassengers.add(client);
+        pickupClient(client);
         EventDispatcher.dispatch(new EventClientEntersTaxi(currentTime, client, this));
         log.debug("Taxi {} passenger {} enters", name, client.getName());
       }
@@ -129,7 +162,7 @@ public class Taxi implements Entity {
 
   @Override
   public Position getTarget() {
-    return targets.isEmpty() ? position : targets.getFirst();
+    return targets.getFirst(position);
   }
 
   @Override
@@ -139,7 +172,7 @@ public class Taxi implements Entity {
 
   @Override
   public boolean isMoving() {
-    return !targets.isEmpty() && !position.equals(getTarget());
+    return !targets.isEmpty();
   }
 
   public int getCurrentCapacity() {

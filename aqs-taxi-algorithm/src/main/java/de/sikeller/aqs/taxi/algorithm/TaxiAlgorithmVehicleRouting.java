@@ -35,21 +35,27 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
   }
 
   @Override
-  public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
-    var taxiCandidates = new LinkedList<>(getTaxisWithCapacity(world));
+  public AlgorithmResult nextStep(World world, Set<Client> waitingClients1) {
+    var taxiCandidates = new LinkedList<>(world.getTaxis());
     var taxiCandidatesCount = taxiCandidates.size();
     if (taxiCandidates.isEmpty()) return stop("No taxis with capacity found.");
 
-    var waitingClientsList = new LinkedList<>(waitingClients);
+    var notFinishedClients =
+        new LinkedList<>(
+            getClientsByModes(
+                world, Set.of(ClientMode.WAITING, ClientMode.PLANNED, ClientMode.MOVING)));
+    var notFinishedClientsCount = notFinishedClients.size();
 
-    int entityCount = 2 * waitingClients.size() + taxiCandidatesCount + 1;
+    /* waiting client positions + client target positions + taxi positions + 1*depot */
+    int entityCount = 2 * notFinishedClientsCount + taxiCandidatesCount + 1;
+
     String[] entityTypes = new String[entityCount];
     Position[] entityPositions = new Position[entityCount];
     int[] demands = new int[entityCount];
-    int[][] pickupDeliveries = new int[waitingClients.size()][2];
+    int[][] pickupDeliveries = new int[notFinishedClientsCount][2];
     int i = 0;
     int p = 0;
-    for (Client waitingClient : waitingClients) {
+    for (Client waitingClient : notFinishedClients) {
       entityTypes[i] = ENTITY_TYPE_CLIENT_START.formatted(waitingClient.getName());
       entityPositions[i] = waitingClient.getPosition();
       demands[i] = 1;
@@ -142,6 +148,12 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
 
     printSolution(taxiCandidatesCount, routing, manager, solution, demands, entityTypes);
 
+    // todo fix this quick and dirty clients reset which removes already moving clients from taxis
+    for (Taxi taxiCandidate : taxiCandidates) {
+      taxiCandidate.forgetAllClients();
+      taxiCandidate.dropOffAllClients();
+    }
+
     for (int l = 0; l < taxiCandidatesCount; ++l) {
       long index = routing.start(l);
       Taxi taxi = taxiCandidates.get(l);
@@ -149,10 +161,10 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
       while (!routing.isEnd(index)) {
         index = solution.value(routing.nextVar(index));
         int entityIndex = manager.indexToNode(index);
-        if (entityIndex / 2 < waitingClientsList.size()) {
+        if (entityIndex / 2 < notFinishedClientsCount) {
           path.add(entityPositions[entityIndex]);
           if (entityIndex % 2 == 0) {
-            var client = waitingClientsList.get(entityIndex / 2);
+            var client = notFinishedClients.get(entityIndex / 2);
             planClientForTaxi(taxi, client, TargetList.sequentialOrders);
           }
         }

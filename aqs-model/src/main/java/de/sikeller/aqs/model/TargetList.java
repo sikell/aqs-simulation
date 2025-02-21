@@ -71,7 +71,7 @@ public class TargetList {
     return flattenedTargets.isEmpty();
   }
 
-  public Position getFirst() {
-    return flattenedTargets.getFirst();
+  public Position getFirst(Position orDefault) {
+    return flattenedTargets.isEmpty() ? orDefault : flattenedTargets.getFirst();
   }
 }

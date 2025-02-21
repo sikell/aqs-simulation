@@ -14,14 +14,14 @@ public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
 
   @Override
   public AlgorithmResult nextStep(World world) {
-    var waitingClients = getWaitingClients(world);
+    var waitingClients = getClientsByModes(world, Set.of(WAITING));
     if (waitingClients.isEmpty()) return stop("No clients waiting for a taxi.");
     return nextStep(world, waitingClients);
   }
 
-  protected Set<Client> getWaitingClients(World world) {
+  protected Set<Client> getClientsByModes(World world, Set<ClientMode> modes) {
     return world.getSpawnedClients().stream()
-        .filter(client -> WAITING.equals(client.getMode()))
+        .filter(client -> modes.contains(client.getMode()))
         .collect(Collectors.toSet());
   }
 

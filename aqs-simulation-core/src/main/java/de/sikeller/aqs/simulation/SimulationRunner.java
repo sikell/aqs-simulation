@@ -64,12 +64,12 @@ public class SimulationRunner implements SimulationControl {
   }
 
   public void print() {
-    log.info("=========================");
-    log.info("=== CURRENT SIM STATE ===");
-    log.info("=========================");
-    world.getClients().forEach(client -> log.info("{}", client));
-    world.getTaxis().forEach(taxi -> log.info("{}", taxi));
-    log.info("=========================");
+    log.debug("=========================");
+    log.debug("=== CURRENT SIM STATE ===");
+    log.debug("=========================");
+    world.getClients().forEach(client -> log.debug("{}", client));
+    world.getTaxis().forEach(taxi -> log.debug("{}", taxi));
+    log.debug("=========================");
   }
 
   public void registerObserver(SimulationObserver observer) {
