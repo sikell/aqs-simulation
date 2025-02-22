@@ -78,4 +78,8 @@ public class TargetList {
   public Position getFirst(Position orDefault) {
     return flattenedTargets.isEmpty() ? orDefault : flattenedTargets.getFirst().getPosition();
   }
+
+  public OrderNode getFirst() {
+    return flattenedTargets.isEmpty() ? null : flattenedTargets.getFirst();
+  }
 }

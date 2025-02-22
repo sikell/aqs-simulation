@@ -1,14 +1,12 @@
 package de.sikeller.aqs.model;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.Value;
 
 /** A position in the world, represented by x and y coordinates. */
-@Data
-@EqualsAndHashCode
+@Value
 public class Position {
-  private final int x;
-  private final int y;
+  int x;
+  int y;
 
   /**
    * Calculate the Euclidean distance between this and another position.

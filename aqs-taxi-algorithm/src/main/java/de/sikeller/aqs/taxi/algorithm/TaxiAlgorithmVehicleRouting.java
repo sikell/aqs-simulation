@@ -161,8 +161,8 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
         index = solution.value(routing.nextVar(index));
         int entityIndex = manager.indexToNode(index);
         if (entityIndex / 2 < notFinishedClientsCount) {
-          // fixme null for client!!!!!
-          path.add(new OrderNode(null, entityPositions[entityIndex]));
+          path.add(
+              new OrderNode(notFinishedClients.get(entityIndex / 2), entityPositions[entityIndex]));
           if (entityIndex % 2 == 0) {
             var client = notFinishedClients.get(entityIndex / 2);
             planClientForTaxi(taxi, client, world.getCurrentTime(), TargetList.sequentialOrders);
@@ -196,27 +196,27 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
       Assignment solution,
       int[] demands,
       String[] entityTypes) {
-    log.info("Objective : {}", solution.objectiveValue());
+    log.debug("Objective : {}", solution.objectiveValue());
     long maxRouteDistance = 0;
     for (int i = 0; i < taxiCandidatesCount; ++i) {
       long index = routing.start(i);
-      log.info("Route for Vehicle {}:", i);
+      log.debug("Route for Vehicle {}:", i);
       long routeDistance = 0;
       long routeLoad = 0;
-      String route = "";
+      StringBuilder route = new StringBuilder();
       while (!routing.isEnd(index)) {
         int nodeIndex = manager.indexToNode(index);
         routeLoad += demands[nodeIndex];
-        route += entityTypes[nodeIndex] + "(" + routeLoad + ") -> ";
+        route.append(entityTypes[nodeIndex]).append("(").append(routeLoad).append(") -> ");
         long previousIndex = index;
         index = solution.value(routing.nextVar(index));
         routeDistance += routing.getArcCostForVehicle(previousIndex, index, i);
       }
-      route += entityTypes[manager.indexToNode(index)];
-      log.info("{}", route);
-      log.info("Distance of the route: {}m", routeDistance);
+      route.append(entityTypes[manager.indexToNode(index)]);
+      log.debug("{}", route);
+      log.debug("Distance of the route: {}m", routeDistance);
       maxRouteDistance = Math.max(routeDistance, maxRouteDistance);
     }
-    log.info("Maximum of the route distances: {}m", maxRouteDistance);
+    log.debug("Maximum of the route distances: {}m", maxRouteDistance);
   }
 }

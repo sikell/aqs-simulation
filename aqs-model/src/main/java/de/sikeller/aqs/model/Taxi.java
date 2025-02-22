@@ -66,12 +66,10 @@ public class Taxi implements Entity {
     this.travelDistance += this.position.distance(position);
     this.position = position;
     containedPassengers.forEach(p -> p.updatePosition(position, currentTime));
-    if (checkTargetReached(position)) {
-      // todo support pickup / leaving of multiple clients on the same position, currently all
-      // clients on this position enters / leave the taxi even if they should enter in future but
-      // not now
-      checkClientLeaving(position, currentTime);
-      checkClientEntering(position, currentTime);
+    OrderNode target = checkTargetReached(position);
+    if (target != null) {
+      checkClientLeaving(currentTime);
+      checkClientEntering(target, currentTime);
     }
   }
 
@@ -128,16 +126,16 @@ public class Taxi implements Entity {
     targets.planOrders(flattenFunction);
   }
 
-  private boolean checkTargetReached(Position position) {
+  private OrderNode checkTargetReached(Position position) {
     if (!targets.isEmpty() && position.equals(getTarget())) {
       var target = targets.getAnRemoveFirst();
       log.debug("Taxi {} reached a target: {}", name, target);
-      return true;
+      return target;
     }
-    return false;
+    return null;
   }
 
-  private void checkClientLeaving(Position position, long currentTime) {
+  private void checkClientLeaving(long currentTime) {
     for (Client client : new HashSet<>(containedPassengers)) {
       if (client.isFinished()) {
         containedPassengers.remove(client);
@@ -147,26 +145,34 @@ public class Taxi implements Entity {
     }
   }
 
-  private void checkClientEntering(Position position, long currentTime) {
-    for (Client client : new HashSet<>(plannedPassengers)) {
-      if (client.getPosition().equals(position)) {
-        if (containedPassengers.size() >= capacity) {
-          errorHandler.error(
-              "Client %s should enter taxi %s but capacity reached. Client does not enter taxi!",
-              client.getName(), this.getName());
-          forgetClient(client);
-          return;
-        }
-        pickupClient(client);
-        EventDispatcher.dispatch(new EventClientEntersTaxi(currentTime, client, this));
-        log.debug("Taxi {} passenger {} enters", name, client.getName());
+  private void checkClientEntering(OrderNode currentTarget, long currentTime) {
+    var client = currentTarget.getClient();
+    if (client == null) {
+      errorHandler.error("Taxi reached a target but client in order node is empty!");
+      return;
+    }
+    if (plannedPassengers.contains(client)
+        && client.getPosition().equals(currentTarget.getPosition())) {
+      if (containedPassengers.size() >= capacity) {
+        errorHandler.error(
+            "Client %s should enter taxi %s but capacity reached. Client does not enter taxi!",
+            client.getName(), this.getName());
+        forgetClient(client);
+        return;
       }
+      pickupClient(client);
+      EventDispatcher.dispatch(new EventClientEntersTaxi(currentTime, client, this));
+      log.debug("Taxi {} passenger {} enters", name, client.getName());
     }
   }
 
   @Override
   public Position getTarget() {
     return targets.getFirst(position);
+  }
+
+  public OrderNode getTargetOrderNode() {
+    return targets.getFirst();
   }
 
   @Override
