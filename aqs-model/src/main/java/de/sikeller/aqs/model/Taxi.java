@@ -67,9 +67,14 @@ public class Taxi implements Entity {
     if (!isMoving()) return;
     this.travelDistance += this.position.distance(position);
     this.position = position;
-    checkTargetReached(position);
-    checkClientLeaving(position, currentTime);
-    checkClientEntering(position, currentTime);
+    containedPassengers.forEach(p -> p.updatePosition(position, currentTime));
+    if (checkTargetReached(position)) {
+      // todo support pickup / leaving of multiple clients on the same position, currently all
+      // clients on this position enters / leave the taxi even if they should enter in future but
+      // not now
+      checkClientLeaving(position, currentTime);
+      checkClientEntering(position, currentTime);
+    }
   }
 
   public void planClient(Client client) {
@@ -92,14 +97,9 @@ public class Taxi implements Entity {
       errorHandler.error("Try to forget a client which is unknown to the given taxi!");
       return;
     }
+    // todo cleanup targets
     client.setMode(ClientMode.WAITING);
     plannedPassengers.remove(client);
-  }
-
-  public void forgetAllClients() {
-    for (Client client : new HashSet<>(plannedPassengers)) {
-      forgetClient(client);
-    }
   }
 
   public void dropOffClient(Client client) {
@@ -107,11 +107,16 @@ public class Taxi implements Entity {
       errorHandler.error("Try to drop off a client which is not contained in the given taxi!");
       return;
     }
+    // todo cleanup targets
     client.setMode(ClientMode.WAITING);
     containedPassengers.remove(client);
   }
 
-  public void dropOffAllClients() {
+  public void clearTaxi() {
+    targets.clear();
+    for (Client client : new HashSet<>(plannedPassengers)) {
+      forgetClient(client);
+    }
     for (Client client : new HashSet<>(containedPassengers)) {
       dropOffClient(client);
     }
@@ -125,15 +130,16 @@ public class Taxi implements Entity {
     targets.planOrders(flattenFunction);
   }
 
-  private void checkTargetReached(Position position) {
+  private boolean checkTargetReached(Position position) {
     if (!targets.isEmpty() && position.equals(getTarget())) {
       var target = targets.getAnRemoveFirst();
       log.debug("Taxi {} reached a target: {}", name, target);
+      return true;
     }
+    return false;
   }
 
   private void checkClientLeaving(Position position, long currentTime) {
-    containedPassengers.forEach(p -> p.updatePosition(position, currentTime));
     for (Client client : new HashSet<>(containedPassengers)) {
       if (client.isFinished()) {
         containedPassengers.remove(client);

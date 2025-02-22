@@ -55,6 +55,11 @@ public class TargetList {
     return position;
   }
 
+  public void clear() {
+    orders.clear();
+    flattenedTargets.clear();
+  }
+
   public TargetList snapshot() {
     return TargetList.builder()
         .orders(

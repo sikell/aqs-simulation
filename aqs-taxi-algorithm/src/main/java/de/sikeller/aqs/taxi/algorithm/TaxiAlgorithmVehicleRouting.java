@@ -35,7 +35,7 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
   }
 
   @Override
-  public AlgorithmResult nextStep(World world, Set<Client> waitingClients1) {
+  public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
     var taxiCandidates = new LinkedList<>(world.getTaxis());
     var taxiCandidatesCount = taxiCandidates.size();
     if (taxiCandidates.isEmpty()) return stop("No taxis with capacity found.");
@@ -150,8 +150,7 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
 
     // todo fix this quick and dirty clients reset which removes already moving clients from taxis
     for (Taxi taxiCandidate : taxiCandidates) {
-      taxiCandidate.forgetAllClients();
-      taxiCandidate.dropOffAllClients();
+      taxiCandidate.clearTaxi();
     }
 
     for (int l = 0; l < taxiCandidatesCount; ++l) {
