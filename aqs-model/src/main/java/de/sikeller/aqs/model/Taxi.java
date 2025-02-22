@@ -4,9 +4,7 @@ import de.sikeller.aqs.model.events.EventClientEntersTaxi;
 import de.sikeller.aqs.model.events.EventClientLeaveTaxi;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Data;
@@ -122,11 +120,11 @@ public class Taxi implements Entity {
     }
   }
 
-  public void addOrder(Order order, Function<List<Order>, List<Position>> flattenFunction) {
+  public void addOrder(Order order, OrderFlattenFunction flattenFunction) {
     targets.addOrder(order, flattenFunction);
   }
 
-  public void planOrderPath(Function<List<Order>, List<Position>> flattenFunction) {
+  public void planOrderPath(OrderFlattenFunction flattenFunction) {
     targets.planOrders(flattenFunction);
   }
 

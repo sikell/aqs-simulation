@@ -36,7 +36,7 @@ public class TaxiAlgorithmGroupByProximity extends AbstractTaxiAlgorithm impleme
 
     Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
 
-    planClientForTaxi(nearestTaxi, nextClient, TargetList.mergeOrders);
+    planClientForTaxi(nearestTaxi, nextClient, world.getCurrentTime(), TargetList.mergeOrders);
     log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
 
     // search for others with same target and start
@@ -49,7 +49,7 @@ public class TaxiAlgorithmGroupByProximity extends AbstractTaxiAlgorithm impleme
       if (!otherClient.v1().equals(nextClient)
           && otherClient.v2() < parameters.get("DetectionRadius")) {
         Client client = otherClient.v1();
-        planClientForTaxi(nearestTaxi, client, TargetList.mergeOrders);
+        planClientForTaxi(nearestTaxi, client, world.getCurrentTime(), TargetList.mergeOrders);
       }
     }
 

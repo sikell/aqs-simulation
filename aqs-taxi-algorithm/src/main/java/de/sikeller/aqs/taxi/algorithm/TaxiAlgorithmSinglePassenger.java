@@ -37,7 +37,7 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
 
     Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
 
-    planClientForTaxi(nearestTaxi, nextClient, TargetList.sequentialOrders);
+    planClientForTaxi(nearestTaxi, nextClient, world.getCurrentTime(), TargetList.sequentialOrders);
     log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
 
     return ok();

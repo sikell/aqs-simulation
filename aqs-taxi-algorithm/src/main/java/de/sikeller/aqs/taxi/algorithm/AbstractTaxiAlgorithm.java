@@ -3,9 +3,7 @@ package de.sikeller.aqs.taxi.algorithm;
 import static de.sikeller.aqs.model.ClientMode.WAITING;
 
 import de.sikeller.aqs.model.*;
-import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
@@ -33,13 +31,13 @@ public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
     return world.getTaxis().stream().filter(Taxi::isEmpty).collect(Collectors.toSet());
   }
 
-  protected void planOrderPath(Taxi taxi, Function<List<Order>, List<Position>> flattenFunction) {
+  protected void planOrderPath(Taxi taxi, OrderFlattenFunction flattenFunction) {
     taxi.planOrderPath(flattenFunction);
   }
 
   protected void planClientForTaxi(
-      Taxi taxi, Client client, Function<List<Order>, List<Position>> flattenFunction) {
+      Taxi taxi, Client client, long currentTime, OrderFlattenFunction flattenFunction) {
     taxi.planClient(client);
-    taxi.addOrder(Order.of(client.getPosition(), client.getTarget()), flattenFunction);
+    taxi.addOrder(Order.of(client, currentTime), flattenFunction);
   }
 }

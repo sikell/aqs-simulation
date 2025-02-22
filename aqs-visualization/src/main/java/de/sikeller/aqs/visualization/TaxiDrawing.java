@@ -59,10 +59,10 @@ public class TaxiDrawing extends EntityDrawing {
     g.setColor(Color.GRAY);
     g.setStroke(
         new BasicStroke(3, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL, 0, new float[] {9}, 0));
-    List<Position> targets = taxi.getTargets().toList();
+    var targets = taxi.getTargets().toList();
     for (int i = 0; i < targets.size(); i++) {
-      Position prev = i - 1 < 0 ? taxi.getPosition() : targets.get(i - 1);
-      Position target = targets.get(i);
+      Position prev = i - 1 < 0 ? taxi.getPosition() : targets.get(i - 1).getPosition();
+      Position target = targets.get(i).getPosition();
       if (i == 0) {
         g.setColor(Color.GRAY);
       } else {

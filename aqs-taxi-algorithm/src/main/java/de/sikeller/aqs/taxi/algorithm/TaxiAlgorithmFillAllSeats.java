@@ -2,7 +2,6 @@ package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
-
 import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
@@ -34,7 +33,7 @@ public class TaxiAlgorithmFillAllSeats extends AbstractTaxiAlgorithm implements 
 
     for (int taxiSeat = 0; taxiSeat < capacity && taxiSeat < nearestClients.size(); taxiSeat++) {
       var nextClient = nearestClients.get(taxiSeat).v1();
-      planClientForTaxi(nextTaxi, nextClient, TargetList.mergeOrders);
+      planClientForTaxi(nextTaxi, nextClient, world.getCurrentTime(), TargetList.mergeOrders);
       log.debug("Taxi {} plan client {}", nextTaxi.getName(), nextClient.getName());
     }
 

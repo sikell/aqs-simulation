@@ -156,15 +156,16 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
     for (int l = 0; l < taxiCandidatesCount; ++l) {
       long index = routing.start(l);
       Taxi taxi = taxiCandidates.get(l);
-      List<Position> path = new LinkedList<>();
+      List<OrderNode> path = new LinkedList<>();
       while (!routing.isEnd(index)) {
         index = solution.value(routing.nextVar(index));
         int entityIndex = manager.indexToNode(index);
         if (entityIndex / 2 < notFinishedClientsCount) {
-          path.add(entityPositions[entityIndex]);
+          // fixme null for client!!!!!
+          path.add(new OrderNode(null, entityPositions[entityIndex]));
           if (entityIndex % 2 == 0) {
             var client = notFinishedClients.get(entityIndex / 2);
-            planClientForTaxi(taxi, client, TargetList.sequentialOrders);
+            planClientForTaxi(taxi, client, world.getCurrentTime(), TargetList.sequentialOrders);
           }
         }
       }

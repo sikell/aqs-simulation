@@ -2,21 +2,20 @@ package de.sikeller.aqs.model;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Builder;
 
 @Builder
 public class TargetList {
   @Builder.Default private final List<Order> orders = new LinkedList<>();
-  @Builder.Default private final List<Position> flattenedTargets = new LinkedList<>();
+  @Builder.Default private final List<OrderNode> flattenedTargets = new LinkedList<>();
 
   /**
    * <code>
    * [[A, B], [a, b, c], [1, 2]] => [A, B, a, b, c, 1, 2]
    * </code>
    */
-  public static Function<List<Order>, List<Position>> sequentialOrders =
+  public static OrderFlattenFunction sequentialOrders =
       orders -> orders.stream().flatMap(Order::stream).toList();
 
   /**
@@ -24,9 +23,9 @@ public class TargetList {
    * [[A, B], [a, b, c], [1, 2]] => [A, a, 1, B, b, 2, c]
    * </code>
    */
-  public static Function<List<Order>, List<Position>> mergeOrders =
+  public static OrderFlattenFunction mergeOrders =
       orders -> {
-        List<Position> result = new LinkedList<>();
+        List<OrderNode> result = new LinkedList<>();
         int maxSize = orders.stream().mapToInt(Order::size).max().orElse(0);
         for (int i = 0; i < maxSize; i++) {
           for (Order innerList : orders) {
@@ -38,18 +37,18 @@ public class TargetList {
         return result;
       };
 
-  public void addOrder(Order order, Function<List<Order>, List<Position>> flattenFunction) {
+  public void addOrder(Order order, OrderFlattenFunction flattenFunction) {
     orders.add(order.snapshot());
     planOrders(flattenFunction);
   }
 
-  public void planOrders(Function<List<Order>, List<Position>> flattenFunction) {
+  public void planOrders(OrderFlattenFunction flattenFunction) {
     flattenedTargets.clear();
     flattenedTargets.addAll(flattenFunction.apply(orders));
   }
 
-  public Position getAnRemoveFirst() {
-    Position position = flattenedTargets.removeFirst();
+  public OrderNode getAnRemoveFirst() {
+    OrderNode position = flattenedTargets.removeFirst();
     orders.forEach(o -> o.removeIf(e -> e.equals(position)));
     orders.removeIf(Order::isEmpty);
     return position;
@@ -68,7 +67,7 @@ public class TargetList {
         .build();
   }
 
-  public List<Position> toList() {
+  public List<OrderNode> toList() {
     return new LinkedList<>(flattenedTargets);
   }
 
@@ -77,6 +76,6 @@ public class TargetList {
   }
 
   public Position getFirst(Position orDefault) {
-    return flattenedTargets.isEmpty() ? orDefault : flattenedTargets.getFirst();
+    return flattenedTargets.isEmpty() ? orDefault : flattenedTargets.getFirst().getPosition();
   }
 }

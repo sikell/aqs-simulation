@@ -51,7 +51,7 @@ public class TaxiAlgorithmLongestToShortestDistance extends AbstractTaxiAlgorith
         nearestTaxi
                 .getTargets()
                 .addOrder(
-                        Order.of(nextClient.getPosition(), nextClient.getTarget()), TargetList.sequentialOrders);
+                        Order.of(nextClient, world.getCurrentTime()), TargetList.sequentialOrders);
         log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
 
 
