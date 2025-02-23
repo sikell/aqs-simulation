@@ -2,9 +2,11 @@ package de.sikeller.aqs.simulation;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.events.EventDispatcher;
+import de.sikeller.aqs.simulation.stats.CollectorMinMaxAverage;
 import de.sikeller.aqs.simulation.stats.StatsCollector;
 import de.sikeller.aqs.visualization.ResultVisualization;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -39,6 +41,7 @@ public class SimulationRunner implements SimulationControl {
     simulationInitialized = false;
 
     WorldSimulator worldSimulator = new WorldSimulator(world);
+    var algorithmCalculationTime = CollectorMinMaxAverage.longCollector();
     while (!world.isFinished()) {
       int sleepMillis = (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1));
       Thread.sleep(sleepMillis);
@@ -46,14 +49,21 @@ public class SimulationRunner implements SimulationControl {
         continue;
       }
       var currentTime = world.getCurrentTime() + 1;
+      var startTime = System.nanoTime();
       var result = algorithm.get().nextStep(world);
-      log.debug("Step {}: {}", currentTime, result);
+      var calculationTime = System.nanoTime() - startTime;
+      algorithmCalculationTime.collect(calculationTime);
+      log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
       listeners.forEach(l -> l.onUpdate(world));
     }
 
     eventDispatcher.print();
-    statsCollector.collect(eventDispatcher, world, getAlgorithm());
+    statsCollector.collect(
+        eventDispatcher,
+        world,
+        getAlgorithm(),
+        algorithmCalculationTime.result(TimeUnit.NANOSECONDS::toMillis));
     statsCollector.print();
 
     try {
