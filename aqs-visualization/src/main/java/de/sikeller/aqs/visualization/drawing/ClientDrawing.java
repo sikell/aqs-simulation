@@ -1,9 +1,10 @@
-package de.sikeller.aqs.visualization;
+package de.sikeller.aqs.visualization.drawing;
 
-import static de.sikeller.aqs.visualization.VisualizationUtils.defaultFont;
+import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.defaultFont;
 import static java.lang.Math.round;
 
 import de.sikeller.aqs.model.Client;
+
 import java.awt.*;
 import java.util.Collection;
 import java.util.Comparator;

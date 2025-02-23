@@ -1,11 +1,12 @@
-package de.sikeller.aqs.visualization;
+package de.sikeller.aqs.visualization.drawing;
 
-import static de.sikeller.aqs.visualization.VisualizationUtils.defaultFont;
-import static de.sikeller.aqs.visualization.VisualizationUtils.taxiColor;
+import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.defaultFont;
+import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.taxiColor;
 import static java.lang.Math.round;
 
 import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.model.Taxi;
+
 import java.awt.*;
 import java.util.Collection;
 import java.util.Comparator;

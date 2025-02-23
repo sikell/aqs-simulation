@@ -6,6 +6,11 @@ import de.sikeller.aqs.model.World;
 import java.awt.*;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.*;
+
+import de.sikeller.aqs.visualization.controls.TaxiScenarioControl;
+import de.sikeller.aqs.visualization.controls.VisualizationControl;
+import de.sikeller.aqs.visualization.drawing.VisualizationProperties;
+import de.sikeller.aqs.visualization.drawing.TaxiScenarioCanvas;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -18,7 +23,7 @@ public class SimulationVisualization extends AbstractVisualization implements Si
     super("Taxi Scenario Simulation");
     var controls = new JPanel();
     controls.setLayout(new BorderLayout());
-    controls.add(new TaxiScenarioControl(simulation), BorderLayout.CENTER);
+    controls.add(new TaxiScenarioControl(simulation), BorderLayout.NORTH);
     var visuProperties = new VisualizationProperties();
     controls.add(new VisualizationControl(visuProperties), BorderLayout.SOUTH);
     canvas = new TaxiScenarioCanvas(world, visuProperties);

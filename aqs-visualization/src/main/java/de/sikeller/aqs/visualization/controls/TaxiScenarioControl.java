@@ -1,4 +1,5 @@
-package de.sikeller.aqs.visualization;
+package de.sikeller.aqs.visualization.controls;
+
 
 import de.sikeller.aqs.model.SimulationControl;
 import de.sikeller.aqs.model.TaxiAlgorithm;
@@ -47,9 +48,23 @@ public class TaxiScenarioControl extends AbstractControl {
     selection.add(algorithmSelectionBox());
     selection.add(algorithmSelectionButton());
     worldInputs.add(label("World seed", "worldSeed"));
-    worldInputs.add(worldSeedSpinner());
+    worldInputs.add(
+        spinner(
+            "worldSeed",
+            "Set a simulation random seed",
+            1,
+            Integer.MAX_VALUE,
+            new Random().nextInt(Integer.MAX_VALUE),
+            1));
     worldInputs.add(label("Taxi count", "taxiCountLabel"));
-    worldInputs.add(taxiCountSpinner());
+    worldInputs.add(
+        spinner(
+            "taxiCount",
+            "Set the count of taxis to be spawned in the simulation run",
+            1,
+            1_000_000_000,
+            5,
+            1));
     worldInputs.add(label("Client count", "clientCountLabel"));
     worldInputs.add(clientCountSpinner());
     worldInputs.add(label("Client spawn window", "clientSpawnWindowLabel"));
@@ -62,7 +77,7 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(simulationSpeed());
     worldInputs.setBorder(new TitledBorder("World Parameters"));
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
-    worldInputs.setLayout(new GridLayout(7, 2));
+    worldInputs.setLayout(new GridLayout(7, 2, GAP, GAP));
     batchProcessing = new BatchProcessingControl(batchProperties);
     controls.add(selection);
     controls.add(buttons);
@@ -146,9 +161,10 @@ public class TaxiScenarioControl extends AbstractControl {
                                     ((JSpinner) getComponentByName("clientIncrement")).getValue());
                         ((JSpinner) getComponentByName("clientCount")).setValue(newClientCount);
                         int newTaxiSeatCount =
-                                ((int) ((JSpinner) getComponentByName("taxiSeatCount")).getValue())
-                                        + ((int)
-                                        ((JSpinner) getComponentByName("taxiSeatIncrement")).getValue());
+                            ((int) ((JSpinner) getComponentByName("taxiSeatCount")).getValue())
+                                + ((int)
+                                    ((JSpinner) getComponentByName("taxiSeatIncrement"))
+                                        .getValue());
                         ((JSpinner) getComponentByName("taxiSeatCount")).setValue(newTaxiSeatCount);
                         initializeSimulation();
                       }
@@ -202,22 +218,6 @@ public class TaxiScenarioControl extends AbstractControl {
           }
         });
     return slider;
-  }
-
-  private JSpinner worldSeedSpinner() {
-    SpinnerModel spinnerModel = new SpinnerNumberModel( new Random().nextInt(Integer.MAX_VALUE), 1, Integer.MAX_VALUE, 1);
-    JSpinner spinner = new JSpinner(spinnerModel);
-    spinner.setName("worldSeed");
-    spinner.setToolTipText("Set a simulation random seed");
-    return spinner;
-  }
-
-  private JSpinner taxiCountSpinner() {
-    SpinnerModel spinnerModel = new SpinnerNumberModel(5, 1, 1_000_000_000, 1);
-    JSpinner spinner = new JSpinner(spinnerModel);
-    spinner.setName("taxiCount");
-    spinner.setToolTipText("Set the Count of Taxis for the Simulation");
-    return spinner;
   }
 
   private JSpinner clientCountSpinner() {
@@ -312,7 +312,7 @@ public class TaxiScenarioControl extends AbstractControl {
           if (parameter.equals("SeatRandomizationSeed")) {
             defaultValue = new Random().nextInt(Integer.MAX_VALUE - 1);
           }
-          SpinnerModel model = new SpinnerNumberModel(defaultValue, 0,  Integer.MAX_VALUE, 1);
+          SpinnerModel model = new SpinnerNumberModel(defaultValue, 0, Integer.MAX_VALUE, 1);
           JSpinner spinner = new JSpinner(model);
           label.setLabelFor(spinner);
           spinner.setName(parameter);

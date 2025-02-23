@@ -1,7 +1,7 @@
 package de.sikeller.aqs.visualization;
 
-import static de.sikeller.aqs.visualization.VisualizationUtils.defaultFont;
-import static de.sikeller.aqs.visualization.VisualizationUtils.smallFont;
+import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.defaultFont;
+import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.smallFont;
 
 import de.sikeller.aqs.model.ResultTable;
 import java.awt.*;

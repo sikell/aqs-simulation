@@ -1,4 +1,4 @@
-package de.sikeller.aqs.visualization;
+package de.sikeller.aqs.visualization.controls;
 
 import lombok.Data;
 

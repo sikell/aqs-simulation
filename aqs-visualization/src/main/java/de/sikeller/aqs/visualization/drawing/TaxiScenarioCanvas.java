@@ -1,12 +1,13 @@
-package de.sikeller.aqs.visualization;
+package de.sikeller.aqs.visualization.drawing;
 
-import static de.sikeller.aqs.visualization.VisualizationUtils.successColor;
-import static de.sikeller.aqs.visualization.VisualizationUtils.todoColor;
+import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.successColor;
+import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.todoColor;
 
 import de.sikeller.aqs.model.World;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import javax.swing.*;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
