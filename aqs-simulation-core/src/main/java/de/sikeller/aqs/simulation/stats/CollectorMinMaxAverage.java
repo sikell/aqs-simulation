@@ -12,8 +12,14 @@ import lombok.AllArgsConstructor;
  * @param <T> the type of elements in the collection
  */
 public class CollectorMinMaxAverage<T> {
+  /** A class that represents the calculated statistics. */
   public record Result<T>(T min, T max, double avg, T sum, int count) {}
 
+  /**
+   * A collector class that calculates the minimum, maximum, average, sum, and count of numbers.
+   *
+   * @param <N> the type of numbers to collect
+   */
   @AllArgsConstructor
   public static class Collector<N extends Number & Comparable<N>> {
     private N min;
@@ -23,6 +29,11 @@ public class CollectorMinMaxAverage<T> {
     private BiFunction<N, N, N> sumCalculator;
     private BiFunction<N, Integer, Double> avgCalculator;
 
+    /**
+     * Collects a value and updates the statistics.
+     *
+     * @param value the value to collect
+     */
     public void collect(N value) {
       if (min.compareTo(value) > 0) {
         min = value;
@@ -34,11 +45,27 @@ public class CollectorMinMaxAverage<T> {
       count++;
     }
 
+    /**
+     * Returns the calculated statistics as a Result object.
+     *
+     * @return a Result object
+     */
     public Result<N> result() {
       return result(n -> n);
     }
 
+    /**
+     * Returns the calculated statistics as a Result object with the values mapped by the given
+     *
+     * @param mapper the function to map the values
+     * @return a Result object with the mapped values
+     */
     public Result<N> result(Function<N, N> mapper) {
+      if (count == 0) {
+        // Return the max value as min and max if no values were collected because the max value
+        // is the minimum expected value. And the average is 0.
+        return new Result<>(max, max, 0, sum, count);
+      }
       N mappedSum = mapper.apply(sum);
       return new Result<>(
           mapper.apply(min),
@@ -49,14 +76,17 @@ public class CollectorMinMaxAverage<T> {
     }
   }
 
+  /** Returns a new Collector for double values. */
   public static Collector<Double> doubleCollector() {
     return new Collector<>(Double.MAX_VALUE, 0D, 0D, 0, Double::sum, (sum, count) -> sum / count);
   }
 
+  /** Returns a new Collector for long values. */
   public static Collector<Long> longCollector() {
     return new Collector<>(Long.MAX_VALUE, 0L, 0L, 0, Long::sum, (sum, count) -> 1.0 * sum / count);
   }
 
+  /** Collects statistics from a collection of elements by mapping each element to a number. */
   private <N extends Number & Comparable<N>> Result<N> collect(
       Collection<T> collection, Function<T, N> mapper, Collector<N> collector) {
     for (T entry : collection) {
