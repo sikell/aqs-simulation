@@ -1,8 +1,6 @@
 package de.sikeller.aqs.taxi.algorithm;
 
-
 import de.sikeller.aqs.model.*;
-import de.sikeller.aqs.model.AlgorithmResult;
 
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +21,8 @@ public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm impleme
 
   @Override
   public SimulationConfiguration getParameters() {
-    return new SimulationConfiguration("DetectionRadius", "MaxDegree");
+    return new SimulationConfiguration(
+        new AlgorithmParameter("DetectionRadius"), new AlgorithmParameter("MaxDegree"));
   }
 
   @Override
@@ -55,7 +54,8 @@ public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm impleme
       // todo this number should be configurable by parameter:
       if (!otherClient.v1().equals(nextClient)
           && isDifferenceSmallerThan(direction, otherClient.v2(), parameters.get("MaxDegree"))
-          && nextClient.getPosition().distance(otherClient.v1().getPosition()) < parameters.get("DetectionRadius")) {
+          && nextClient.getPosition().distance(otherClient.v1().getPosition())
+              < parameters.get("DetectionRadius")) {
         Client client = otherClient.v1();
         planClientForTaxi(nearestTaxi, client, world.getCurrentTime(), TargetList.mergeOrders);
       }
