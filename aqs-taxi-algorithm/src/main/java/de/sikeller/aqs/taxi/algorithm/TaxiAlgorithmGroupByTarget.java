@@ -1,7 +1,6 @@
 package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.*;
-import de.sikeller.aqs.model.AlgorithmResult;
 
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +21,7 @@ public class TaxiAlgorithmGroupByTarget extends AbstractTaxiAlgorithm implements
 
   @Override
   public SimulationConfiguration getParameters() {
-    return new SimulationConfiguration("DetectionRadius");
+    return new SimulationConfiguration(new AlgorithmParameter("DetectionRadius"));
   }
 
   @Override

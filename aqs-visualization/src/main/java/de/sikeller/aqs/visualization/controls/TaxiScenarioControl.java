@@ -1,6 +1,7 @@
 package de.sikeller.aqs.visualization.controls;
 
 
+import de.sikeller.aqs.model.AlgorithmParameter;
 import de.sikeller.aqs.model.SimulationControl;
 import de.sikeller.aqs.model.TaxiAlgorithm;
 import java.awt.*;
@@ -290,7 +291,7 @@ public class TaxiScenarioControl extends AbstractControl {
   }
 
   private void generateParameters() {
-    Set<String> parameters = simulation.getSimulationParameters().getParameters();
+    Set<AlgorithmParameter> parameters = simulation.getSimulationParameters().getParameters();
     if (parameters.isEmpty()) {
       algorithmInputs.setBorder(null);
     } else {
@@ -305,20 +306,18 @@ public class TaxiScenarioControl extends AbstractControl {
     inputParameterMap.put("clientCount", 0);
     parameters.forEach(
         parameter -> {
-          JLabel label = new JLabel(parameter);
+          JLabel label = new JLabel(parameter.name());
           label.setName(parameter + "Label");
           algorithmInputs.add(label);
-          int defaultValue = 1;
-          if (parameter.equals("SeatRandomizationSeed")) {
-            defaultValue = new Random().nextInt(Integer.MAX_VALUE - 1);
-          }
+          int defaultValue = parameter.defaultValue() != null ? parameter.defaultValue() : 1;
           SpinnerModel model = new SpinnerNumberModel(defaultValue, 0, Integer.MAX_VALUE, 1);
           JSpinner spinner = new JSpinner(model);
           label.setLabelFor(spinner);
-          spinner.setName(parameter);
+          spinner.setName(parameter.name());
           algorithmInputs.add(spinner);
-          inputParameterMap.put(parameter, 0);
+          inputParameterMap.put(parameter.name(), 0);
         });
+    algorithmInputs.setLayout(new GridLayout(parameters.size(), 2, GAP, GAP));
     SwingUtilities.updateComponentTreeUI(worldInputs);
   }
 

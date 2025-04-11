@@ -9,9 +9,9 @@ import java.util.Set;
 @Getter
 public class SimulationConfiguration {
 
-  private Set<String> parameters;
+  private final Set<AlgorithmParameter> parameters;
 
-  public SimulationConfiguration(String... parameters) {
+  public SimulationConfiguration(AlgorithmParameter... parameters) {
     this.parameters = new HashSet<>();
       this.parameters.addAll(Arrays.asList(parameters));
   }

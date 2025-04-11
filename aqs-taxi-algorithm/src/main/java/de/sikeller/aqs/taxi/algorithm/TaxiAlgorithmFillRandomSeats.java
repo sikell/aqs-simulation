@@ -1,7 +1,6 @@
 package de.sikeller.aqs.taxi.algorithm;
 
 import de.sikeller.aqs.model.*;
-import de.sikeller.aqs.model.AlgorithmResult;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -21,7 +20,9 @@ public class TaxiAlgorithmFillRandomSeats extends AbstractTaxiAlgorithm implemen
 
   @Override
   public SimulationConfiguration getParameters() {
-    return new SimulationConfiguration("SeatRandomizationSeed");
+    return new SimulationConfiguration(
+        new AlgorithmParameter(
+            "SeatRandomizationSeed", new Random().nextInt(Integer.MAX_VALUE - 1)));
   }
 
   @Override
@@ -29,13 +30,21 @@ public class TaxiAlgorithmFillRandomSeats extends AbstractTaxiAlgorithm implemen
     var taxiCandidates = getTaxisWithCapacity(world);
     if (taxiCandidates.isEmpty()) return stop("No taxis with capacity found.");
     var nextTaxi = taxiCandidates.iterator().next();
-    var capacity = (int) (new Random(parameters.get("SeatRandomizationSeed")).nextFloat()  * nextTaxi.getCurrentCapacity() + 1);
+    var capacity =
+        (int)
+            (new Random(parameters.get("SeatRandomizationSeed")).nextFloat()
+                    * nextTaxi.getCurrentCapacity()
+                + 1);
     var nearestClients = EntityUtils.sortByNearest(nextTaxi.getPosition(), waitingClients);
 
     for (int taxiSeat = 0; taxiSeat < capacity && taxiSeat < nearestClients.size(); taxiSeat++) {
       var nextClient = nearestClients.get(taxiSeat).v1();
       planClientForTaxi(nextTaxi, nextClient, world.getCurrentTime(), TargetList.mergeOrders);
-      log.debug("Taxi {} with {} seats to fill plan client {}", nextTaxi.getName(), capacity, nextClient.getName());
+      log.debug(
+          "Taxi {} with {} seats to fill plan client {}",
+          nextTaxi.getName(),
+          capacity,
+          nextClient.getName());
     }
 
     return ok();
