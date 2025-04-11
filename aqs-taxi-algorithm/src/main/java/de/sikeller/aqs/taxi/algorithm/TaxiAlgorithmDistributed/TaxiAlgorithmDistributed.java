@@ -44,13 +44,12 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
   @Override
   public SimulationConfiguration getParameters() {
     return new SimulationConfiguration(
-        // Initial search range for clients - Standard: 50 (Example value)
-        "InitialSearchRadius",
-        // Factor to increase search radius if no taxi is found - Standard: 2 (Example value)
-        "RadiusIncreaseFactor",
-        // Maximum search radius multiplier (related to walking speed comparison) - Placeholder -
-        // Standard: 10 (Example value)
-        "MaxRadiusMultiplier");
+        // Initial search range for clients
+        new AlgorithmParameter("InitialSearchRadius", 50),
+        // Factor to increase search radius if no taxi is found
+        new AlgorithmParameter("RadiusIncreaseFactor", 2),
+        // Maximum search radius multiplier (related to walking speed comparison) - Placeholder
+        new AlgorithmParameter("MaxRadiusMultiplier", 10));
   }
 
   @Override
