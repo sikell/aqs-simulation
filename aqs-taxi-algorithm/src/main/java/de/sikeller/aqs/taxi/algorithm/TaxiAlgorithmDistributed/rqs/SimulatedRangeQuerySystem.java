@@ -24,7 +24,6 @@ public class SimulatedRangeQuerySystem implements RangeQuerySystem {
 
     for (Taxi taxi : world.getTaxis()) {
       if (!calculateFullTaxis && !taxi.hasCapacity()) {
-        System.out.println("here");
         log.trace("RQS - Taxi {} skipped (no capacity)", taxi.getName());
         continue;
       }
