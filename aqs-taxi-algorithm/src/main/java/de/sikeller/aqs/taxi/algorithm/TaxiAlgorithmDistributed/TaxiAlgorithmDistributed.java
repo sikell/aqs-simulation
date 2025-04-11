@@ -49,7 +49,9 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
         // Factor to increase search radius if no taxi is found
         new AlgorithmParameter("RadiusIncreaseFactor", 2),
         // Maximum search radius multiplier (related to walking speed comparison) - Placeholder
-        new AlgorithmParameter("MaxRadiusMultiplier", 10));
+        new AlgorithmParameter("MaxRadiusMultiplier", 10),
+        // Calculate also Routes for full (at the time of the request) taxis -> 0 = no 1 = yes
+        new AlgorithmParameter("CalculateFullTaxis", 0));
   }
 
   @Override
@@ -69,6 +71,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
         "Executing nextStep for Distributed Algorithm with {} waiting clients.",
         waitingClients.size());
 
+    final boolean calculateFullTaxis = parameters.getOrDefault("CalculateFullTaxis", 0) != 0;
     final double initialSearchRadius = parameters.getOrDefault("InitialSearchRadius", 50);
     final double radiusIncreaseFactor = parameters.getOrDefault("RadiusIncreaseFactor", 2);
     final double maxRadiusMultiplier = parameters.getOrDefault("MaxRadiusMultiplier", 10);
@@ -84,7 +87,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
           clientSearchRadii.computeIfAbsent(client, k -> initialSearchRadius);
       boolean taxiFound = false;
       // Track max time for this client's requests to simulate parallelism
-      long maxCalcTimeNanosThisClient = 0;
+      long maxCalcTimeNanosCurrentClient = 0;
 
       // 1. Query the Range Query System
       Position start = client.getPosition();
@@ -101,11 +104,10 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
         // 2. Get offers from candidate taxis
         Map<Taxi, Double> offers = new HashMap<>();
         for (Taxi taxi : candidateTaxis) {
-          // Todo: Check if it's better to calculate Route with full Taxis too
-          if (taxi.hasCapacity()) {
+          if (calculateFullTaxis || taxi.hasCapacity()) {
             CostCalculationResult calcResult = costCalculator.calculateMarginalCost(taxi, client);
-            maxCalcTimeNanosThisClient =
-                Math.max(maxCalcTimeNanosThisClient, calcResult.calculationTimeNanos());
+            maxCalcTimeNanosCurrentClient =
+                Math.max(maxCalcTimeNanosCurrentClient, calcResult.calculationTimeNanos());
 
             if (calcResult.cost() != CostCalculationResult.INFEASIBLE_COST) {
               offers.put(taxi, calcResult.cost());
@@ -129,11 +131,11 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
         }
         // Add the simulated parallel time for this client's request phase to the list
         if (!candidateTaxis.isEmpty()) { // Only add if calculations were performed
-          simulatedParallelCalcTimesNanos.add(maxCalcTimeNanosThisClient);
+          simulatedParallelCalcTimesNanos.add(maxCalcTimeNanosCurrentClient);
           log.debug(
               "Client {} - Max calculation time (simulated parallel): {} ms",
               client.getName(),
-              TimeUnit.NANOSECONDS.toMillis(maxCalcTimeNanosThisClient));
+              TimeUnit.NANOSECONDS.toMillis(maxCalcTimeNanosCurrentClient));
         }
 
         // 3. Client chooses the best offer

@@ -20,11 +20,14 @@ public class SimulatedRangeQuerySystem implements RangeQuerySystem {
       World world, Position clientStart, Position clientTarget, double searchRadius) {
     Set<Taxi> candidateTaxis = new HashSet<>();
     List<Position> clientRouteSegment = List.of(clientStart, clientTarget); // Simple direct route
+    final boolean calculateFullTaxis = parameters.getOrDefault("CalculateFullTaxis", 0) != 0;
 
-    // ToDo: Deside if we check for Taxi capacity here or in the algorithm
-    // If we check here we need to calculate less Taxis Routes, but maybe we don' get the best
-    // solution
     for (Taxi taxi : world.getTaxis()) {
+      if (!calculateFullTaxis && !taxi.hasCapacity()) {
+        System.out.println("here");
+        log.trace("RQS - Taxi {} skipped (no capacity)", taxi.getName());
+        continue;
+      }
       if (taxi.isMoving()) {
         // Taxi is active and has a route
         List<OrderNode> taxiRouteNodes = taxi.getTargets().toList();
