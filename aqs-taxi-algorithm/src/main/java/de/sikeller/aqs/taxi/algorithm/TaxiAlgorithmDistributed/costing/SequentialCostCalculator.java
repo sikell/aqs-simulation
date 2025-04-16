@@ -16,7 +16,8 @@ public class SequentialCostCalculator implements CostCalculator {
   }
 
   @Override
-  public CostCalculationResult calculateMarginalCost(Taxi taxi, Client newClient) {
+  public CostCalculationResult calculateMarginalCost(
+      Taxi taxi, Client newClient, double maxClientTripTime) {
     long startTime = System.nanoTime();
 
     Position currentPos = taxi.getPosition();
@@ -24,6 +25,17 @@ public class SequentialCostCalculator implements CostCalculator {
     int capacity = taxi.getCapacity();
     // Passengers currently physically in the taxi (needed for capacity check start)
     Set<Client> initialPassengersInTaxi = new HashSet<>(taxi.getContainedPassengers());
+    double taxiSpeed = taxi.getCurrentSpeed();
+
+    if (taxiSpeed <= 0) {
+      log.error(
+          "Taxi {} has invalid speed: {}. Cannot calculate travel times.",
+          taxi.getName(),
+          taxiSpeed);
+      // Return infeasible immediately if speed is invalid
+      return new CostCalculationResult(
+          CostCalculationResult.INFEASIBLE_COST, System.nanoTime() - startTime);
+    }
 
     double originalRouteLength = calculateRouteLengthNodes(currentPos, currentRouteNodes);
     double minNewRouteLength = CostCalculationResult.INFEASIBLE_COST;
@@ -47,9 +59,24 @@ public class SequentialCostCalculator implements CostCalculator {
         candidateRoute.add(j + 1, newDropoffNode); // +1 because list size increased by 1
 
         // ToDo: Check if calculateRouteLengthNodes first is faster than checking validity
-        // --- Validity Check (Capacity) ---
-        if (!isRouteValid(currentPos, candidateRoute, capacity, initialPassengersInTaxi)) {
-          // If not valid, just continue to the next insertion possibility
+        // ToDo: Check if it's better to check the time limit for the new client first
+        // ToDo: Check if it's more efficient to combine the following two validity checks into one
+        // --- Validity Check 1: (Capacity) ---
+        if (!isRouteValidByCapacity(
+            currentPos, candidateRoute, capacity, initialPassengersInTaxi)) {
+          continue;
+        }
+        // --- Validity Check 2: (Time Limit) ---
+        ClientTimes clientTimes =
+            calculateClientTimesOnRoute(currentPos, candidateRoute, newClient, taxiSpeed);
+        if (clientTimes == null) continue;
+        if (clientTimes.totalTime() > maxClientTripTime) {
+          log.trace(
+              "Taxi {}: Client {} exceeds max trip time. Time to pickup: {}, time in taxi: {}",
+              taxi.getName(),
+              newClient.getName(),
+              clientTimes.timeToPickup,
+              clientTimes.timeInTaxi);
           continue;
         }
         // --- Calculate Length ---
@@ -100,6 +127,68 @@ public class SequentialCostCalculator implements CostCalculator {
   }
 
   /**
+   * Calculates the time until pickup and the time spent in the taxi for a specific client along a
+   * given candidate route.
+   *
+   * @param startPos The starting position of the route (taxi's current position).
+   * @param candidateNodes The proposed sequence of stops.
+   * @param targetClient The client whose times are to be calculated.
+   * @param taxiSpeed The speed of the taxi.
+   * @return A ClientTimes record containing timeToPickup and timeInTaxi, or null if pickup/dropoff
+   *     not found correctly.
+   */
+  private ClientTimes calculateClientTimesOnRoute(
+      Position startPos, List<OrderNode> candidateNodes, Client targetClient, double taxiSpeed) {
+    double distanceToPickup = -1;
+    double distanceInTaxi = 0;
+    Position lastPos = startPos;
+    boolean pickedUp = false;
+
+    for (OrderNode node : candidateNodes) {
+      double segmentDistance = lastPos.distance(node.getPosition());
+
+      if (!pickedUp) {
+        // Accumulate distance until pickup
+        if (node.getClient().equals(targetClient)
+            && node.getPosition().equals(targetClient.getPosition())) {
+          // Found the pickup node
+          distanceToPickup = segmentDistance; // Distance of the segment ending at pickup
+          pickedUp = true;
+        } else {
+          // Add distance of segments before pickup
+          if (distanceToPickup < 0) distanceToPickup = 0; // Initialize if not yet found
+          distanceToPickup += segmentDistance;
+        }
+      } else {
+        // Accumulate distance after pickup until dropoff
+        distanceInTaxi += segmentDistance;
+        if (node.getClient().equals(targetClient)
+            && node.getPosition().equals(targetClient.getTarget())) {
+          // Found the dropoff node, calculation complete for this client
+          double timeToPickup = distanceToPickup / taxiSpeed;
+          double timeInTaxi = distanceInTaxi / taxiSpeed;
+          return new ClientTimes(timeToPickup, timeInTaxi);
+        }
+      }
+      lastPos = node.getPosition();
+    }
+
+    // Should have found both pickup and dropoff if route is valid for this client
+    log.warn(
+        "Could not properly calculate client times for {} on route. Pickup found: {}. Dropoff not found?",
+        targetClient.getName(),
+        pickedUp);
+    return null; // Indicate an issue
+  }
+
+  /** Helper Record for client travel times */
+  private record ClientTimes(double timeToPickup, double timeInTaxi) {
+    public double totalTime() {
+      return timeToPickup + timeInTaxi;
+    }
+  }
+
+  /**
    * Checks if a candidate route is valid, primarily focusing on capacity constraints.
    *
    * @param startPos The starting position of the route.
@@ -108,7 +197,7 @@ public class SequentialCostCalculator implements CostCalculator {
    * @param initialPassengersInTaxi The set of clients already in the taxi at the startPos.
    * @return True if the route respects capacity constraints, false otherwise.
    */
-  private boolean isRouteValid(
+  private boolean isRouteValidByCapacity(
       Position startPos,
       List<OrderNode> candidateNodes,
       int capacity,
@@ -138,10 +227,10 @@ public class SequentialCostCalculator implements CostCalculator {
         // Check if the client was actually in the set (should be if route is logical)
         if (!currentPassengers.remove(client)) {
           /* This might happen if the original route had this client planned but not picked up yet,
-           and the new insertion places the dropoff before the pickup.
-           For now, let's assume a valid simulation state where dropoff implies passenger was
-           present.
-           If issues arise, we need a more robust state tracking (planned vs. onboard). */
+          and the new insertion places the dropoff before the pickup.
+          For now, let's assume a valid simulation state where dropoff implies passenger was
+          present.
+          If issues arise, we need a more robust state tracking (planned vs. onboard). */
           log.warn(
               "Validity check: Client {} dropoff node encountered, but client not in current simulated passenger set.",
               client.getName());
