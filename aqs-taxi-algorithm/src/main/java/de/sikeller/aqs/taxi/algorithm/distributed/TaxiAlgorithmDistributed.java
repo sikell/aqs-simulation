@@ -1,9 +1,9 @@
-package de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmDistributed;
+package de.sikeller.aqs.taxi.algorithm.distributed;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.taxi.algorithm.AbstractTaxiAlgorithm;
-import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmDistributed.rqs.*;
-import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmDistributed.costing.*;
+import de.sikeller.aqs.taxi.algorithm.distributed.rqs.*;
+import de.sikeller.aqs.taxi.algorithm.distributed.costing.*;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;

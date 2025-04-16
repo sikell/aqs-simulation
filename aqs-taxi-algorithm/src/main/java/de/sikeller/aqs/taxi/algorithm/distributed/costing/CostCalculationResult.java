@@ -1,4 +1,4 @@
-package de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmDistributed.costing;
+package de.sikeller.aqs.taxi.algorithm.distributed.costing;
 
 /**
  * Holds the result of a cost calculation. Includes the calculated marginal cost and the time taken

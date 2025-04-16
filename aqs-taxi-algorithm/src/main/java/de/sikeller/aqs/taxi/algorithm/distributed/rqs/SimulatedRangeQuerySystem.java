@@ -1,4 +1,4 @@
-package de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmDistributed.rqs;
+package de.sikeller.aqs.taxi.algorithm.distributed.rqs;
 
 import de.sikeller.aqs.model.*;
 import lombok.extern.slf4j.Slf4j;

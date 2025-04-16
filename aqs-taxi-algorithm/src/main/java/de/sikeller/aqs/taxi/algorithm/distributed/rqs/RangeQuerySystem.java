@@ -1,4 +1,4 @@
-package de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmDistributed.rqs;
+package de.sikeller.aqs.taxi.algorithm.distributed.rqs;
 
 import java.util.Map;
 import java.util.Set;

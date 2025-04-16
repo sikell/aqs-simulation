@@ -1,4 +1,4 @@
-package de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmDistributed.costing;
+package de.sikeller.aqs.taxi.algorithm.distributed.costing;
 
 import de.sikeller.aqs.model.Client;
 import de.sikeller.aqs.model.Taxi;
