@@ -31,7 +31,7 @@ public class Algorithm {
         algorithmList = new ArrayList<>();
         allClasses.forEach(
                 aClass -> {
-                    if (aClass.getName().contains("model")) {
+                    if (!aClass.getName().contains("TaxiAlgorithm")) {
                         return;
                     }
                     int mod = aClass.getModifiers();
