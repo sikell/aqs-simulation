@@ -1,56 +1,23 @@
 package de.sikeller.aqs.model;
 
-import de.sikeller.aqs.model.events.EventClientFinished;
-import de.sikeller.aqs.model.events.EventDispatcher;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+public interface Client extends Entity {
+    boolean isSpawned(long currentTime);
 
-@Data
-@Builder
-@EqualsAndHashCode(of = "name")
-public class Client implements Entity {
-  private final String name;
-  @Builder.Default private long spawnTime = 0;
-  @Builder.Default private ClientMode mode = ClientMode.WAITING;
-  private Position position;
-  private Position target;
-  @Builder.Default private long lastUpdate = 0;
-  @Builder.Default private double currentSpeed = 1;
+    boolean isMoving();
 
-  public Client snapshot() {
-    return Client.builder()
-        .name(name)
-        .spawnTime(spawnTime)
-        .mode(mode)
-        .position(position)
-        .target(target)
-        .lastUpdate(lastUpdate)
-        .currentSpeed(currentSpeed)
-        .build();
-  }
+    boolean isFinished();
 
-  @Override
-  public boolean isSpawned(long currentTime) {
-    return currentTime > spawnTime;
-  }
+    String getName();
 
-  @Override
-  public boolean isMoving() {
-    return mode.equals(ClientMode.MOVING);
-  }
+    long getSpawnTime();
 
-  public boolean isFinished() {
-    return mode.equals(ClientMode.FINISHED);
-  }
+    ClientMode getMode();
 
-  public void updatePosition(Position position, long currentTime) {
-    this.lastUpdate = currentTime;
-    if(!isMoving()) return;
-    this.position = position;
-    if (this.position.equals(target)) {
-      EventDispatcher.dispatch(new EventClientFinished(currentTime, this));
-      mode = ClientMode.FINISHED;
-    }
-  }
+    Position getPosition();
+
+    Position getTarget();
+
+    long getLastUpdate();
+
+    double getCurrentSpeed();
 }

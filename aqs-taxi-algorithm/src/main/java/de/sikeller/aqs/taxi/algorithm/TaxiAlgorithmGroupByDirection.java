@@ -38,7 +38,7 @@ public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm impleme
 
     Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
 
-    planClientForTaxi(nearestTaxi, nextClient, world.getCurrentTime(), TargetList.mergeOrders);
+    world.mutate().planClientForTaxi(nearestTaxi, nextClient, TargetList.mergeOrders);
 
     log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
     var direction = nextClient.getPosition().calculateAngle(nextClient.getTarget());
@@ -57,7 +57,7 @@ public class TaxiAlgorithmGroupByDirection extends AbstractTaxiAlgorithm impleme
           && nextClient.getPosition().distance(otherClient.v1().getPosition())
               < parameters.get("DetectionRadius")) {
         Client client = otherClient.v1();
-        planClientForTaxi(nearestTaxi, client, world.getCurrentTime(), TargetList.mergeOrders);
+        world.mutate().planClientForTaxi(nearestTaxi, client, TargetList.mergeOrders);
       }
     }
 

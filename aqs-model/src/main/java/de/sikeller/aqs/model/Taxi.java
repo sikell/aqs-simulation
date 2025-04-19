@@ -32,8 +32,8 @@ public class Taxi implements Entity {
   private final int capacity;
   private Position position;
   @Builder.Default private final TargetList targets = TargetList.builder().build();
-  @Builder.Default private final Set<Client> containedPassengers = new HashSet<>();
-  @Builder.Default private final Set<Client> plannedPassengers = new HashSet<>();
+  @Builder.Default private final Set<ClientEntity> containedPassengers = new HashSet<>();
+  @Builder.Default private final Set<ClientEntity> plannedPassengers = new HashSet<>();
   @Builder.Default private long lastUpdate = 0;
   @Builder.Default private double currentSpeed = 1;
   @Builder.Default private double travelDistance = 0;
@@ -46,9 +46,9 @@ public class Taxi implements Entity {
         .position(position)
         .targets(targets.snapshot())
         .containedPassengers(
-            containedPassengers.stream().map(Client::snapshot).collect(Collectors.toSet()))
+            containedPassengers.stream().map(ClientEntity::snapshot).collect(Collectors.toSet()))
         .plannedPassengers(
-            plannedPassengers.stream().map(Client::snapshot).collect(Collectors.toSet()))
+            plannedPassengers.stream().map(ClientEntity::snapshot).collect(Collectors.toSet()))
         .build();
   }
 
@@ -73,12 +73,12 @@ public class Taxi implements Entity {
     }
   }
 
-  public void planClient(Client client) {
-    client.setMode(ClientMode.PLANNED);
+  public void planClient(ClientEntity client) {
     plannedPassengers.add(client);
+    client.setMode(ClientMode.PLANNED);
   }
 
-  public void pickupClient(Client client) {
+  public void pickupClient(ClientEntity client) {
     if (!client.getPosition().equals(position)) {
       errorHandler.error("Try to pickup a client which is too far away :-(");
       return;
@@ -88,7 +88,7 @@ public class Taxi implements Entity {
     containedPassengers.add(client);
   }
 
-  public void forgetClient(Client client) {
+  public void forgetClient(ClientEntity client) {
     if (!plannedPassengers.contains(client)) {
       errorHandler.error("Try to forget a client which is unknown to the given taxi!");
       return;
@@ -98,7 +98,7 @@ public class Taxi implements Entity {
     plannedPassengers.remove(client);
   }
 
-  public void dropOffClient(Client client) {
+  public void dropOffClient(ClientEntity client) {
     if (!containedPassengers.contains(client)) {
       errorHandler.error("Try to drop off a client which is not contained in the given taxi!");
       return;
@@ -110,10 +110,10 @@ public class Taxi implements Entity {
 
   public void clearTaxi() {
     targets.clear();
-    for (Client client : new HashSet<>(plannedPassengers)) {
+    for (ClientEntity client : new HashSet<>(plannedPassengers)) {
       forgetClient(client);
     }
-    for (Client client : new HashSet<>(containedPassengers)) {
+    for (ClientEntity client : new HashSet<>(containedPassengers)) {
       dropOffClient(client);
     }
   }
@@ -136,7 +136,7 @@ public class Taxi implements Entity {
   }
 
   private void checkClientLeaving(long currentTime) {
-    for (Client client : new HashSet<>(containedPassengers)) {
+    for (ClientEntity client : new HashSet<>(containedPassengers)) {
       if (client.isFinished()) {
         containedPassengers.remove(client);
         EventDispatcher.dispatch(new EventClientLeaveTaxi(currentTime, client, this));
@@ -146,13 +146,20 @@ public class Taxi implements Entity {
   }
 
   private void checkClientEntering(OrderNode currentTarget, long currentTime) {
-    var client = currentTarget.getClient();
-    if (client == null) {
+    if (currentTarget.getClient() == null) {
       errorHandler.error("Taxi reached a target but client in order node is empty!");
       return;
     }
-    if (plannedPassengers.contains(client)
-        && client.getPosition().equals(currentTarget.getPosition())) {
+    var client =
+        plannedPassengers.stream()
+            .filter(c -> c.isSame(currentTarget.getClient()))
+            .findFirst()
+            .orElse(null);
+    if (client == null) {
+      // client is not planned to be picked up... so ignore
+      return;
+    }
+    if (client.getPosition().equals(currentTarget.getPosition())) {
       if (containedPassengers.size() >= capacity) {
         errorHandler.error(
             "Client %s should enter taxi %s but capacity reached. Client does not enter taxi!",

@@ -39,7 +39,7 @@ public class TaxiAlgorithmFillRandomSeats extends AbstractTaxiAlgorithm implemen
 
     for (int taxiSeat = 0; taxiSeat < capacity && taxiSeat < nearestClients.size(); taxiSeat++) {
       var nextClient = nearestClients.get(taxiSeat).v1();
-      planClientForTaxi(nextTaxi, nextClient, world.getCurrentTime(), TargetList.mergeOrders);
+      world.mutate().planClientForTaxi(nextTaxi, nextClient, TargetList.mergeOrders);
       log.debug(
           "Taxi {} with {} seats to fill plan client {}",
           nextTaxi.getName(),

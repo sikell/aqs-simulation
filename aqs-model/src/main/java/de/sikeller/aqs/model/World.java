@@ -16,11 +16,11 @@ import lombok.Data;
  */
 @Data
 @Builder
-public class World {
+public class World implements WorldMutator {
   private final int maxX;
   private final int maxY;
   @Builder.Default private final Set<Taxi> taxis = new HashSet<>();
-  @Builder.Default private final Set<Client> clients = new HashSet<>();
+  @Builder.Default private final Set<ClientEntity> clients = new HashSet<>();
   @Builder.Default private long currentTime = 0;
 
   @Builder.Default
@@ -54,7 +54,7 @@ public class World {
         .maxX(maxX)
         .maxY(maxY)
         .taxis(taxis.stream().map(Taxi::snapshot).collect(Collectors.toSet()))
-        .clients(clients.stream().map(Client::snapshot).collect(Collectors.toSet()))
+        .clients(clients.stream().map(ClientEntity::snapshot).collect(Collectors.toSet()))
         .currentTime(currentTime)
         .isFinished(isFinished)
         .build();
@@ -64,5 +64,21 @@ public class World {
     this.taxis.clear();
     this.clients.clear();
     this.currentTime = 0;
+  }
+
+  public WorldMutator mutate() {
+    return this;
+  }
+
+  @Override
+  public void planClientForTaxi(Taxi taxi, Client client, OrderFlattenFunction flattenFunction) {
+    var clientEntity = clients.stream().filter(c -> c.isSame(client)).findFirst().orElseThrow();
+    taxi.planClient(clientEntity);
+    taxi.addOrder(Order.of(clientEntity, currentTime), flattenFunction);
+  }
+
+  @Override
+  public void planOrderPath(Taxi taxi, OrderFlattenFunction flattenFunction) {
+    taxi.planOrderPath(flattenFunction);
   }
 }

@@ -188,8 +188,8 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
               chosenCost);
 
           // 4. Finalize assignment
-          planClientForTaxi(
-              chosenTaxi, client, world.getCurrentTime(), TargetList.sequentialOrders);
+          world.mutate().planClientForTaxi(
+              chosenTaxi, client, TargetList.sequentialOrders);
           log.info("Assigned Client {} to Taxi {}", client.getName(), chosenTaxi.getName());
 
           // Reset search radius for the next time

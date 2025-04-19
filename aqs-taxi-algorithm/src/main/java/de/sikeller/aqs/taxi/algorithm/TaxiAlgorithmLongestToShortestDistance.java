@@ -44,17 +44,10 @@ public class TaxiAlgorithmLongestToShortestDistance extends AbstractTaxiAlgorith
             return fail("No nearest taxi found");
         }
 
-        nextClient.setMode(MOVING);
         Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
-        nearestTaxi.getPlannedPassengers().add(nextClient);
-
-        nearestTaxi
-                .getTargets()
-                .addOrder(
-                        Order.of(nextClient, world.getCurrentTime()), TargetList.sequentialOrders);
+        world.mutate().planClientForTaxi(nearestTaxi, nextClient, TargetList.sequentialOrders);
         log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
 
-
-        return null;
+        return ok();
     }
 }

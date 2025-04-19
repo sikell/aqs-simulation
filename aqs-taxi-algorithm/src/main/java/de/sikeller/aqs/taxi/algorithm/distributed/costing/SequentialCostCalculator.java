@@ -17,7 +17,7 @@ public class SequentialCostCalculator implements CostCalculator {
 
   @Override
   public CostCalculationResult calculateMarginalCost(
-      Taxi taxi, Client newClient, double maxClientTripTime) {
+          Taxi taxi, Client newClient, double maxClientTripTime) {
     long startTime = System.nanoTime();
 
     Position currentPos = taxi.getPosition();

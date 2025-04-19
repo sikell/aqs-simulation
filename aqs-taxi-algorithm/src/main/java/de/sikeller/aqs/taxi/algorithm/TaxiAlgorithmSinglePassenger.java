@@ -15,6 +15,7 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
 
   private Map<String, Integer> parameters;
   private final String name = "SinglePassenger";
+
   public void setParameters(Map<String, Integer> parameters) {
     this.parameters = parameters;
   }
@@ -37,7 +38,7 @@ public class TaxiAlgorithmSinglePassenger extends AbstractTaxiAlgorithm implemen
 
     Taxi nearestTaxi = nearestTaxiWithCapacity.v1();
 
-    planClientForTaxi(nearestTaxi, nextClient, world.getCurrentTime(), TargetList.sequentialOrders);
+    world.mutate().planClientForTaxi(nearestTaxi, nextClient, TargetList.sequentialOrders);
     log.debug("Taxi {} plan client {}", nearestTaxi.getName(), nextClient.getName());
 
     return ok();
