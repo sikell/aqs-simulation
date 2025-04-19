@@ -39,6 +39,16 @@ class TaxiEntity implements Taxi {
   @Builder.Default private double travelDistance = 0;
   private final ErrorHandler errorHandler = ErrorHandlerFactory.getInstance();
 
+  @Override
+  public Set<Client> getContainedPassengers() {
+    return containedPassengers.stream().map(c -> (Client) c).collect(Collectors.toSet());
+  }
+
+  @Override
+  public Set<Client> getPlannedPassengers() {
+    return plannedPassengers.stream().map(c -> (Client) c).collect(Collectors.toSet());
+  }
+
   public TaxiEntity snapshot() {
     return TaxiEntity.builder()
         .name(name)
