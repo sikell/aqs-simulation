@@ -11,7 +11,7 @@ import lombok.Data;
  */
 @Data
 public class WorldSimulator {
-  private final World world;
+  private final WorldObject world;
 
   public void move(long currentTime) {
     var timePassed = currentTime - world.getCurrentTime();

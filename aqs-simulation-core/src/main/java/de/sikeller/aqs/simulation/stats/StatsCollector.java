@@ -2,10 +2,7 @@ package de.sikeller.aqs.simulation.stats;
 
 import static java.lang.String.format;
 
-import de.sikeller.aqs.model.Algorithm;
-import de.sikeller.aqs.model.ResultTable;
-import de.sikeller.aqs.model.Taxi;
-import de.sikeller.aqs.model.World;
+import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.events.EventClientFinished;
 import de.sikeller.aqs.model.events.EventList;
 import de.sikeller.aqs.simulation.stats.CollectorMinMaxAverage.Result;

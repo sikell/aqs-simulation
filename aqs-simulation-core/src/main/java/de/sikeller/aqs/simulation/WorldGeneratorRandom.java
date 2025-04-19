@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WorldGeneratorRandom implements WorldGenerator {
   @Override
-  public void init(World world, Map<String, Integer> parameters) {
+  public void init(WorldObject world, Map<String, Integer> parameters) {
     log.info("Initialize world with {}", parameters);
     int seed = parameters.getOrDefault("worldSeed", 1);
     var random = new Random(seed);
@@ -19,7 +19,7 @@ public class WorldGeneratorRandom implements WorldGenerator {
     generateTaxis(world, parameters, random);
   }
 
-  private void generateTaxis(World world, Map<String, Integer> parameters, Random random) {
+  private void generateTaxis(WorldObject world, Map<String, Integer> parameters, Random random) {
     var taxiCount = parameters.get("taxiCount");
     var taxiSeatCount = parameters.getOrDefault("taxiSeatCount", 2);
     var taxiSpeed = parameters.getOrDefault("taxiSpeed", 1);
@@ -27,9 +27,8 @@ public class WorldGeneratorRandom implements WorldGenerator {
     for (int i = 0; i < taxiCount; i++) {
       Position taxiPosition = randomPosition(world, random);
       world
-          .getTaxis()
-          .add(
-              Taxi.builder()
+          .addTaxi(
+              TaxiEntity.builder()
                   .name("t" + i)
                   .capacity(taxiSeatCount)
                   .position(taxiPosition)
@@ -38,14 +37,13 @@ public class WorldGeneratorRandom implements WorldGenerator {
     }
   }
 
-  private void generateClients(World world, Map<String, Integer> parameters, Random random) {
+  private void generateClients(WorldObject world, Map<String, Integer> parameters, Random random) {
     var clientCount = parameters.get("clientCount");
     var clientSpawnWindow = parameters.getOrDefault("clientSpawnWindow", 0);
 
     for (int i = 0; i < clientCount; i++) {
       world
-          .getClients()
-          .add(
+          .addClient(
               ClientEntity.builder()
                   .name("c" + i)
                   .spawnTime(randomSpawnTime(clientSpawnWindow, random))

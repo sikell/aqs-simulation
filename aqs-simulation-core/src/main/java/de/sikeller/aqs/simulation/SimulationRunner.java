@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Setter
 @Getter
 public class SimulationRunner implements SimulationControl {
-  private final World world;
+  private final WorldObject world;
   private final Algorithm algorithm;
   private final WorldGenerator worldGenerator;
   private final ResultVisualization resultVisualization = new ResultVisualization();

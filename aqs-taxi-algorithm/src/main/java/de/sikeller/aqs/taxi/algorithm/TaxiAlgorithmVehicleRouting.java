@@ -150,7 +150,7 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
 
     // todo fix this quick and dirty clients reset which removes already moving clients from taxis
     for (Taxi taxiCandidate : taxiCandidates) {
-      taxiCandidate.clearTaxi();
+      world.mutate().clearTaxi(taxiCandidate);
     }
 
     for (int l = 0; l < taxiCandidatesCount; ++l) {
