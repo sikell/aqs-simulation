@@ -72,6 +72,22 @@ public class VisualizationControl extends AbstractControl {
             properties.isShowTaxiNames(),
             properties::setShowTaxiNames));
 
+    controls.add(
+        checkBox(
+            "Show scale info",
+            "showScale",
+            "Display a scale info.",
+            properties.isShowScale(),
+            properties::setShowScale));
+
+    controls.add(
+        checkBox(
+            "Show current time",
+            "showTime",
+            "Display the current time.",
+            properties.isShowTime(),
+            properties::setShowTime));
+
     return controls;
   }
 }

@@ -2,6 +2,9 @@ package de.sikeller.aqs.model;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Builder;
@@ -19,6 +22,7 @@ import lombok.Data;
 public class WorldObject implements World {
   private final int maxX;
   private final int maxY;
+  private final ReadWriteLock lock = new ReentrantReadWriteLock();
   @Builder.Default private final Set<TaxiEntity> taxis = new HashSet<>();
   @Builder.Default private final Set<ClientEntity> clients = new HashSet<>();
   @Builder.Default private long currentTime = 0;
@@ -29,12 +33,22 @@ public class WorldObject implements World {
 
   @Override
   public Set<Client> getClients() {
-    return clients.stream().map(c -> (Client) c).collect(Collectors.toSet());
+    try {
+      lock.readLock().lock();
+      return clients.stream().map(c -> (Client) c).collect(Collectors.toSet());
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
   public Set<Taxi> getTaxis() {
-    return taxis.stream().map(t -> (Taxi) t).collect(Collectors.toSet());
+    try {
+      lock.readLock().lock();
+      return taxis.stream().map(t -> (Taxi) t).collect(Collectors.toSet());
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
@@ -46,9 +60,8 @@ public class WorldObject implements World {
 
   @Override
   public Set<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned) {
-    return (onlySpawned ? getSpawnedClients() : getClients()).stream()
-        .filter(client -> modes.contains(client.getMode()))
-        .collect(Collectors.toSet());
+    return (onlySpawned ? getSpawnedClients() : getClients())
+        .stream().filter(client -> modes.contains(client.getMode())).collect(Collectors.toSet());
   }
 
   @Override
@@ -108,8 +121,13 @@ public class WorldObject implements World {
 
   @Override
   public void clearTaxi(Taxi taxi) {
-    var taxiEntity = findTaxiEntity(taxi);
-    taxiEntity.clearTaxi();
+    try {
+      lock.writeLock().lock();
+      var taxiEntity = findTaxiEntity(taxi);
+      taxiEntity.clearTaxi();
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
   private TaxiEntity findTaxiEntity(Taxi taxi) {
@@ -122,24 +140,34 @@ public class WorldObject implements World {
 
   public void addClient(
       String name, int spawnTime, Position position, Position target, Integer clientSpeed) {
-    this.clients.add(
-        ClientEntity.builder()
-            .name(name)
-            .spawnTime(spawnTime)
-            .position(position)
-            .target(target)
-            .currentSpeed(clientSpeed)
-            .build());
+    try {
+      lock.writeLock().lock();
+      this.clients.add(
+          ClientEntity.builder()
+              .name(name)
+              .spawnTime(spawnTime)
+              .position(position)
+              .target(target)
+              .currentSpeed(clientSpeed)
+              .build());
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
   public void addTaxi(
       String name, Integer taxiSeatCount, Position taxiPosition, Integer taxiSpeed) {
-    this.taxis.add(
-        TaxiEntity.builder()
-            .name(name)
-            .capacity(taxiSeatCount)
-            .position(taxiPosition)
-            .currentSpeed(taxiSpeed)
-            .build());
+    try {
+      lock.writeLock().lock();
+      this.taxis.add(
+          TaxiEntity.builder()
+              .name(name)
+              .capacity(taxiSeatCount)
+              .position(taxiPosition)
+              .currentSpeed(taxiSpeed)
+              .build());
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 }
