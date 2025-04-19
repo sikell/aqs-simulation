@@ -76,6 +76,9 @@ public class TaxiScenarioCanvas extends JPanel {
     double widthRatio = canvasWidth / width;
     double heightRatio = canvasHeight / height;
 
+    var background = new BackgroundDrawing(visuProperties, world.getCurrentTime());
+    background.printBackgroundShape(g2d, widthRatio, heightRatio, canvasWidth, canvasHeight);
+
     var taxis = TaxiDrawing.of(world.getTaxis(), visuProperties);
     var clients = ClientDrawing.of(world.getSpawnedClients(), visuProperties);
 

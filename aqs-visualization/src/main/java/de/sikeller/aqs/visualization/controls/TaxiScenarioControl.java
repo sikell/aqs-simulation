@@ -68,7 +68,7 @@ public class TaxiScenarioControl extends AbstractControl {
             1));
     worldInputs.add(label("Client count", "clientCountLabel"));
     worldInputs.add(clientCountSpinner());
-    worldInputs.add(label("Client spawn window", "clientSpawnWindowLabel"));
+    worldInputs.add(label("Client spawn window [s]", "clientSpawnWindowLabel"));
     worldInputs.add(clientSpawnWindowSpinner());
     worldInputs.add(label("Client speed [km/h]", "clientSpeed"));
     worldInputs.add(clientSpeedSpinner());
