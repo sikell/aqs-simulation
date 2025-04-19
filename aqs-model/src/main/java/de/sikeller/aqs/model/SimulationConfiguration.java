@@ -13,7 +13,6 @@ public class SimulationConfiguration {
 
   public SimulationConfiguration(AlgorithmParameter... parameters) {
     this.parameters = new HashSet<>();
-      this.parameters.addAll(Arrays.asList(parameters));
+    this.parameters.addAll(Arrays.asList(parameters));
   }
-
 }

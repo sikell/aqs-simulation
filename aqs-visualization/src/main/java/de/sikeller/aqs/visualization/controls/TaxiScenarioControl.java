@@ -70,15 +70,17 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(clientCountSpinner());
     worldInputs.add(label("Client spawn window", "clientSpawnWindowLabel"));
     worldInputs.add(clientSpawnWindowSpinner());
+    worldInputs.add(label("Client speed [km/h]", "clientSpeed"));
+    worldInputs.add(clientSpeedSpinner());
     worldInputs.add(label("Taxi seats", "taxiSeatCount"));
     worldInputs.add(taxiSeatCountSpinner());
-    worldInputs.add(label("Taxi speed", "taxiSpeed"));
+    worldInputs.add(label("Taxi speed [km/h]", "taxiSpeed"));
     worldInputs.add(taxiSpeedSpinner());
     worldInputs.add(label("Simulation speed", "simulationSpeedLabel"));
     worldInputs.add(simulationSpeed());
     worldInputs.setBorder(new TitledBorder("World Parameters"));
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
-    worldInputs.setLayout(new GridLayout(7, 2, GAP, GAP));
+    worldInputs.setLayout(new GridLayout(8, 2, GAP, GAP));
     batchProcessing = new BatchProcessingControl(batchProperties);
     controls.add(selection);
     controls.add(buttons);
@@ -245,8 +247,16 @@ public class TaxiScenarioControl extends AbstractControl {
     return spinner;
   }
 
+  private JSpinner clientSpeedSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(5, 0, 1_000_000_000, 1);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    spinner.setName("clientSpeed");
+    spinner.setToolTipText("Set the initial Speed of a Client");
+    return spinner;
+  }
+
   private JSpinner taxiSpeedSpinner() {
-    SpinnerModel spinnerModel = new SpinnerNumberModel(1, 1, 1_000_000_000, 1);
+    SpinnerModel spinnerModel = new SpinnerNumberModel(80, 1, 1_000_000_000, 1);
     JSpinner spinner = new JSpinner(spinnerModel);
     spinner.setName("taxiSpeed");
     spinner.setToolTipText("Set the initial Speed of the Taxi");

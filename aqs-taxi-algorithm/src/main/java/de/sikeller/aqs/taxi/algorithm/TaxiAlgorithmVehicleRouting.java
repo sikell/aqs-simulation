@@ -106,7 +106,7 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
     routing.addDimension(
         transitCallbackIndex,
         0, // no slack
-        10000, // todo max distance capa
+        400000, // todo max distance capa
         true, // start cumul to zero
         "Distance");
 

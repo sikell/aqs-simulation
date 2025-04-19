@@ -18,9 +18,7 @@ public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
   }
 
   protected Set<Client> getClientsByModes(World world, Set<ClientMode> modes) {
-    return world.getSpawnedClients().stream()
-        .filter(client -> modes.contains(client.getMode()))
-        .collect(Collectors.toSet());
+    return world.getClientsByModes(modes, true);
   }
 
   protected Set<Taxi> getTaxisWithCapacity(World world) {

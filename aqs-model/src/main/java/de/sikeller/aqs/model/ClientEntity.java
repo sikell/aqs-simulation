@@ -36,6 +36,11 @@ class ClientEntity implements Client {
   }
 
   @Override
+  public boolean isWaiting() {
+    return mode.equals(ClientMode.WAITING);
+  }
+
+  @Override
   public boolean isMoving() {
     return mode.equals(ClientMode.MOVING);
   }
@@ -51,7 +56,9 @@ class ClientEntity implements Client {
 
   public void updatePosition(Position position, long currentTime) {
     this.lastUpdate = currentTime;
-    if (!isMoving()) return;
+    // if client is in waiting mode, it is by default walking towards target until picked up
+    // if client is in moving mode, it is already picked up and should move with the taxi
+    if (!isMoving() && !isWaiting()) return;
     this.position = position;
     if (this.position.equals(target)) {
       EventDispatcher.dispatch(new EventClientFinished(currentTime, this));

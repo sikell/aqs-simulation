@@ -2,6 +2,8 @@ package de.sikeller.aqs.model;
 
 import lombok.Data;
 
+import java.util.Set;
+
 /**
  * The WorldSimulator class is responsible for simulating the movement of entities within a world.
  * It keeps track of the current state of the world and updates the positions of taxis over time.
@@ -18,5 +20,8 @@ public class WorldSimulator {
     if (timePassed == 0) return;
     world.setCurrentTime(currentTime);
     world.getTaxis().stream().map(EntitySimulator::new).forEach(taxi -> taxi.move(currentTime));
+    world.getClientsByModes(Set.of(ClientMode.WAITING), true).stream()
+        .map(EntitySimulator::new)
+        .forEach(client -> client.move(currentTime));
   }
 }
