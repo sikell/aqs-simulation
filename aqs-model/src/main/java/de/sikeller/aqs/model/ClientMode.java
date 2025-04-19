@@ -10,7 +10,10 @@ package de.sikeller.aqs.model;
  * the simulation anymore.
  */
 public enum ClientMode {
-  /** Client waits for being picked up, initial state... */
+  /**
+   * Client waits for being picked up, initial state... if nothing happens, the clients walk slowly
+   * towards target until the state changes to any other state
+   */
   WAITING,
   /** Client is planned to be picked up (but not yet picked up). */
   PLANNED,

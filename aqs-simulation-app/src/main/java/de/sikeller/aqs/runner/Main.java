@@ -10,7 +10,7 @@ import de.sikeller.aqs.visualization.SimulationVisualization;
 public class Main {
 
   public static void main(String[] args) {
-    var world = WorldObject.builder().maxX(800).maxY(800).build();
+    var world = WorldObject.builder().maxX(40000).maxY(40000).build();
 
     var algorithm = new Algorithm(new TaxiAlgorithmSinglePassenger());
 

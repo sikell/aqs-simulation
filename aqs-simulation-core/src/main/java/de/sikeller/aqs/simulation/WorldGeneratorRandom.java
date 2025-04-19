@@ -22,7 +22,7 @@ public class WorldGeneratorRandom implements WorldGenerator {
   private void generateTaxis(WorldObject world, Map<String, Integer> parameters, Random random) {
     var taxiCount = parameters.get("taxiCount");
     var taxiSeatCount = parameters.getOrDefault("taxiSeatCount", 2);
-    var taxiSpeed = parameters.getOrDefault("taxiSpeed", 1);
+    var taxiSpeed = parameters.getOrDefault("taxiSpeed", 50);
 
     for (int i = 0; i < taxiCount; i++) {
       Position taxiPosition = randomPosition(world, random);
@@ -33,13 +33,15 @@ public class WorldGeneratorRandom implements WorldGenerator {
   private void generateClients(WorldObject world, Map<String, Integer> parameters, Random random) {
     var clientCount = parameters.get("clientCount");
     var clientSpawnWindow = parameters.getOrDefault("clientSpawnWindow", 0);
+    var clientSpeed = parameters.getOrDefault("clientSpeed", 5);
 
     for (int i = 0; i < clientCount; i++) {
       world.addClient(
           "c" + i,
           randomSpawnTime(clientSpawnWindow, random),
           randomPosition(world, random),
-          randomPosition(world, random));
+          randomPosition(world, random),
+          clientSpeed);
     }
   }
 

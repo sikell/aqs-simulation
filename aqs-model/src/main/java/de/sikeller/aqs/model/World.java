@@ -5,6 +5,8 @@ import java.util.Set;
 public interface World extends WorldMutator {
   Set<Client> getSpawnedClients();
 
+  Set<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned);
+
   Set<Client> getFinishedClients();
 
   int getSpawnProgress();

@@ -45,6 +45,13 @@ public class WorldObject implements World {
   }
 
   @Override
+  public Set<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned) {
+    return (onlySpawned ? getSpawnedClients() : getClients()).stream()
+        .filter(client -> modes.contains(client.getMode()))
+        .collect(Collectors.toSet());
+  }
+
+  @Override
   public Set<Client> getFinishedClients() {
     return clients.stream().filter(Client::isFinished).collect(Collectors.toSet());
   }
@@ -113,13 +120,15 @@ public class WorldObject implements World {
     return clients.stream().filter(c -> c.isSame(client)).findFirst().orElseThrow();
   }
 
-  public void addClient(String name, int spawnTime, Position position, Position target) {
+  public void addClient(
+      String name, int spawnTime, Position position, Position target, Integer clientSpeed) {
     this.clients.add(
         ClientEntity.builder()
             .name(name)
             .spawnTime(spawnTime)
             .position(position)
             .target(target)
+            .currentSpeed(clientSpeed)
             .build());
   }
 
