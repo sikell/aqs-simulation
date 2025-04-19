@@ -1,5 +1,7 @@
 package de.sikeller.aqs.model;
 
+import java.util.Set;
+
 public interface Taxi extends Entity {
   OrderNode getTargetOrderNode();
 
@@ -15,9 +17,9 @@ public interface Taxi extends Entity {
 
   TargetList getTargets();
 
-  java.util.Set<ClientEntity> getContainedPassengers();
+  Set<Client> getContainedPassengers();
 
-  java.util.Set<ClientEntity> getPlannedPassengers();
+  Set<Client> getPlannedPassengers();
 
   double getTravelDistance();
 }
