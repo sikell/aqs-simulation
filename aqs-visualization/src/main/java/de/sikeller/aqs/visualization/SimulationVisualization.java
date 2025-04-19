@@ -7,6 +7,7 @@ import java.awt.*;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.*;
 
+import de.sikeller.aqs.model.WorldObject;
 import de.sikeller.aqs.visualization.controls.TaxiScenarioControl;
 import de.sikeller.aqs.visualization.controls.VisualizationControl;
 import de.sikeller.aqs.visualization.drawing.VisualizationProperties;
@@ -53,7 +54,7 @@ public class SimulationVisualization extends AbstractVisualization implements Si
   }
 
   @Override
-  public void onUpdate(World world) {
+  public void onUpdate(WorldObject world) {
     snapshot.set(world.snapshot());
   }
 }
