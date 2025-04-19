@@ -26,14 +26,7 @@ public class WorldGeneratorRandom implements WorldGenerator {
 
     for (int i = 0; i < taxiCount; i++) {
       Position taxiPosition = randomPosition(world, random);
-      world
-          .addTaxi(
-              TaxiEntity.builder()
-                  .name("t" + i)
-                  .capacity(taxiSeatCount)
-                  .position(taxiPosition)
-                  .currentSpeed(taxiSpeed)
-                  .build());
+      world.addTaxi("t" + i, taxiSeatCount, taxiPosition, taxiSpeed);
     }
   }
 
@@ -42,14 +35,11 @@ public class WorldGeneratorRandom implements WorldGenerator {
     var clientSpawnWindow = parameters.getOrDefault("clientSpawnWindow", 0);
 
     for (int i = 0; i < clientCount; i++) {
-      world
-          .addClient(
-              ClientEntity.builder()
-                  .name("c" + i)
-                  .spawnTime(randomSpawnTime(clientSpawnWindow, random))
-                  .position(randomPosition(world, random))
-                  .target(randomPosition(world, random))
-                  .build());
+      world.addClient(
+          "c" + i,
+          randomSpawnTime(clientSpawnWindow, random),
+          randomPosition(world, random),
+          randomPosition(world, random));
     }
   }
 
