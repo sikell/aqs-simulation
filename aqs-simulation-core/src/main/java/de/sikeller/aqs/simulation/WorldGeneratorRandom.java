@@ -1,9 +1,7 @@
 package de.sikeller.aqs.simulation;
 
-import de.sikeller.aqs.model.Client;
-import de.sikeller.aqs.model.Position;
-import de.sikeller.aqs.model.Taxi;
-import de.sikeller.aqs.model.World;
+import de.sikeller.aqs.model.*;
+
 import java.util.Map;
 import java.util.Random;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +46,7 @@ public class WorldGeneratorRandom implements WorldGenerator {
       world
           .getClients()
           .add(
-              Client.builder()
+              ClientEntity.builder()
                   .name("c" + i)
                   .spawnTime(randomSpawnTime(clientSpawnWindow, random))
                   .position(randomPosition(world, random))

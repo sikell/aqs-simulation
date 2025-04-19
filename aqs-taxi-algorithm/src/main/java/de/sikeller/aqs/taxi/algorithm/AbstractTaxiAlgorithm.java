@@ -30,14 +30,4 @@ public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
   protected Set<Taxi> getEmptyTaxis(World world) {
     return world.getTaxis().stream().filter(Taxi::isEmpty).collect(Collectors.toSet());
   }
-
-  protected void planOrderPath(Taxi taxi, OrderFlattenFunction flattenFunction) {
-    taxi.planOrderPath(flattenFunction);
-  }
-
-  protected void planClientForTaxi(
-      Taxi taxi, Client client, long currentTime, OrderFlattenFunction flattenFunction) {
-    taxi.planClient(client);
-    taxi.addOrder(Order.of(client, currentTime), flattenFunction);
-  }
 }

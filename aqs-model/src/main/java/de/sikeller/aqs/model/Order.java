@@ -14,7 +14,7 @@ public class Order {
   @Getter private final long timestamp;
   @Builder.Default private final List<Position> path = new LinkedList<>();
 
-  public static Order of(Client client, long timestamp) {
+  public static Order of(ClientEntity client, long timestamp) {
     return Order.builder()
         .client(client)
         .path(Arrays.asList(client.getPosition(), client.getTarget()))

@@ -165,12 +165,12 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
               new OrderNode(notFinishedClients.get(entityIndex / 2), entityPositions[entityIndex]));
           if (entityIndex % 2 == 0) {
             var client = notFinishedClients.get(entityIndex / 2);
-            planClientForTaxi(taxi, client, world.getCurrentTime(), TargetList.sequentialOrders);
+            world.mutate().planClientForTaxi(taxi, client,  TargetList.sequentialOrders);
           }
         }
       }
       // todo fix this if the spawn window of clients are larger and clients dynamically spawns...
-      planOrderPath(taxi, orders -> path);
+      world.mutate().planOrderPath(taxi, orders -> path);
     }
     return ok();
   }
