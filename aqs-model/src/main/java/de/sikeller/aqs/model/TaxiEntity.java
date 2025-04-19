@@ -27,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 @Builder
 @EqualsAndHashCode(of = "name")
-public class TaxiEntity implements Taxi {
+class TaxiEntity implements Taxi {
   private final String name;
   private final int capacity;
   private Position position;

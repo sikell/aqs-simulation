@@ -113,11 +113,24 @@ public class WorldObject implements World {
     return clients.stream().filter(c -> c.isSame(client)).findFirst().orElseThrow();
   }
 
-  public void addClient(ClientEntity build) {
-    this.clients.add(build);
+  public void addClient(String name, int spawnTime, Position position, Position target) {
+    this.clients.add(
+        ClientEntity.builder()
+            .name(name)
+            .spawnTime(spawnTime)
+            .position(position)
+            .target(target)
+            .build());
   }
 
-  public void addTaxi(TaxiEntity build) {
-    this.taxis.add(build);
+  public void addTaxi(
+      String name, Integer taxiSeatCount, Position taxiPosition, Integer taxiSpeed) {
+    this.taxis.add(
+        TaxiEntity.builder()
+            .name(name)
+            .capacity(taxiSeatCount)
+            .position(taxiPosition)
+            .currentSpeed(taxiSpeed)
+            .build());
   }
 }

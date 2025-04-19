@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @Builder
 @EqualsAndHashCode(of = "name")
-public class ClientEntity implements Client {
+class ClientEntity implements Client {
   private final String name;
   @Builder.Default private long spawnTime = 0;
   @Builder.Default private ClientMode mode = ClientMode.WAITING;
