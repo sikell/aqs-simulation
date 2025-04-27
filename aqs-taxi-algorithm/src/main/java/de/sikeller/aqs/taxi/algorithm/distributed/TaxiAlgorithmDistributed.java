@@ -91,9 +91,9 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
       log.debug("Processing client: {}", client.getName());
 
       // --- Calculate Time and Distance Limits ---
-      double maxClientWalkingTime_s = Double.POSITIVE_INFINITY;
+      double maxClientWalkingTime_s;
       // Max distance taxi can be from client start position until it makes more sense to walk
-      double maxTheoreticalPickupDistance_m = Double.POSITIVE_INFINITY;
+      double maxTheoreticalPickupDistance_m;
       double clientDirectDistance_m = client.getPosition().distance(client.getTarget());
       double clientWalkingSpeed_mps = client.getCurrentSpeed() / 3.6;
 
@@ -143,7 +143,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
 
       if (!candidateTaxis.isEmpty()) {
         // 2. Get offers from candidate taxis
-        Map<Taxi, Double> offers = new HashMap<>();
+        Map<Taxi, CostCalculationResult> offers = new HashMap<>();
 
         timer.startRouteCalc();
         for (Taxi taxi : candidateTaxis) {
@@ -154,7 +154,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
             System.out.println("Route Calculation Time(ns): " + calcResult.calculationTimeNanos());
 
             if (calcResult.cost() != CostCalculationResult.INFEASIBLE_COST) {
-              offers.put(taxi, calcResult.cost());
+              offers.put(taxi, calcResult);
               log.trace(
                   "Client {} received FEASIBLE offer from Taxi {} with cost {} (calc time: {} ms)",
                   client.getName(),
@@ -176,27 +176,39 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
         timer.stopRouteCalc();
 
         // 3. Client chooses the best offer
-        Optional<Map.Entry<Taxi, Double>> bestOffer =
-            offers.entrySet().stream().min(Map.Entry.comparingByValue());
+        Optional<Map.Entry<Taxi, CostCalculationResult>> bestOffer =
+            offers.entrySet().stream()
+                .min(Comparator.comparingDouble(entry -> entry.getValue().cost()));
 
         if (bestOffer.isPresent()) {
-          Taxi chosenTaxi = bestOffer.get().getKey();
-          double chosenCost = bestOffer.get().getValue();
-          log.debug(
-              "Client {} chooses Taxi {} with cost {}",
-              client.getName(),
-              chosenTaxi.getName(),
-              chosenCost);
+          final Taxi chosenTaxi = bestOffer.get().getKey();
+          final CostCalculationResult chosenResult = bestOffer.get().getValue();
+          final List<OrderNode> optimalRoute = chosenResult.optimalRoute();
+          if (optimalRoute == null || optimalRoute.isEmpty()) {
+            log.error(
+                "Taxi {}: Best offer for client {} had valid cost but NULL/empty optimal route! Skipping assignment.",
+                chosenTaxi.getName(),
+                client.getName());
+          } else {
+            log.debug(
+                "Client {} chooses Taxi {} with cost {}",
+                client.getName(),
+                chosenTaxi.getName(),
+                chosenResult.cost());
+            // 4. Finalize assignment
+            // ToDo: add new API toWorldMutator, e.x. setExplicitRoute(Taxi taxi, List<OrderNode> routeNodes).
+            world.mutate().planClientForTaxi(chosenTaxi, client, TargetList.sequentialOrders);
+            OrderFlattenFunction routeSetter = (existingOrders) -> optimalRoute;
+            world.mutate().planOrderPath(chosenTaxi, routeSetter);
+            log.info(
+                "Assigned Client {} to Taxi {} with explicit Route.",
+                client.getName(),
+                chosenTaxi.getName());
 
-          // 4. Finalize assignment
-          // TODO: Use correct order-mechanism for TargetList.order
-          world.mutate().planClientForTaxi(chosenTaxi, client, TargetList.sequentialOrders);
-          log.info("Assigned Client {} to Taxi {}", client.getName(), chosenTaxi.getName());
-
-          // Reset search radius for the next time
-          clientSearchRadii.put(client, initialSearchRadius);
-          taxiFound = true;
-
+            // Reset search radius for the next time
+            clientSearchRadii.put(client, initialSearchRadius);
+            taxiFound = true;
+          }
         } else {
           log.debug(
               "Client {} found candidates, but none provided a feasible offer.", client.getName());
