@@ -25,7 +25,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
   private final Map<Client, Double> clientSearchRadii = new HashMap<>();
 
   private Map<String, Integer> parameters = new HashMap<>();
-  private double referenceTaxiSpeed = 1.0;
+  private double referenceTaxiSpeed_kph = 80.0;
 
   public TaxiAlgorithmDistributed() {
     this.rangeQuerySystem = new SimulatedRangeQuerySystem();
@@ -46,11 +46,10 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
   public SimulationConfiguration getParameters() {
     return new SimulationConfiguration(
         // Initial search range for clients
+        // todo: try to use a factor of the distance to the target
         new AlgorithmParameter("InitialSearchRadius", 50),
         // Factor to increase search radius if no taxi is found
         new AlgorithmParameter("RadiusIncreaseFactor", 2),
-        // Factor indicates how fast a client can walk relative to taxi drive speed (in %).
-        new AlgorithmParameter("ClientWalkingSpeedFactor", 10),
         // Calculate also Routes for full (at the time of the request) taxis -> 0 = no 1 = yes
         new AlgorithmParameter("CalculateFullTaxis", 0));
   }
@@ -59,13 +58,15 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
   public void init(World world) {
     clientSearchRadii.clear();
     timer.resetTimer();
+    // Read reference taxi speed from the world in km/h
     Optional<Taxi> anyTaxi = world.getTaxis().stream().findAny();
-    this.referenceTaxiSpeed = anyTaxi.map(Taxi::getCurrentSpeed).orElse(1.0);
-    this.referenceTaxiSpeed = this.referenceTaxiSpeed > 0 ? this.referenceTaxiSpeed : 1.0;
+    this.referenceTaxiSpeed_kph = anyTaxi.map(Taxi::getCurrentSpeed).orElse(80.0);
+    this.referenceTaxiSpeed_kph =
+        this.referenceTaxiSpeed_kph > 0 ? this.referenceTaxiSpeed_kph : 80.0;
 
     log.info(
-        "TaxiAlgorithmDistributed internal state cleared. Using reference taxi speed: {}. Current parameters: {}",
-        this.referenceTaxiSpeed,
+        "TaxiAlgorithmDistributed internal state cleared. Using reference taxi speed: {} km/h. Current parameters: {}",
+        this.referenceTaxiSpeed_kph,
         this.parameters);
     // Pass parameters again in case they changed
     rangeQuerySystem.setParameters(this.parameters);
@@ -84,43 +85,43 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
     final boolean calculateFullTaxis = parameters.getOrDefault("CalculateFullTaxis", 0) != 0;
     final double initialSearchRadius = parameters.getOrDefault("InitialSearchRadius", 50);
     final double radiusIncreaseFactor = parameters.getOrDefault("RadiusIncreaseFactor", 2);
-    // Assume integer percent value, e.g., 10% = 10 -> convert in floating point Factor
-    final double clientWalkingSpeedFactor =
-        parameters.getOrDefault("ClientWalkingSpeedFactor", 10) / 100.0;
-    final double clientWalkingSpeed = this.referenceTaxiSpeed * clientWalkingSpeedFactor;
+    final double taxiSpeed_mps = this.referenceTaxiSpeed_kph / 3.6;
 
     for (Client client : waitingClients) {
       log.debug("Processing client: {}", client.getName());
 
       // --- Calculate Time and Distance Limits ---
-      double maxClientWalkingTime = Double.POSITIVE_INFINITY;
-      double maxTheoreticalPickupDistance =
-          Double.POSITIVE_INFINITY; // Max distance taxi can be from client start
-      double clientDirectDistance = client.getPosition().distance(client.getTarget());
+      double maxClientWalkingTime_s = Double.POSITIVE_INFINITY;
+      // Max distance taxi can be from client start position until it makes more sense to walk
+      double maxTheoreticalPickupDistance_m = Double.POSITIVE_INFINITY;
+      double clientDirectDistance_m = client.getPosition().distance(client.getTarget());
+      double clientWalkingSpeed_mps = client.getCurrentSpeed() / 3.6;
 
-      if (clientDirectDistance <= 0) {
-        maxClientWalkingTime = 0;
-        maxTheoreticalPickupDistance = 0;
+      if (clientDirectDistance_m <= 0) {
+        maxClientWalkingTime_s = 0;
+        maxTheoreticalPickupDistance_m = 0;
         log.warn("Client {}: Zero direct distance.", client.getName());
-      } else if (this.referenceTaxiSpeed > clientWalkingSpeed) {
-        maxTheoreticalPickupDistance =
-            clientDirectDistance * (this.referenceTaxiSpeed / clientWalkingSpeed - 1.0);
+      } else if (taxiSpeed_mps > clientWalkingSpeed_mps) {
+        maxClientWalkingTime_s = clientDirectDistance_m / clientWalkingSpeed_mps;
+        maxTheoreticalPickupDistance_m =
+            clientDirectDistance_m * (taxiSpeed_mps / clientWalkingSpeed_mps - 1.0);
         log.trace(
             "Client {}: Max walking time={}, Max theoretical pickup distance={}",
             client.getName(),
-            String.format("%.2f", maxClientWalkingTime),
-            String.format("%.2f", maxTheoreticalPickupDistance));
-      } else {
-        maxTheoreticalPickupDistance = 0.0; // Taxi not faster than walking
+            String.format("%.2f", maxClientWalkingTime_s),
+            String.format("%.2f", maxTheoreticalPickupDistance_m));
+      } else { // Taxi not faster
+        maxClientWalkingTime_s = clientDirectDistance_m / clientWalkingSpeed_mps;
+        maxTheoreticalPickupDistance_m = 0.0; // Taxi not faster than walking
         log.trace(
-            "Client {}: Max walking time={}. Taxi speed ({}) <= walking speed ({}), theoretical pickup distance is 0.",
+            "Client {}: Max walking time={}s. Taxi speed ({}m/h) <= walking speed ({}m/s), theoretical pickup distance is 0.",
             client.getName(),
-            String.format("%.2f", maxClientWalkingTime),
-            String.format("%.2f", this.referenceTaxiSpeed),
-            String.format("%.2f", clientWalkingSpeed));
+            String.format("%.2f", maxClientWalkingTime_s),
+            String.format("%.2f", taxiSpeed_mps),
+            String.format("%.2f", clientWalkingSpeed_mps));
       }
 
-      double currentSearchRadius = Math.min(initialSearchRadius, maxTheoreticalPickupDistance);
+      double currentSearchRadius = Math.min(initialSearchRadius, maxTheoreticalPickupDistance_m);
 
       // Get or initialize the search radius for this client
       final double defaultSearchRadius = currentSearchRadius;
@@ -148,7 +149,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
         for (Taxi taxi : candidateTaxis) {
           if (calculateFullTaxis || taxi.hasCapacity()) {
             CostCalculationResult calcResult =
-                costCalculator.calculateMarginalCost(taxi, client, maxClientWalkingTime);
+                costCalculator.calculateMarginalCost(taxi, client, maxClientWalkingTime_s);
             timer.newSingleRouteCalc(calcResult.calculationTimeNanos());
             System.out.println("Route Calculation Time(ns): " + calcResult.calculationTimeNanos());
 
@@ -188,8 +189,8 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
               chosenCost);
 
           // 4. Finalize assignment
-          world.mutate().planClientForTaxi(
-              chosenTaxi, client, TargetList.sequentialOrders);
+          // TODO: Use correct order-mechanism for TargetList.order
+          world.mutate().planClientForTaxi(chosenTaxi, client, TargetList.sequentialOrders);
           log.info("Assigned Client {} to Taxi {}", client.getName(), chosenTaxi.getName());
 
           // Reset search radius for the next time
@@ -197,7 +198,8 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
           taxiFound = true;
 
         } else {
-          log.debug("Client {} received offers, but none were suitable.", client.getName());
+          log.debug(
+              "Client {} found candidates, but none provided a feasible offer.", client.getName());
         }
       } // end if candidateTaxis not empty
 
@@ -209,15 +211,15 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
             currentSearchRadius);
         double nextRadius = currentSearchRadius * radiusIncreaseFactor;
 
-        if (nextRadius <= maxTheoreticalPickupDistance) {
+        if (nextRadius <= maxTheoreticalPickupDistance_m) {
           clientSearchRadii.put(client, nextRadius);
           log.debug("Client {} search radius increased to {}", client.getName(), nextRadius);
         } else {
-          clientSearchRadii.put(client, maxTheoreticalPickupDistance); // Cap the radius
+          clientSearchRadii.put(client, maxTheoreticalPickupDistance_m); // Cap the radius
           log.warn(
               "Client {} reached max search radius {}. Will keep trying at max radius or client should consider walking.",
               client.getName(),
-              maxTheoreticalPickupDistance);
+              maxTheoreticalPickupDistance_m);
         }
       }
     } // End of client loop
