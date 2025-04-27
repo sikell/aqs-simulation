@@ -17,28 +17,27 @@ public class SequentialCostCalculator implements CostCalculator {
 
   @Override
   public CostCalculationResult calculateMarginalCost(
-          Taxi taxi, Client newClient, double maxClientTripTime) {
-    long startTime = System.nanoTime();
+      Taxi taxi, Client newClient, double maxClientTripTime_s) {
+    final long startTime = System.nanoTime();
 
     Position currentPos = taxi.getPosition();
     List<OrderNode> currentRouteNodes = taxi.getTargets().toList();
-    int capacity = taxi.getCapacity();
     // Passengers currently physically in the taxi (needed for capacity check start)
     Set<Client> initialPassengersInTaxi = new HashSet<>(taxi.getContainedPassengers());
-    double taxiSpeed = taxi.getCurrentSpeed();
+    final double taxiSpeed_mps = taxi.getCurrentSpeed() / 3.6;
 
-    if (taxiSpeed <= 0) {
+    if (taxiSpeed_mps <= 0) {
       log.error(
-          "Taxi {} has invalid speed: {}. Cannot calculate travel times.",
+          "Taxi {} has invalid speed: {} m/s. Cannot calculate travel times.",
           taxi.getName(),
-          taxiSpeed);
+          taxiSpeed_mps);
       // Return infeasible immediately if speed is invalid
       return new CostCalculationResult(
           CostCalculationResult.INFEASIBLE_COST, System.nanoTime() - startTime);
     }
 
-    double originalRouteLength = calculateRouteLengthNodes(currentPos, currentRouteNodes);
-    double minNewRouteLength = CostCalculationResult.INFEASIBLE_COST;
+    double originalRouteLength_m = calculateRouteLengthNodes(currentPos, currentRouteNodes);
+    double minNewRouteLength_m = CostCalculationResult.INFEASIBLE_COST;
 
     OrderNode newPickupNode = new OrderNode(newClient, newClient.getPosition());
     OrderNode newDropoffNode = new OrderNode(newClient, newClient.getTarget());
@@ -63,14 +62,14 @@ public class SequentialCostCalculator implements CostCalculator {
         // ToDo: Check if it's more efficient to combine the following two validity checks into one
         // --- Validity Check 1: (Capacity) ---
         if (!isRouteValidByCapacity(
-            currentPos, candidateRoute, capacity, initialPassengersInTaxi)) {
+            currentPos, candidateRoute, taxi.getCapacity(), initialPassengersInTaxi)) {
           continue;
         }
         // --- Validity Check 2: (Time Limit) ---
         ClientTimes clientTimes =
-            calculateClientTimesOnRoute(currentPos, candidateRoute, newClient, taxiSpeed);
+            calculateClientTimesOnRoute(currentPos, candidateRoute, newClient, taxiSpeed_mps);
         if (clientTimes == null) continue;
-        if (clientTimes.totalTime() > maxClientTripTime) {
+        if (clientTimes.totalTime() > maxClientTripTime_s) {
           log.trace(
               "Taxi {}: Client {} exceeds max trip time. Time to pickup: {}, time in taxi: {}",
               taxi.getName(),
@@ -80,33 +79,32 @@ public class SequentialCostCalculator implements CostCalculator {
           continue;
         }
         // --- Calculate Length ---
-        double candidateLength = calculateRouteLengthNodes(currentPos, candidateRoute);
+        double candidateLength_m = calculateRouteLengthNodes(currentPos, candidateRoute);
         // --- Update Minimum ---
-        if (candidateLength < minNewRouteLength) {
-          minNewRouteLength = candidateLength;
+        if (candidateLength_m < minNewRouteLength_m) {
+          minNewRouteLength_m = candidateLength_m;
         }
       }
     }
 
-    long endTime = System.nanoTime();
-    long calculationTimeNanos = endTime - startTime;
+    final long calculationTimeNanos = System.nanoTime() - startTime;
 
-    double marginalCost;
-    if (minNewRouteLength == CostCalculationResult.INFEASIBLE_COST) {
-      marginalCost = CostCalculationResult.INFEASIBLE_COST; // No valid insertion found
+    double marginalCost_m;
+    if (minNewRouteLength_m == CostCalculationResult.INFEASIBLE_COST) {
+      marginalCost_m = CostCalculationResult.INFEASIBLE_COST; // No valid insertion found
       log.trace(
           "Taxi {}: No feasible route found to insert client {}",
           taxi.getName(),
           newClient.getName());
     } else {
-      marginalCost = Math.max(0, minNewRouteLength - originalRouteLength);
+      marginalCost_m = Math.max(0, minNewRouteLength_m - originalRouteLength_m);
       log.trace(
           "Taxi {}: Best insertion for client {} has marginal cost: {}",
           taxi.getName(),
           newClient.getName(),
-          marginalCost);
+          marginalCost_m);
     }
-    return new CostCalculationResult(marginalCost, calculationTimeNanos);
+    return new CostCalculationResult(marginalCost_m, calculationTimeNanos);
   }
 
   /**
@@ -127,58 +125,61 @@ public class SequentialCostCalculator implements CostCalculator {
   }
 
   /**
-   * Calculates the time until pickup and the time spent in the taxi for a specific client along a
-   * given candidate route.
+   * Calculates the time in seconds until pickup and the time spent in the taxi for a specific
+   * client along a given candidate route.
    *
    * @param startPos The starting position of the route (taxi's current position).
    * @param candidateNodes The proposed sequence of stops.
    * @param targetClient The client whose times are to be calculated.
-   * @param taxiSpeed The speed of the taxi.
+   * @param taxiSpeed_mps The speed of the taxi in m/s.
    * @return A ClientTimes record containing timeToPickup and timeInTaxi, or null if pickup/dropoff
    *     not found correctly.
    */
   private ClientTimes calculateClientTimesOnRoute(
-      Position startPos, List<OrderNode> candidateNodes, Client targetClient, double taxiSpeed) {
-    double distanceToPickup = -1;
-    double distanceInTaxi = 0;
+      Position startPos,
+      List<OrderNode> candidateNodes,
+      Client targetClient,
+      double taxiSpeed_mps) {
+    double distanceToPickup_m = -1.0; // Use -1 to indicate pickup not reached yet
+    double distanceInTaxi_m = 0.0;
     Position lastPos = startPos;
     boolean pickedUp = false;
+    double currentRouteDistance_m = 0.0; // Track total distance travelled up to current node
+
+    if (taxiSpeed_mps <= 0) return null; // Cannot calculate time with invalid speed
 
     for (OrderNode node : candidateNodes) {
-      double segmentDistance = lastPos.distance(node.getPosition());
+      double segmentDistance_m = lastPos.distance(node.getPosition());
+      currentRouteDistance_m += segmentDistance_m;
 
       if (!pickedUp) {
-        // Accumulate distance until pickup
+        // Check if current node IS the pickup node
         if (node.getClient().equals(targetClient)
             && node.getPosition().equals(targetClient.getPosition())) {
-          // Found the pickup node
-          distanceToPickup = segmentDistance; // Distance of the segment ending at pickup
+          distanceToPickup_m =
+              currentRouteDistance_m; // Total distance travelled until pickup point
           pickedUp = true;
-        } else {
-          // Add distance of segments before pickup
-          if (distanceToPickup < 0) distanceToPickup = 0; // Initialize if not yet found
-          distanceToPickup += segmentDistance;
         }
-      } else {
-        // Accumulate distance after pickup until dropoff
-        distanceInTaxi += segmentDistance;
+      } else { // Client is already picked up
+        distanceInTaxi_m += segmentDistance_m; // Accumulate distance while client is in taxi
+
+        // Check if current node IS the dropoff node
         if (node.getClient().equals(targetClient)
             && node.getPosition().equals(targetClient.getTarget())) {
-          // Found the dropoff node, calculation complete for this client
-          double timeToPickup = distanceToPickup / taxiSpeed;
-          double timeInTaxi = distanceInTaxi / taxiSpeed;
-          return new ClientTimes(timeToPickup, timeInTaxi);
+          // Found dropoff, times can be calculated
+          double timeToPickup_s = distanceToPickup_m / taxiSpeed_mps;
+          double timeInTaxi_s = distanceInTaxi_m / taxiSpeed_mps;
+          return new ClientTimes(timeToPickup_s, timeInTaxi_s);
         }
       }
       lastPos = node.getPosition();
     }
 
-    // Should have found both pickup and dropoff if route is valid for this client
     log.warn(
-        "Could not properly calculate client times for {} on route. Pickup found: {}. Dropoff not found?",
+        "Could not calculate client times for {} on route. Pickup found: {}. Dropoff not found?",
         targetClient.getName(),
         pickedUp);
-    return null; // Indicate an issue
+    return null; // Should not happen if route contains both nodes for the client
   }
 
   /** Helper Record for client travel times */
