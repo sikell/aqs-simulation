@@ -33,11 +33,12 @@ public class SequentialCostCalculator implements CostCalculator {
           taxiSpeed_mps);
       // Return infeasible immediately if speed is invalid
       return new CostCalculationResult(
-          CostCalculationResult.INFEASIBLE_COST, System.nanoTime() - startTime);
+          CostCalculationResult.INFEASIBLE_COST, System.nanoTime() - startTime, null);
     }
 
     double originalRouteLength_m = calculateRouteLengthNodes(currentPos, currentRouteNodes);
     double minNewRouteLength_m = CostCalculationResult.INFEASIBLE_COST;
+    List<OrderNode> bestRoute = null;
 
     OrderNode newPickupNode = new OrderNode(newClient, newClient.getPosition());
     OrderNode newDropoffNode = new OrderNode(newClient, newClient.getTarget());
@@ -83,6 +84,7 @@ public class SequentialCostCalculator implements CostCalculator {
         // --- Update Minimum ---
         if (candidateLength_m < minNewRouteLength_m) {
           minNewRouteLength_m = candidateLength_m;
+          bestRoute = candidateRoute;
         }
       }
     }
@@ -104,7 +106,7 @@ public class SequentialCostCalculator implements CostCalculator {
           newClient.getName(),
           marginalCost_m);
     }
-    return new CostCalculationResult(marginalCost_m, calculationTimeNanos);
+    return new CostCalculationResult(marginalCost_m, calculationTimeNanos, bestRoute);
   }
 
   /**
@@ -144,7 +146,7 @@ public class SequentialCostCalculator implements CostCalculator {
     double distanceInTaxi_m = 0.0;
     Position lastPos = startPos;
     boolean pickedUp = false;
-    double currentRouteDistance_m = 0.0; // Track total distance travelled up to current node
+    double currentRouteDistance_m = 0.0; // Track total distance traveled up to current node
 
     if (taxiSpeed_mps <= 0) return null; // Cannot calculate time with invalid speed
 
@@ -156,8 +158,7 @@ public class SequentialCostCalculator implements CostCalculator {
         // Check if current node IS the pickup node
         if (node.getClient().equals(targetClient)
             && node.getPosition().equals(targetClient.getPosition())) {
-          distanceToPickup_m =
-              currentRouteDistance_m; // Total distance travelled until pickup point
+          distanceToPickup_m = currentRouteDistance_m; // Total distance traveled until pickup point
           pickedUp = true;
         }
       } else { // Client is already picked up
