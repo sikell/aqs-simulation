@@ -45,10 +45,9 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
   @Override
   public SimulationConfiguration getParameters() {
     return new SimulationConfiguration(
-        // Initial search range for clients
-        // todo: try to use a factor of the distance to the target
-        new AlgorithmParameter("InitialSearchRadius", 50),
-        // Factor to increase search radius if no taxi is found
+        // Initial search Factor to calculate max search range for clients (Value in Percent).
+        new AlgorithmParameter("InitialSearchRadiusFactor", 10),
+        // Factor to increase search radius Factor if no taxi is found
         new AlgorithmParameter("RadiusIncreaseFactor", 2),
         // Calculate also Routes for full (at the time of the request) taxis -> 0 = no 1 = yes
         new AlgorithmParameter("CalculateFullTaxis", 0));
@@ -83,7 +82,14 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
     timer.startNextStep();
 
     final boolean calculateFullTaxis = parameters.getOrDefault("CalculateFullTaxis", 0) != 0;
-    final double initialSearchRadius = parameters.getOrDefault("InitialSearchRadius", 50);
+    double initialSearchRadiusFactor =
+        parameters.getOrDefault("InitialSearchRadiusFactor", 10) / 100.0;
+    if (initialSearchRadiusFactor < 0 || initialSearchRadiusFactor > 1) {
+      log.error(
+          "InitialSearchRadiusFactor {} invalid. Setting to default value of 10%.",
+          initialSearchRadiusFactor);
+      initialSearchRadiusFactor = 0.1;
+    }
     final double radiusIncreaseFactor = parameters.getOrDefault("RadiusIncreaseFactor", 2);
     final double taxiSpeed_mps = this.referenceTaxiSpeed_kph / 3.6;
 
@@ -121,11 +127,9 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
             String.format("%.2f", clientWalkingSpeed_mps));
       }
 
-      double currentSearchRadius = Math.min(initialSearchRadius, maxTheoreticalPickupDistance_m);
-
       // Get or initialize the search radius for this client
-      final double defaultSearchRadius = currentSearchRadius;
-      currentSearchRadius = clientSearchRadii.computeIfAbsent(client, k -> defaultSearchRadius);
+      final double initialSearchRadius = maxTheoreticalPickupDistance_m * initialSearchRadiusFactor;
+      double currentSearchRadius = clientSearchRadii.computeIfAbsent(client, k -> initialSearchRadius);
       boolean taxiFound = false;
 
       // 1. Query the Range Query System
@@ -196,7 +200,8 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
                 chosenTaxi.getName(),
                 chosenResult.cost());
             // 4. Finalize assignment
-            // ToDo: add new API toWorldMutator, e.x. setExplicitRoute(Taxi taxi, List<OrderNode> routeNodes).
+            // ToDo: add new API toWorldMutator, e.x. setExplicitRoute(Taxi taxi, List<OrderNode>
+            // routeNodes).
             world.mutate().planClientForTaxi(chosenTaxi, client, TargetList.sequentialOrders);
             OrderFlattenFunction routeSetter = (existingOrders) -> optimalRoute;
             world.mutate().planOrderPath(chosenTaxi, routeSetter);
