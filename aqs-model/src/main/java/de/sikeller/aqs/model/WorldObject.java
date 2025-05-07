@@ -53,9 +53,14 @@ public class WorldObject implements World {
 
   @Override
   public Set<Client> getSpawnedClients() {
-    return clients.stream()
-        .filter(client -> client.isSpawned(currentTime))
-        .collect(Collectors.toSet());
+    try {
+      lock.readLock().lock();
+      return clients.stream()
+          .filter(client -> client.isSpawned(currentTime))
+          .collect(Collectors.toSet());
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
@@ -66,7 +71,12 @@ public class WorldObject implements World {
 
   @Override
   public Set<Client> getFinishedClients() {
-    return clients.stream().filter(Client::isFinished).collect(Collectors.toSet());
+    try {
+      lock.readLock().lock();
+      return clients.stream().filter(Client::isFinished).collect(Collectors.toSet());
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
@@ -85,19 +95,29 @@ public class WorldObject implements World {
   }
 
   public World snapshot() {
-    return WorldObject.builder()
-        .maxX(maxX)
-        .maxY(maxY)
-        .taxis(taxis.stream().map(TaxiEntity::snapshot).collect(Collectors.toSet()))
-        .clients(clients.stream().map(ClientEntity::snapshot).collect(Collectors.toSet()))
-        .currentTime(currentTime)
-        .isFinished(isFinished)
-        .build();
+    try {
+      lock.readLock().lock();
+      return WorldObject.builder()
+          .maxX(maxX)
+          .maxY(maxY)
+          .taxis(taxis.stream().map(TaxiEntity::snapshot).collect(Collectors.toSet()))
+          .clients(clients.stream().map(ClientEntity::snapshot).collect(Collectors.toSet()))
+          .currentTime(currentTime)
+          .isFinished(isFinished)
+          .build();
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   public void reset() {
-    this.taxis.clear();
-    this.clients.clear();
+    try {
+      lock.writeLock().lock();
+      this.taxis.clear();
+      this.clients.clear();
+    } finally {
+      lock.writeLock().unlock();
+    }
     this.currentTime = 0;
   }
 
@@ -131,11 +151,21 @@ public class WorldObject implements World {
   }
 
   private TaxiEntity findTaxiEntity(Taxi taxi) {
-    return taxis.stream().filter(t -> t.isSame(taxi)).findFirst().orElseThrow();
+    try {
+      lock.readLock().lock();
+      return taxis.stream().filter(t -> t.isSame(taxi)).findFirst().orElseThrow();
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   private ClientEntity findClientEntity(Client client) {
-    return clients.stream().filter(c -> c.isSame(client)).findFirst().orElseThrow();
+    try {
+      lock.readLock().lock();
+      return clients.stream().filter(c -> c.isSame(client)).findFirst().orElseThrow();
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   public void addClient(
