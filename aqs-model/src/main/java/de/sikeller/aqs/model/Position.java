@@ -26,8 +26,9 @@ public class Position {
    * @return the new position
    */
   public Position moveTowards(Position target, double moveDistance) {
-    int dx = target.getX() - x;
-    int dy = target.getY() - y;
+    // use long values here because the dx * dx of two integers could lead to very large numbers
+    long dx = target.getX() - x;
+    long dy = target.getY() - y;
     double distance = Math.sqrt(dx * dx + dy * dy);
     if (distance <= moveDistance) return target;
 
