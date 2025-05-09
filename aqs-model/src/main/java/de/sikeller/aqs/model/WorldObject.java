@@ -37,7 +37,7 @@ public class WorldObject implements World {
   public Set<Client> getClients() {
     try {
       lock.readLock().lock();
-      return clients;
+      return new HashSet<>(clients);
     } finally {
       lock.readLock().unlock();
     }

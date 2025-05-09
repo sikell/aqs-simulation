@@ -27,6 +27,8 @@ public class TaxiDrawing extends EntityDrawing {
   public interface TaxiDrawingProperties extends DrawingProperties {
     boolean isShowTaxiPaths();
 
+    boolean isShowTaxiPositions();
+
     boolean isShowTaxiNames();
   }
 
@@ -52,8 +54,10 @@ public class TaxiDrawing extends EntityDrawing {
   @Override
   public void printForegroundShape(
       Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
-    printPosition(g, canvasWidthRatio, canvasHeightRatio);
-    printPassengers(g, canvasWidthRatio, canvasHeightRatio);
+    if (properties.isShowTaxiPositions()) {
+      printPosition(g, canvasWidthRatio, canvasHeightRatio);
+      printPassengers(g, canvasWidthRatio, canvasHeightRatio);
+    }
   }
 
   private void printTarget(Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {

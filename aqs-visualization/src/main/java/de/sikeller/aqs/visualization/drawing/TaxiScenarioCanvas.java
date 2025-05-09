@@ -26,8 +26,8 @@ public class TaxiScenarioCanvas extends JPanel {
     this.height = world.getMaxY();
     this.width = world.getMaxX();
     this.visuProperties = visuProperties;
-    this.canvasHeight = 800;
-    this.canvasWidth = 800;
+    this.canvasHeight = 700;
+    this.canvasWidth = 700;
     setSize(canvasWidth, canvasHeight);
     this.bufferedImage =
         new BufferedImage(canvasWidth * scale, canvasHeight * scale, BufferedImage.TYPE_INT_RGB);
