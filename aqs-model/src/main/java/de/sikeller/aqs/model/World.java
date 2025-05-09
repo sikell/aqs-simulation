@@ -7,6 +7,8 @@ public interface World extends WorldMutator {
 
   Set<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned);
 
+  Set<Client> getClientsByMode(ClientMode mode, boolean onlySpawned);
+
   Set<Client> getFinishedClients();
 
   int getSpawnProgress();
