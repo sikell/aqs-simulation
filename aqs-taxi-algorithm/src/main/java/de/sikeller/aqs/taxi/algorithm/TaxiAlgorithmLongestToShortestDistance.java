@@ -21,7 +21,7 @@ public class TaxiAlgorithmLongestToShortestDistance extends AbstractTaxiAlgorith
   }
 
   @Override
-  public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
+  public AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     var nextClient = waitingClients.iterator().next();
     for (Client client : waitingClients) {
       double distanceNextClient = nextClient.getPosition().distance(nextClient.getTarget());

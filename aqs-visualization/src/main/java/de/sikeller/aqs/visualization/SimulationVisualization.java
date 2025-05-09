@@ -45,9 +45,10 @@ public class SimulationVisualization extends AbstractVisualization implements Si
         new Timer(
             REPAINT_INTERVAL_MS,
             e -> {
-              World world = snapshot.getAndSet(null);
+              World world = snapshot.get();
               if (world == null) return;
               canvas.repaint(world);
+              snapshot.set(null);
               if (!frame.isVisible()) {
                 frame.setVisible(true);
               }

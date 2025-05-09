@@ -5,10 +5,7 @@ import com.google.ortools.constraintsolver.*;
 import com.google.protobuf.Duration;
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.AlgorithmResult;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +32,7 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
   }
 
   @Override
-  public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
+  public AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     var taxiCandidates = new LinkedList<>(world.getTaxis());
     var taxiCandidatesCount = taxiCandidates.size();
     if (taxiCandidates.isEmpty()) return stop("No taxis with capacity found.");

@@ -1,9 +1,7 @@
 package de.sikeller.aqs.model;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -23,21 +21,21 @@ public class WorldObject implements World {
   private final int maxX;
   private final int maxY;
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
-  @Builder.Default private final Set<Taxi> taxis = new HashSet<>();
-  @Builder.Default private final Set<TaxiEntity> taxiEntities = new HashSet<>();
-  @Builder.Default private final Set<Client> clients = new HashSet<>();
-  @Builder.Default private final Set<ClientEntity> clientEntities = new HashSet<>();
+  @Builder.Default private final Collection<Taxi> taxis = new ArrayList<>();
+  @Builder.Default private final Collection<TaxiEntity> taxiEntities = new ArrayList<>();
+  @Builder.Default private final Collection<Client> clients = new ArrayList<>();
+  @Builder.Default private final Collection<ClientEntity> clientEntities = new ArrayList<>();
   @Builder.Default private long currentTime = 0;
 
   @Builder.Default
-  private Function<World, Boolean> isFinished =
-      world -> world.getClients().stream().allMatch(Client::isFinished);
+  private Function<WorldObject, Boolean> isFinished =
+      world -> world.clients.stream().allMatch(Client::isFinished);
 
   @Override
-  public Set<Client> getClients() {
+  public Collection<Client> getClients() {
     try {
       lock.readLock().lock();
-      return new HashSet<>(clients);
+      return new ArrayList<>(clients);
     } finally {
       lock.readLock().unlock();
     }
@@ -47,7 +45,7 @@ public class WorldObject implements World {
   public Set<Taxi> getTaxis() {
     try {
       lock.readLock().lock();
-      return taxis;
+      return new HashSet<>(taxis);
     } finally {
       lock.readLock().unlock();
     }
@@ -66,26 +64,34 @@ public class WorldObject implements World {
   }
 
   @Override
-  public Set<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned) {
+  public Collection<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned) {
     try {
       lock.readLock().lock();
-      return clients.stream()
-          .filter(client -> !onlySpawned || client.isSpawned(currentTime))
-          .filter(client -> modes.contains(client.getMode()))
-          .collect(Collectors.toSet());
+      Collection<Client> result = new ArrayList<>();
+      // for loop to improve performance for large client collections and use ArrayList as result
+      for (Client client : clients) {
+        if ((!onlySpawned || client.isSpawned(currentTime)) && modes.contains(client.getMode())) {
+          result.add(client);
+        }
+      }
+      return result;
     } finally {
       lock.readLock().unlock();
     }
   }
 
   @Override
-  public Set<Client> getClientsByMode(ClientMode mode, boolean onlySpawned) {
+  public Collection<Client> getClientsByMode(ClientMode mode, boolean onlySpawned) {
     try {
       lock.readLock().lock();
-      return clients.stream()
-          .filter(client -> !onlySpawned || client.isSpawned(currentTime))
-          .filter(client -> mode.equals(client.getMode()))
-          .collect(Collectors.toSet());
+      Collection<Client> result = new ArrayList<>();
+      // for loop to improve performance for large client collections and use ArrayList as result
+      for (Client client : clients) {
+        if ((!onlySpawned || client.isSpawned(currentTime)) && mode.equals(client.getMode())) {
+          result.add(client);
+        }
+      }
+      return result;
     } finally {
       lock.readLock().unlock();
     }
@@ -103,31 +109,49 @@ public class WorldObject implements World {
 
   @Override
   public int getSpawnProgress() {
-    return Math.round(1.0f * getSpawnedClients().size() / getClients().size() * 100);
+    try {
+      lock.readLock().lock();
+      long spawnedClients =
+          clients.stream().filter(client -> client.isSpawned(currentTime)).count();
+      return Math.round(1.0f * spawnedClients / clients.size() * 100);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
   public int getFinishedProgress() {
-    return Math.round(1.0f * getFinishedClients().size() / getClients().size() * 100);
+    try {
+      lock.readLock().lock();
+      long finishedClients = clients.stream().filter(Client::isFinished).count();
+      return Math.round(1.0f * finishedClients / clients.size() * 100);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
   public boolean isFinished() {
-    return isFinished.apply(this);
+    try {
+      lock.readLock().lock();
+      return isFinished.apply(this);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   public World snapshot() {
     try {
       lock.readLock().lock();
-      Set<Taxi> taxis = new HashSet<>();
-      Set<TaxiEntity> taxiEntities = new HashSet<>();
+      Collection<Taxi> taxis = new ArrayList<>();
+      Collection<TaxiEntity> taxiEntities = new ArrayList<>();
       for (TaxiEntity taxiEntity : this.taxiEntities) {
         taxis.add(taxiEntity);
         taxiEntities.add(taxiEntity);
       }
 
-      Set<Client> clients = new HashSet<>();
-      Set<ClientEntity> clientEntities = new HashSet<>();
+      Collection<Client> clients = new ArrayList<>();
+      Collection<ClientEntity> clientEntities = new ArrayList<>();
       for (ClientEntity clientEntity : this.clientEntities) {
         clients.add(clientEntity);
         clientEntities.add(clientEntity);

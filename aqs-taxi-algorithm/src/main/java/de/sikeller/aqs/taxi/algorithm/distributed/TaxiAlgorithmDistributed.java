@@ -73,7 +73,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
   }
 
   @Override
-  protected AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
+  protected AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     log.debug(
         "Executing nextStep for Distributed Algorithm at time {}. Waiting clients: {}",
         world.getCurrentTime(),
