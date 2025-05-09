@@ -20,7 +20,7 @@ public class WorldSimulator {
     if (timePassed == 0) return;
     world.setCurrentTime(currentTime);
     world.getTaxis().stream().map(EntitySimulator::new).forEach(taxi -> taxi.move(currentTime));
-    world.getClientsByModes(Set.of(ClientMode.WAITING), true).stream()
+    world.getClientsByMode(ClientMode.WAITING, true).stream()
         .map(EntitySimulator::new)
         .forEach(client -> client.move(currentTime));
   }
