@@ -3,12 +3,14 @@ package de.sikeller.aqs.taxi.algorithm;
 import static de.sikeller.aqs.model.ClientMode.WAITING;
 
 import de.sikeller.aqs.model.*;
+
+import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
 
-  protected abstract AlgorithmResult nextStep(World world, Set<Client> waitingClients);
+  protected abstract AlgorithmResult nextStep(World world, Collection<Client> waitingClients);
 
   @Override
   public AlgorithmResult nextStep(World world) {
@@ -17,7 +19,7 @@ public abstract class AbstractTaxiAlgorithm extends AbstractAlgorithm {
     return nextStep(world, waitingClients);
   }
 
-  protected Set<Client> getClientsByModes(World world, Set<ClientMode> modes) {
+  protected Collection<Client> getClientsByModes(World world, Set<ClientMode> modes) {
     return world.getClientsByModes(modes, true);
   }
 
