@@ -12,6 +12,8 @@ import java.math.RoundingMode;
 import java.text.NumberFormat;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+
+import lombok.extern.slf4j.Slf4j;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -24,6 +26,7 @@ import org.jfree.chart.title.LegendTitle;
 import org.jfree.chart.title.TextTitle;
 import org.jfree.data.category.DefaultCategoryDataset;
 
+@Slf4j
 public class ResultVisualization extends AbstractVisualization {
 
   private JTable table;
@@ -41,9 +44,9 @@ public class ResultVisualization extends AbstractVisualization {
     frame.addWindowListener(new WindowAdapter() {
       @Override
       public void windowDeactivated(WindowEvent e) {
-        // Wenn das Fenster den Fokus verliert, schließen wir es
-        System.out.println("Close Result-Window");
-        frame.dispose();  // Schließt das Fenster
+        // close window in case it lose focus
+        log.debug("Close Result-Window");
+        frame.dispose();
       }
     });
     showDiagram();
