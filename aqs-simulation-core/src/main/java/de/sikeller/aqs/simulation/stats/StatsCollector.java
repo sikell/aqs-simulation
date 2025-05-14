@@ -14,14 +14,20 @@ public class StatsCollector {
   private Result<Double> travelDistance;
   private Result<Long> travelTime;
   private Result<Long> calculationTime;
+  private Result<Long> customTime;
   private Algorithm algorithm;
   private int runCounter = 0;
 
   public void collect(
-      EventList eventList, World world, Algorithm algorithm, Result<Long> calculationTime) {
+      EventList eventList,
+      World world,
+      Algorithm algorithm,
+      Result<Long> calculationTime,
+      Result<Long> customTime) {
     collectClientTravelTime(eventList);
     collectTaxiTravelDistance(world);
     this.calculationTime = calculationTime;
+    this.customTime = customTime;
     this.algorithm = algorithm;
     runCounter++;
   }
@@ -29,7 +35,7 @@ public class StatsCollector {
   public ResultTable tableResults() {
     var columns = new String[] {"Result", "Min", "Max", "Avg", "Sum", "Count", "Algorithm", "Run"};
 
-    var data = new Object[3][];
+    var data = new Object[4][];
     data[0] =
         new Object[] {
           "Taxi Travel Distance [km]",
@@ -60,6 +66,17 @@ public class StatsCollector {
           format(DOUBLE_FORMAT, calculationTime.avg()),
           calculationTime.sum(),
           calculationTime.count(),
+          algorithm.get().getName(),
+          runCounter
+        };
+    data[3] =
+        new Object[] {
+          "Custom Time [millis]",
+          customTime.min(),
+          customTime.max(),
+          format(DOUBLE_FORMAT, customTime.avg()),
+          customTime.sum(),
+          customTime.count(),
           algorithm.get().getName(),
           runCounter
         };

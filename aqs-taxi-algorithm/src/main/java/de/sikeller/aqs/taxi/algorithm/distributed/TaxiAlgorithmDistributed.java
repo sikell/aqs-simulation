@@ -254,7 +254,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
     if (getClientsByModes(world, Set.of(ClientMode.WAITING)).isEmpty()) {
       return stop("All previously waiting clients have been assigned or processed for this step.");
     } else {
-      return ok();
+      return ok(timer.simulatedParallelNextStepTimes.getLast()); // FIXME Jona
     }
   }
 
