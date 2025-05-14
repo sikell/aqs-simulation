@@ -42,15 +42,6 @@ public class ResultVisualization extends AbstractVisualization {
     frame.setMinimumSize(new Dimension(600, 200));
     frame.setPreferredSize(new Dimension(1200, 800));
     frame.setLayout(new BorderLayout());
-    frame.addWindowListener(
-        new WindowAdapter() {
-          @Override
-          public void windowDeactivated(WindowEvent e) {
-            // close window in case it lose focus
-            log.debug("Close Result-Window");
-            frame.dispose();
-          }
-        });
     addDiagrams();
   }
 
