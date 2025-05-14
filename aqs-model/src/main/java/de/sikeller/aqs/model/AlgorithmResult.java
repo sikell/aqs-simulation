@@ -17,4 +17,10 @@ public class AlgorithmResult {
 
   private final Result status;
   private final String message;
+
+  /**
+   * OPTIONAL - Custom calculation time could be returned for a algorithm step run. Null if not used
+   * / ignored.
+   */
+  private final Long calculationTime;
 }
