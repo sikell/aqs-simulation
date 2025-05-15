@@ -1,15 +1,22 @@
 package de.sikeller.aqs.visualization.controls;
 
-
 import de.sikeller.aqs.model.AlgorithmParameter;
 import de.sikeller.aqs.model.SimulationControl;
 import de.sikeller.aqs.model.TaxiAlgorithm;
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.Properties;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,6 +51,8 @@ public class TaxiScenarioControl extends AbstractControl {
     buttons.add(initializeSimulationButton());
     buttons.add(startButton());
     buttons.add(stopButton());
+    buttons.add(copyConfigButton());
+    buttons.add(pasteConfigButton());
     buttons.add(showResultsButton());
     selection.add(label("Select algorithm", "algoSelectionLabel"));
     selection.add(algorithmSelectionBox());
@@ -187,6 +196,20 @@ public class TaxiScenarioControl extends AbstractControl {
           simulation.stop();
           Objects.requireNonNull(getComponentByName("startButton")).setEnabled(true);
         });
+    return button;
+  }
+
+  private JButton copyConfigButton() {
+    JButton button = new JButton("Copy Config");
+    button.setName("copyConfigButton");
+    button.addActionListener(e -> copyConfigToClipboard());
+    return button;
+  }
+
+  private JButton pasteConfigButton() {
+    JButton button = new JButton("Paste Config");
+    button.setName("pasteConfigButton");
+    button.addActionListener(e -> pasteConfigFromClipboard());
     return button;
   }
 
@@ -359,6 +382,206 @@ public class TaxiScenarioControl extends AbstractControl {
     } catch (Exception exception) {
       log.error(exception.getMessage(), exception);
       JOptionPane.showMessageDialog(this, "No valid input parameters provided!");
+    }
+  }
+
+  private void copyConfigToClipboard() {
+    Properties props = new Properties();
+
+    // Algorithm Selection
+    JComboBox<String> algoComboBox =
+        (JComboBox<String>) getComponentByName("algorithmSelectionBox");
+    if (algoComboBox != null) {
+      props.setProperty("algorithmSelectionBox", (String) algoComboBox.getSelectedItem());
+    }
+
+    // World Parameters
+    for (Component comp : worldInputs.getComponents()) {
+      if (comp instanceof JSpinner spinner && comp.getName() != null) {
+        props.setProperty(spinner.getName(), spinner.getValue().toString());
+      }
+      if (comp instanceof JSlider slider && comp.getName() != null) {
+        props.setProperty(slider.getName(), String.valueOf(slider.getValue()));
+      }
+    }
+
+    // dynamic Algorithm Parameters
+    for (Component comp : algorithmInputs.getComponents()) {
+      if (comp instanceof JSpinner spinner && comp.getName() != null) {
+        props.setProperty(spinner.getName(), spinner.getValue().toString());
+      }
+    }
+
+    // Batch Processing Parameters
+    for (Component comp : batchProcessing.getComponents()) {
+      if (comp instanceof JSpinner spinner && comp.getName() != null) {
+        props.setProperty(spinner.getName(), spinner.getValue().toString());
+      }
+    }
+
+    try (StringWriter writer = new StringWriter()) {
+      props.store(writer, "AQS Simulation Configuration");
+      String configString = writer.toString();
+
+      StringSelection stringSelection = new StringSelection(configString);
+      Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+      clipboard.setContents(stringSelection, null);
+      JOptionPane.showMessageDialog(this, "Configuration copied to clipboard!");
+      log.debug("Configuration copied to clipboard:\n{}", configString);
+
+    } catch (IOException ex) {
+      log.error("Error writing configuration to string", ex);
+      JOptionPane.showMessageDialog(
+          this,
+          "Error copying configuration: " + ex.getMessage(),
+          "Error",
+          JOptionPane.ERROR_MESSAGE);
+    }
+  }
+
+  private void pasteConfigFromClipboard() {
+    try {
+      Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+      String configString = (String) clipboard.getData(DataFlavor.stringFlavor);
+
+      if (configString == null || configString.trim().isEmpty()) {
+        JOptionPane.showMessageDialog(
+            this,
+            "Clipboard is empty or contains no text.",
+            "Info",
+            JOptionPane.INFORMATION_MESSAGE);
+        return;
+      }
+
+      Properties props = new Properties();
+      try (StringReader reader = new StringReader(configString)) {
+        props.load(reader);
+      }
+
+      String algoNameFromProps = props.getProperty("algorithmSelectionBox");
+      boolean algorithmChanged = false;
+
+      if (algoNameFromProps != null) {
+        JComboBox<String> algoComboBox =
+            (JComboBox<String>) getComponentByName("algorithmSelectionBox");
+        if (algoComboBox != null) {
+          if (!algoNameFromProps.equals(algoComboBox.getSelectedItem())) {
+            String selectedAlgorithmFullName = "";
+            for (Class<?> algoClass : algorithmList) {
+              if (algoClass.getSimpleName().equals(algoNameFromProps)) {
+                selectedAlgorithmFullName = algoClass.getName();
+                break;
+              }
+            }
+            if (!selectedAlgorithmFullName.isEmpty()) {
+              // instantiate the algorithm with empty parameters
+              simulation
+                  .getAlgorithm()
+                  .setAlgorithm(instantiateAlgorithm(selectedAlgorithmFullName, new HashMap<>()));
+              algoComboBox.setSelectedItem(algoNameFromProps);
+              generateParameters();
+              log.info("Algorithm set to {} and parameters regenerated.", algoNameFromProps);
+              algorithmChanged = true;
+            } else {
+              log.warn(
+                  "Pasted algorithm name '{}' not found in available algorithms.",
+                  algoNameFromProps);
+            }
+          } else {
+            generateParameters();
+            algorithmChanged = true;
+          }
+        }
+      }
+
+      // generate Parameters
+      if (!algorithmChanged) {
+        generateParameters();
+      }
+
+      for (String name : props.stringPropertyNames()) {
+        if (name.equals("algorithmSelectionBox")) continue; // already handled above
+
+        String valueStr = props.getProperty(name);
+        boolean valueSet = false;
+
+        // 1. try: set algorithm parameters
+        if (algorithmInputs != null) {
+          for (Component compInAlgoPanel : algorithmInputs.getComponents()) {
+            if (compInAlgoPanel instanceof JSpinner && name.equals(compInAlgoPanel.getName())) {
+              try {
+                ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
+                log.trace("Set ALGORITHM JSpinner '{}' to '{}'", name, valueStr);
+                valueSet = true;
+                break;
+              } catch (NumberFormatException nfe) {
+                log.warn(
+                    "Could not parse '{}' as integer for ALGORITHM spinner '{}'", valueStr, name);
+              }
+            }
+            if (compInAlgoPanel instanceof JSlider && name.equals(compInAlgoPanel.getName())) {
+              try {
+                ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
+                log.trace("Set ALGORITHM JSlider '{}' to '{}'", name, valueStr);
+                valueSet = true;
+                break;
+              } catch (NumberFormatException nfe) {
+                log.warn(
+                    "Could not parse '{}' as integer for ALGORITHM slider '{}'", valueStr, name);
+              }
+            }
+          }
+        }
+
+        // 2. try: set global parameters
+        if (!valueSet) {
+          Component generalComp = getComponentByName(name);
+          if (generalComp instanceof JSpinner) {
+            try {
+              ((JSpinner) generalComp).setValue(Integer.parseInt(valueStr));
+              log.trace("Set GENERAL JSpinner '{}' to '{}'", name, valueStr);
+              valueSet = true;
+            } catch (NumberFormatException nfe) {
+              log.warn("Could not parse '{}' as integer for GENERAL spinner '{}'", valueStr, name);
+            }
+          }
+          if (generalComp instanceof JSlider) {
+            try {
+              ((JSlider) generalComp).setValue(Integer.parseInt(valueStr));
+              log.trace("Set GENERAL JSlider '{}' to '{}'", name, valueStr);
+              valueSet = true;
+            } catch (NumberFormatException nfe) {
+              log.warn("Could not parse '{}' as integer for GENERAL slider '{}'", valueStr, name);
+            }
+          }
+        }
+
+        if (!valueSet) {
+          log.warn(
+              "Pasted parameter '{}' with value '{}' could not be applied to any known JSpinner.",
+              name,
+              valueStr);
+        }
+      }
+
+      // refresh the UI to show the new values
+      SwingUtilities.updateComponentTreeUI(this);
+      JOptionPane.showMessageDialog(this, "Configuration pasted from clipboard!");
+
+    } catch (UnsupportedFlavorException | IOException ex) {
+      log.error("Error pasting configuration from clipboard", ex);
+      JOptionPane.showMessageDialog(
+          this,
+          "Error pasting configuration: " + ex.getMessage(),
+          "Error",
+          JOptionPane.ERROR_MESSAGE);
+    } catch (Exception ex) { // Catch-all for other issues like parsing or component finding
+      log.error("Generic error during paste operation", ex);
+      JOptionPane.showMessageDialog(
+          this,
+          "Error applying pasted configuration: " + ex.getMessage(),
+          "Error",
+          JOptionPane.ERROR_MESSAGE);
     }
   }
 }
