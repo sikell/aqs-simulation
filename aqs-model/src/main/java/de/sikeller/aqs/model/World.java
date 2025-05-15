@@ -1,11 +1,14 @@
 package de.sikeller.aqs.model;
 
+import java.util.Collection;
 import java.util.Set;
 
 public interface World extends WorldMutator {
   Set<Client> getSpawnedClients();
 
-  Set<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned);
+  Collection<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned);
+
+  Collection<Client> getClientsByMode(ClientMode mode, boolean onlySpawned);
 
   Set<Client> getFinishedClients();
 
@@ -21,7 +24,7 @@ public interface World extends WorldMutator {
 
   Set<Taxi> getTaxis();
 
-  Set<Client> getClients();
+  Collection<Client> getClients();
 
   long getCurrentTime();
 

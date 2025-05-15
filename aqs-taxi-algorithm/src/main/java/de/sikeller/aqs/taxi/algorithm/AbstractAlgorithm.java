@@ -1,6 +1,5 @@
 package de.sikeller.aqs.taxi.algorithm;
 
-
 import de.sikeller.aqs.model.*;
 
 public abstract class AbstractAlgorithm implements TaxiAlgorithm {
@@ -16,6 +15,13 @@ public abstract class AbstractAlgorithm implements TaxiAlgorithm {
   }
 
   protected AlgorithmResult ok() {
-    return AlgorithmResult.builder().status(AlgorithmResult.Result.FOUND).build();
+    return ok(null);
+  }
+
+  protected AlgorithmResult ok(Long calculationTime) {
+    return AlgorithmResult.builder()
+        .status(AlgorithmResult.Result.FOUND)
+        .calculationTime(calculationTime)
+        .build();
   }
 }

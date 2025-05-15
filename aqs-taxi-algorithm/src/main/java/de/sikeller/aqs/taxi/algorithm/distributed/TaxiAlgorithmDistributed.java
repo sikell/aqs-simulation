@@ -73,7 +73,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
   }
 
   @Override
-  protected AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
+  protected AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     log.debug(
         "Executing nextStep for Distributed Algorithm at time {}. Waiting clients: {}",
         world.getCurrentTime(),
@@ -155,7 +155,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
             CostCalculationResult calcResult =
                 costCalculator.calculateMarginalCost(taxi, client, maxClientWalkingTime_s);
             timer.newSingleRouteCalc(calcResult.calculationTimeNanos());
-            System.out.println("Route Calculation Time(ns): " + calcResult.calculationTimeNanos());
+            log.debug("Route Calculation Time(ns): " + calcResult.calculationTimeNanos());
 
             if (calcResult.cost() != CostCalculationResult.INFEASIBLE_COST) {
               offers.put(taxi, calcResult);
@@ -233,7 +233,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
           log.debug("Client {} search radius increased to {}", client.getName(), nextRadius);
         } else {
           clientSearchRadii.put(client, maxTheoreticalPickupDistance_m); // Cap the radius
-          log.warn(
+          log.debug(
               "Client {} reached max search radius {}. Will keep trying at max radius or client should consider walking.",
               client.getName(),
               maxTheoreticalPickupDistance_m);
@@ -254,7 +254,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
     if (getClientsByModes(world, Set.of(ClientMode.WAITING)).isEmpty()) {
       return stop("All previously waiting clients have been assigned or processed for this step.");
     } else {
-      return ok();
+      return ok(timer.simulatedParallelNextStepTimes.getLast()); // FIXME Jona
     }
   }
 

@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 public class SimulationVisualization extends AbstractVisualization implements SimulationObserver {
   private static final int REPAINT_INTERVAL_MS = 50;
   private final TaxiScenarioCanvas canvas;
+
+  /** null if waiting for next snapshot to be rendered, or a snapshot to be rendered next */
   private final AtomicReference<World> snapshot = new AtomicReference<>();
 
   public SimulationVisualization(World world, SimulationControl simulation) {
@@ -46,6 +48,7 @@ public class SimulationVisualization extends AbstractVisualization implements Si
               World world = snapshot.get();
               if (world == null) return;
               canvas.repaint(world);
+              snapshot.set(null);
               if (!frame.isVisible()) {
                 frame.setVisible(true);
               }
@@ -55,6 +58,8 @@ public class SimulationVisualization extends AbstractVisualization implements Si
 
   @Override
   public void onUpdate(WorldObject world) {
-    snapshot.set(world.snapshot());
+    // Only create a new snapshot if the last was rendered successfully (the reference is null) to
+    // avoid unused snapshot calculations.
+    snapshot.getAndUpdate(w -> w == null ? world.snapshot() : w);
   }
 }

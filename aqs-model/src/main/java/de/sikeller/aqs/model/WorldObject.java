@@ -1,9 +1,7 @@
 package de.sikeller.aqs.model;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -23,19 +21,21 @@ public class WorldObject implements World {
   private final int maxX;
   private final int maxY;
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
-  @Builder.Default private final Set<TaxiEntity> taxis = new HashSet<>();
-  @Builder.Default private final Set<ClientEntity> clients = new HashSet<>();
+  @Builder.Default private final Collection<Taxi> taxis = new ArrayList<>();
+  @Builder.Default private final Collection<TaxiEntity> taxiEntities = new ArrayList<>();
+  @Builder.Default private final Collection<Client> clients = new ArrayList<>();
+  @Builder.Default private final Collection<ClientEntity> clientEntities = new ArrayList<>();
   @Builder.Default private long currentTime = 0;
 
   @Builder.Default
-  private Function<World, Boolean> isFinished =
-      world -> world.getClients().stream().allMatch(Client::isFinished);
+  private Function<WorldObject, Boolean> isFinished =
+      world -> world.clients.stream().allMatch(Client::isFinished);
 
   @Override
-  public Set<Client> getClients() {
+  public Collection<Client> getClients() {
     try {
       lock.readLock().lock();
-      return clients.stream().map(c -> (Client) c).collect(Collectors.toSet());
+      return new ArrayList<>(clients);
     } finally {
       lock.readLock().unlock();
     }
@@ -45,7 +45,7 @@ public class WorldObject implements World {
   public Set<Taxi> getTaxis() {
     try {
       lock.readLock().lock();
-      return taxis.stream().map(t -> (Taxi) t).collect(Collectors.toSet());
+      return new HashSet<>(taxis);
     } finally {
       lock.readLock().unlock();
     }
@@ -64,9 +64,37 @@ public class WorldObject implements World {
   }
 
   @Override
-  public Set<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned) {
-    return (onlySpawned ? getSpawnedClients() : getClients())
-        .stream().filter(client -> modes.contains(client.getMode())).collect(Collectors.toSet());
+  public Collection<Client> getClientsByModes(Set<ClientMode> modes, boolean onlySpawned) {
+    try {
+      lock.readLock().lock();
+      Collection<Client> result = new ArrayList<>();
+      // for loop to improve performance for large client collections and use ArrayList as result
+      for (Client client : clients) {
+        if ((!onlySpawned || client.isSpawned(currentTime)) && modes.contains(client.getMode())) {
+          result.add(client);
+        }
+      }
+      return result;
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
+  @Override
+  public Collection<Client> getClientsByMode(ClientMode mode, boolean onlySpawned) {
+    try {
+      lock.readLock().lock();
+      Collection<Client> result = new ArrayList<>();
+      // for loop to improve performance for large client collections and use ArrayList as result
+      for (Client client : clients) {
+        if ((!onlySpawned || client.isSpawned(currentTime)) && mode.equals(client.getMode())) {
+          result.add(client);
+        }
+      }
+      return result;
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
@@ -81,27 +109,61 @@ public class WorldObject implements World {
 
   @Override
   public int getSpawnProgress() {
-    return Math.round(1.0f * getSpawnedClients().size() / getClients().size() * 100);
+    try {
+      lock.readLock().lock();
+      long spawnedClients =
+          clients.stream().filter(client -> client.isSpawned(currentTime)).count();
+      return Math.round(1.0f * spawnedClients / clients.size() * 100);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
   public int getFinishedProgress() {
-    return Math.round(1.0f * getFinishedClients().size() / getClients().size() * 100);
+    try {
+      lock.readLock().lock();
+      long finishedClients = clients.stream().filter(Client::isFinished).count();
+      return Math.round(1.0f * finishedClients / clients.size() * 100);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
   public boolean isFinished() {
-    return isFinished.apply(this);
+    try {
+      lock.readLock().lock();
+      return isFinished.apply(this);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   public World snapshot() {
     try {
       lock.readLock().lock();
+      Collection<Taxi> taxis = new ArrayList<>();
+      Collection<TaxiEntity> taxiEntities = new ArrayList<>();
+      for (TaxiEntity taxiEntity : this.taxiEntities) {
+        taxis.add(taxiEntity);
+        taxiEntities.add(taxiEntity);
+      }
+
+      Collection<Client> clients = new ArrayList<>();
+      Collection<ClientEntity> clientEntities = new ArrayList<>();
+      for (ClientEntity clientEntity : this.clientEntities) {
+        clients.add(clientEntity);
+        clientEntities.add(clientEntity);
+      }
+
       return WorldObject.builder()
           .maxX(maxX)
           .maxY(maxY)
-          .taxis(taxis.stream().map(TaxiEntity::snapshot).collect(Collectors.toSet()))
-          .clients(clients.stream().map(ClientEntity::snapshot).collect(Collectors.toSet()))
+          .taxis(taxis)
+          .taxiEntities(taxiEntities)
+          .clients(clients)
+          .clientEntities(clientEntities)
           .currentTime(currentTime)
           .isFinished(isFinished)
           .build();
@@ -114,7 +176,10 @@ public class WorldObject implements World {
     try {
       lock.writeLock().lock();
       this.taxis.clear();
+      this.taxiEntities.clear();
       this.clients.clear();
+      this.clientEntities.clear();
+      currentTime = 0;
     } finally {
       lock.writeLock().unlock();
     }
@@ -153,7 +218,7 @@ public class WorldObject implements World {
   private TaxiEntity findTaxiEntity(Taxi taxi) {
     try {
       lock.readLock().lock();
-      return taxis.stream().filter(t -> t.isSame(taxi)).findFirst().orElseThrow();
+      return taxiEntities.stream().filter(t -> t.isSame(taxi)).findFirst().orElseThrow();
     } finally {
       lock.readLock().unlock();
     }
@@ -162,7 +227,7 @@ public class WorldObject implements World {
   private ClientEntity findClientEntity(Client client) {
     try {
       lock.readLock().lock();
-      return clients.stream().filter(c -> c.isSame(client)).findFirst().orElseThrow();
+      return clientEntities.stream().filter(c -> c.isSame(client)).findFirst().orElseThrow();
     } finally {
       lock.readLock().unlock();
     }
@@ -172,14 +237,16 @@ public class WorldObject implements World {
       String name, int spawnTime, Position position, Position target, Integer clientSpeed) {
     try {
       lock.writeLock().lock();
-      this.clients.add(
+      ClientEntity clientEntity =
           ClientEntity.builder()
               .name(name)
               .spawnTime(spawnTime)
               .position(position)
               .target(target)
               .currentSpeed(clientSpeed)
-              .build());
+              .build();
+      this.clients.add(clientEntity);
+      this.clientEntities.add(clientEntity);
     } finally {
       lock.writeLock().unlock();
     }
@@ -189,13 +256,15 @@ public class WorldObject implements World {
       String name, Integer taxiSeatCount, Position taxiPosition, Integer taxiSpeed) {
     try {
       lock.writeLock().lock();
-      this.taxis.add(
+      TaxiEntity taxiEntity =
           TaxiEntity.builder()
               .name(name)
               .capacity(taxiSeatCount)
               .position(taxiPosition)
               .currentSpeed(taxiSpeed)
-              .build());
+              .build();
+      this.taxis.add(taxiEntity);
+      this.taxiEntities.add(taxiEntity);
     } finally {
       lock.writeLock().unlock();
     }

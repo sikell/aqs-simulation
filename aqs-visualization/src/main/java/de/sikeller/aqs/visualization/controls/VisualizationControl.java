@@ -41,6 +41,14 @@ public class VisualizationControl extends AbstractControl {
             properties::setShowClientPaths));
 
     controls.add(
+            checkBox(
+                    "Show client positions",
+                    "showClientPositions",
+                    "Display the client positions.",
+                    properties.isShowClientPositions(),
+                    properties::setShowClientPositions));
+
+    controls.add(
         checkBox(
             "Show client names",
             "showClientNames",
@@ -63,6 +71,14 @@ public class VisualizationControl extends AbstractControl {
             "Display the planned path for each taxi.",
             properties.isShowTaxiPaths(),
             properties::setShowTaxiPaths));
+
+    controls.add(
+        checkBox(
+            "Show taxi positions",
+            "showTaxiPositions",
+            "Display the taxi positions.",
+            properties.isShowTaxiPositions(),
+            properties::setShowTaxiPositions));
 
     controls.add(
         checkBox(

@@ -25,6 +25,8 @@ public class ClientDrawing extends EntityDrawing {
   public interface ClientDrawingProperties extends DrawingProperties {
     boolean isShowClientPaths();
 
+    boolean isShowClientPositions();
+
     boolean isShowClientNames();
 
     boolean isShowFinishedClients();
@@ -58,7 +60,9 @@ public class ClientDrawing extends EntityDrawing {
     if (client.isFinished() && !properties.isShowFinishedClients()) {
       return;
     }
-    printPosition(g, canvasWidthRatio, canvasHeightRatio);
+    if (properties.isShowClientPositions()) {
+      printPosition(g, canvasWidthRatio, canvasHeightRatio);
+    }
   }
 
   private void printTarget(Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {

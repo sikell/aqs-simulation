@@ -42,6 +42,7 @@ public class SimulationRunner implements SimulationControl {
 
     WorldSimulator worldSimulator = new WorldSimulator(world);
     var algorithmCalculationTime = CollectorMinMaxAverage.longCollector();
+    var customCalculationTime = CollectorMinMaxAverage.longCollector();
     while (!world.isFinished()) {
       int sleepMillis = (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1));
       Thread.sleep(sleepMillis);
@@ -53,6 +54,8 @@ public class SimulationRunner implements SimulationControl {
       var result = algorithm.get().nextStep(world);
       var calculationTime = System.nanoTime() - startTime;
       algorithmCalculationTime.collect(calculationTime);
+      customCalculationTime.collect(
+          result.getCalculationTime() != null ? result.getCalculationTime() : 0);
       log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
       listeners.forEach(l -> l.onUpdate(world));
@@ -63,7 +66,8 @@ public class SimulationRunner implements SimulationControl {
         eventDispatcher,
         world,
         getAlgorithm(),
-        algorithmCalculationTime.result(TimeUnit.NANOSECONDS::toMillis));
+        algorithmCalculationTime.result(TimeUnit.NANOSECONDS::toMillis),
+        customCalculationTime.result(TimeUnit.NANOSECONDS::toMillis));
     statsCollector.print();
 
     try {

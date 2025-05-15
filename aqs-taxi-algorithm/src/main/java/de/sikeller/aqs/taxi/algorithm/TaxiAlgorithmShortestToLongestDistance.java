@@ -5,8 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 
 @Slf4j
 @Getter
@@ -22,7 +22,7 @@ public class TaxiAlgorithmShortestToLongestDistance extends AbstractTaxiAlgorith
   }
 
   @Override
-  public AlgorithmResult nextStep(World world, Set<Client> waitingClients) {
+  public AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     var nextClient = waitingClients.iterator().next();
     for (Client client : waitingClients) {
       double distanceNextClient = nextClient.getPosition().distance(nextClient.getTarget());
