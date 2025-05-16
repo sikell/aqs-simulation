@@ -71,7 +71,7 @@ public class StatsCollector {
         };
     data[3] =
         new Object[] {
-          "Custom Time [millis]",
+          "Custom Time [micros]",
           customTime.min(),
           customTime.max(),
           format(DOUBLE_FORMAT, customTime.avg()),

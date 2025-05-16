@@ -56,7 +56,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
   @Override
   public void init(World world) {
     clientSearchRadii.clear();
-    timer.resetTimer();
+    timer.resetOverallTimer();
     // Read reference taxi speed from the world in km/h
     Optional<Taxi> anyTaxi = world.getTaxis().stream().findAny();
     this.referenceTaxiSpeed_kph = anyTaxi.map(Taxi::getCurrentSpeed).orElse(80.0);
@@ -74,12 +74,11 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
 
   @Override
   protected AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
+    timer.startOverallNextStep();
     log.debug(
         "Executing nextStep for Distributed Algorithm at time {}. Waiting clients: {}",
         world.getCurrentTime(),
         waitingClients.size());
-
-    timer.startNextStep();
 
     final boolean calculateFullTaxis = parameters.getOrDefault("CalculateFullTaxis", 0) != 0;
     double initialSearchRadiusFactor =
@@ -94,6 +93,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
     final double taxiSpeed_mps = this.referenceTaxiSpeed_kph / 3.6;
 
     for (Client client : waitingClients) {
+      long clientDecisionBlockStartTimeNanos = System.nanoTime();
       log.debug("Processing client: {}", client.getName());
 
       // --- Calculate Time and Distance Limits ---
@@ -129,16 +129,19 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
 
       // Get or initialize the search radius for this client
       final double initialSearchRadius = maxTheoreticalPickupDistance_m * initialSearchRadiusFactor;
-      double currentSearchRadius = clientSearchRadii.computeIfAbsent(client, k -> initialSearchRadius);
+      double currentSearchRadius =
+          clientSearchRadii.computeIfAbsent(client, k -> initialSearchRadius);
       boolean taxiFound = false;
 
+      long clientDecisionBlockTimeNanos = System.nanoTime() - clientDecisionBlockStartTimeNanos;
+
       // 1. Query the Range Query System
-      timer.startRQSCalc();
+      final long rqsCallStartTimeNanos = System.nanoTime();
       Position start = client.getPosition();
       Position target = client.getTarget();
       Set<Taxi> candidateTaxis =
           rangeQuerySystem.findTaxisInRange(world, start, target, currentSearchRadius);
-      timer.stopRQSCalc();
+      timer.recordRqsQueryTime(System.nanoTime() - rqsCallStartTimeNanos);
       log.debug(
           "Client {} found {} candidates within radius {}",
           client.getName(),
@@ -148,14 +151,12 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
       if (!candidateTaxis.isEmpty()) {
         // 2. Get offers from candidate taxis
         Map<Taxi, CostCalculationResult> offers = new HashMap<>();
-
-        timer.startRouteCalc();
         for (Taxi taxi : candidateTaxis) {
           if (calculateFullTaxis || taxi.hasCapacity()) {
             CostCalculationResult calcResult =
                 costCalculator.calculateMarginalCost(taxi, client, maxClientWalkingTime_s);
-            timer.newSingleRouteCalc(calcResult.calculationTimeNanos());
-            log.debug("Route Calculation Time(ns): " + calcResult.calculationTimeNanos());
+            timer.recordSingleTaxiRouteCalcTime(taxi, calcResult.calculationTimeNanos());
+            log.debug("Route Calculation Time(ns): {}", calcResult.calculationTimeNanos());
 
             if (calcResult.cost() != CostCalculationResult.INFEASIBLE_COST) {
               offers.put(taxi, calcResult);
@@ -177,7 +178,8 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
                 "Client {} - Taxi {} skipped (no capacity)", client.getName(), taxi.getName());
           }
         }
-        timer.stopRouteCalc();
+
+        clientDecisionBlockStartTimeNanos = System.nanoTime();
 
         // 3. Client chooses the best offer
         Optional<Map.Entry<Taxi, CostCalculationResult>> bestOffer =
@@ -239,126 +241,18 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
               maxTheoreticalPickupDistance_m);
         }
       }
+      clientDecisionBlockTimeNanos =
+          System.nanoTime() - clientDecisionBlockStartTimeNanos + clientDecisionBlockTimeNanos;
+      timer.recordClientDecisionTime(clientDecisionBlockTimeNanos);
     } // End of client loop
-    timer.stopNextStep();
-
-    // --- Log overall simulated time for the step ---
-    // We sum the max times for each client processed in this step. This assumes client requests
-    // happen sequentially,
-    // but the taxi calculations for *one* client happen in parallel.
+    timer.stopOverallNextStepAndAggregate();
     timer.logLastStepTimes(world.getCurrentTime());
-    // TODO: Decide how to formally report this time.
-    // Option A: Just log it.
-    // Option B: Modify AlgorithmResult or StatsCollector.
 
     if (getClientsByModes(world, Set.of(ClientMode.WAITING)).isEmpty()) {
       return stop("All previously waiting clients have been assigned or processed for this step.");
     } else {
-      return ok(timer.simulatedParallelNextStepTimes.getLast()); // FIXME Jona
-    }
-  }
-
-  @Getter
-  private static class DistributedCalculationTimer {
-    // all Timers in nanoseconds
-    // ges. Timers
-    /** Contains overall calculation Times of each Simulation nextStep call */
-    private final List<Long> simulatedParallelNextStepTimes = new LinkedList<>();
-
-    /** Contains accumulated RQS calculation Times of each Simulation nextStep call */
-    private final List<Long> simulatedRQSCalcTimes = new LinkedList<>();
-
-    /** Contains accumulated Route calculation Times of each Simulation nextStep call */
-    private final List<Long> simulatedParallelRouteCalcTimes = new LinkedList<>();
-
-    // helpers while calculating a single nextStep
-    private long rqsCalcTime;
-    private long routeCalcTime;
-    private long highestSingleRouteCalcTime;
-    private long rqsStartTime;
-    private long nextStepStartTime;
-
-    protected void startNextStep() {
-      resetHelpers();
-      nextStepStartTime = System.nanoTime();
-    }
-
-    protected void stopNextStep() {
-      long nextStepTime = System.nanoTime() - nextStepStartTime;
-      simulatedParallelNextStepTimes.add(nextStepTime);
-      simulatedRQSCalcTimes.add(rqsCalcTime);
-      simulatedParallelRouteCalcTimes.add(routeCalcTime);
-    }
-
-    protected void startRQSCalc() {
-      rqsStartTime = System.nanoTime();
-    }
-
-    protected void stopRQSCalc() {
-      rqsCalcTime += System.nanoTime() - rqsStartTime;
-    }
-
-    protected void startRouteCalc() {
-      highestSingleRouteCalcTime = 0;
-    }
-
-    protected void stopRouteCalc() {
-      // simulate parallelism by adding the longest single route calculation time
-      routeCalcTime += highestSingleRouteCalcTime;
-    }
-
-    protected void newSingleRouteCalc(long time) {
-      highestSingleRouteCalcTime = Math.max(highestSingleRouteCalcTime, time);
-    }
-
-    private void resetHelpers() {
-      rqsCalcTime = 0;
-      routeCalcTime = 0;
-      highestSingleRouteCalcTime = 0;
-    }
-
-    protected void resetTimer() {
-      simulatedParallelNextStepTimes.clear();
-      simulatedRQSCalcTimes.clear();
-      simulatedParallelRouteCalcTimes.clear();
-      resetHelpers();
-    }
-
-    protected void logLastStepTimes(long currentSimTime) {
-      log.info(
-          """
-            Simulated Times step {}:
-            Total: {} ns
-            RQS: {} ns
-            Route Calculation: {} ns""",
-          currentSimTime,
-          simulatedParallelNextStepTimes.getLast(),
-          simulatedRQSCalcTimes.getLast(),
-          simulatedParallelRouteCalcTimes.getLast());
-    }
-
-    protected void logTotalTimes() {
-      log.info(
-          """
-             Total Times:
-             Total Calculation: {} ms
-             Max Calculation: {} ms
-             RQS Calculations: {} ms
-             Max RQS : {} ms
-             Route Calculations: {} ms
-             Max Route Calculation: {} ms""",
-          TimeUnit.NANOSECONDS.toMillis(
-              simulatedParallelNextStepTimes.stream().mapToLong(Long::longValue).sum()),
-          TimeUnit.NANOSECONDS.toMillis(
-              simulatedParallelNextStepTimes.stream().mapToLong(Long::longValue).max().orElse(0)),
-          TimeUnit.NANOSECONDS.toMillis(
-              simulatedRQSCalcTimes.stream().mapToLong(Long::longValue).sum()),
-          TimeUnit.NANOSECONDS.toMillis(
-              simulatedRQSCalcTimes.stream().mapToLong(Long::longValue).max().orElse(0)),
-          TimeUnit.NANOSECONDS.toMillis(
-              simulatedParallelRouteCalcTimes.stream().mapToLong(Long::longValue).sum()),
-          TimeUnit.NANOSECONDS.toMillis(
-              simulatedParallelRouteCalcTimes.stream().mapToLong(Long::longValue).max().orElse(0)));
+      // returns sum of all three bottleneck times
+      return ok(timer.getLastSimulatedTotalParallelTimeNanos());
     }
   }
 }
