@@ -67,7 +67,7 @@ public class SimulationRunner implements SimulationControl {
         world,
         getAlgorithm(),
         algorithmCalculationTime.result(TimeUnit.NANOSECONDS::toMillis),
-        customCalculationTime.result(TimeUnit.NANOSECONDS::toMicros));
+        customCalculationTime.result());
     statsCollector.print();
 
     try {
