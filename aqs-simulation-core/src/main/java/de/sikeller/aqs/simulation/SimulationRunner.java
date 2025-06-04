@@ -58,7 +58,7 @@ public class SimulationRunner implements SimulationControl {
           result.getCalculationTime() != null ? result.getCalculationTime() : 0);
       log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
-      listeners.forEach(l -> l.onUpdate(world));
+      listeners.forEach(l -> l.onUpdate(world, false));
     }
 
     eventDispatcher.print();
@@ -78,6 +78,9 @@ public class SimulationRunner implements SimulationControl {
     eventDispatcher.resetEvents();
 
     simulationFinished = true;
+
+    // A final force update to ensure the last state:
+    listeners.forEach(l -> l.onUpdate(world, true));
   }
 
   public void print() {
@@ -107,7 +110,7 @@ public class SimulationRunner implements SimulationControl {
   public void init(Map<String, Integer> parameters) {
     worldGenerator.init(world, parameters);
     algorithm.get().init(world);
-    listeners.forEach(l -> l.onUpdate(world));
+    listeners.forEach(l -> l.onUpdate(world, true));
     print();
     simulationFinished = false;
     simulationInitialized = true;
