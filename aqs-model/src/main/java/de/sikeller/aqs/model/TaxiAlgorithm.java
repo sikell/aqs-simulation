@@ -26,7 +26,7 @@ public interface TaxiAlgorithm {
    *
    * @param parameters A map containing parameter names and their integer values.
    */
-  default void setParameters(Map<String, Integer> parameters) {}
+  void setParameters(Map<String, Integer> parameters);
 
   String getName();
 }

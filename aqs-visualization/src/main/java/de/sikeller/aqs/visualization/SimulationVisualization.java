@@ -15,7 +15,7 @@ import de.sikeller.aqs.visualization.drawing.TaxiScenarioCanvas;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SimulationVisualization extends AbstractVisualization implements SimulationObserver {
+public class SimulationVisualization extends AbstractVisualization implements SimulationObserver, Runnable {
   private static final int REPAINT_INTERVAL_MS = 50;
   private final TaxiScenarioCanvas canvas;
 
@@ -57,9 +57,9 @@ public class SimulationVisualization extends AbstractVisualization implements Si
   }
 
   @Override
-  public void onUpdate(WorldObject world) {
+  public void onUpdate(WorldObject world, boolean forceUpdate) {
     // Only create a new snapshot if the last was rendered successfully (the reference is null) to
     // avoid unused snapshot calculations.
-    snapshot.getAndUpdate(w -> w == null ? world.snapshot() : w);
+    snapshot.getAndUpdate(w -> w == null || forceUpdate ? world.snapshot() : w);
   }
 }

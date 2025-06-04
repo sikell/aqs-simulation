@@ -4,6 +4,7 @@ import de.sikeller.aqs.model.events.EventClientEntersTaxi;
 import de.sikeller.aqs.model.events.EventClientLeaveTaxi;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Builder;
@@ -49,16 +50,20 @@ class TaxiEntity implements Taxi {
     return plannedPassengers.stream().map(c -> (Client) c).collect(Collectors.toSet());
   }
 
-  public TaxiEntity snapshot() {
+  public TaxiEntity snapshot(Map<String, ClientEntity> clientSnapshots) {
     return TaxiEntity.builder()
         .name(name)
         .capacity(capacity)
         .position(position)
         .targets(targets.snapshot())
         .containedPassengers(
-            containedPassengers.stream().map(ClientEntity::snapshot).collect(Collectors.toSet()))
+            containedPassengers.stream()
+                .map(c -> clientSnapshots.get(c.getName()))
+                .collect(Collectors.toSet()))
         .plannedPassengers(
-            plannedPassengers.stream().map(ClientEntity::snapshot).collect(Collectors.toSet()))
+            plannedPassengers.stream()
+                .map(c -> clientSnapshots.get(c.getName()))
+                .collect(Collectors.toSet()))
         .build();
   }
 
