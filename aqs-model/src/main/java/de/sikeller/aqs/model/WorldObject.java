@@ -143,18 +143,23 @@ public class WorldObject implements World {
   public World snapshot() {
     try {
       lock.readLock().lock();
-      Collection<Taxi> taxis = new ArrayList<>();
-      Collection<TaxiEntity> taxiEntities = new ArrayList<>();
-      for (TaxiEntity taxiEntity : this.taxiEntities) {
-        taxis.add(taxiEntity);
-        taxiEntities.add(taxiEntity);
-      }
 
       Collection<Client> clients = new ArrayList<>();
       Collection<ClientEntity> clientEntities = new ArrayList<>();
+      Map<String, ClientEntity> clientMap = new HashMap<>();
       for (ClientEntity clientEntity : this.clientEntities) {
-        clients.add(clientEntity);
-        clientEntities.add(clientEntity);
+        var clientSnapshot = clientEntity.snapshot();
+        clients.add(clientSnapshot);
+        clientEntities.add(clientSnapshot);
+        clientMap.put(clientEntity.getName(), clientSnapshot);
+      }
+
+      Collection<Taxi> taxis = new ArrayList<>();
+      Collection<TaxiEntity> taxiEntities = new ArrayList<>();
+      for (TaxiEntity taxiEntity : this.taxiEntities) {
+        var taxiSnapshot = taxiEntity.snapshot(clientMap);
+        taxis.add(taxiSnapshot);
+        taxiEntities.add(taxiSnapshot);
       }
 
       return WorldObject.builder()

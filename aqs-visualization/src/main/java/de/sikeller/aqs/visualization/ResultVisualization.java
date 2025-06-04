@@ -5,14 +5,11 @@ import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.smallFont
 
 import de.sikeller.aqs.model.ResultTable;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-
 import lombok.extern.slf4j.Slf4j;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -170,7 +167,6 @@ public class ResultVisualization extends AbstractVisualization {
   private double convertDistanceToKilometers(double value) {
     return value / 1000;
   }
-  ;
 
   private double convertTimeToMinutes(double value) {
     return value / 60;
