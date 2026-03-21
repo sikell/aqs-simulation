@@ -12,6 +12,7 @@ import de.sikeller.aqs.visualization.controls.TaxiScenarioControl;
 import de.sikeller.aqs.visualization.controls.VisualizationControl;
 import de.sikeller.aqs.visualization.drawing.VisualizationProperties;
 import de.sikeller.aqs.visualization.drawing.TaxiScenarioCanvas;
+import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -24,17 +25,38 @@ public class SimulationVisualization extends AbstractVisualization implements Si
 
   public SimulationVisualization(World world, SimulationControl simulation) {
     super("Taxi Scenario Simulation");
+    TaxiScenarioControl taxiScenarioControl = new TaxiScenarioControl(simulation);
+
     var controls = new JPanel();
-    controls.setLayout(new BorderLayout());
-    controls.add(new TaxiScenarioControl(simulation), BorderLayout.NORTH);
+    controls.setLayout(new BorderLayout(0, 12));
+    controls.setBorder(new EmptyBorder(8, 8, 8, 8));
+    controls.add(taxiScenarioControl, BorderLayout.NORTH);
     var visuProperties = new VisualizationProperties();
+    taxiScenarioControl.setVisualizationProperties(visuProperties);
     controls.add(new VisualizationControl(visuProperties), BorderLayout.SOUTH);
     canvas = new TaxiScenarioCanvas(world, visuProperties);
 
-    frame.setLayout(new GridLayout(1, 2));
+    var simulationArea = new JPanel(new BorderLayout(0, 14));
+    simulationArea.setBorder(new EmptyBorder(8, 8, 8, 8));
+    simulationArea.add(canvas, BorderLayout.CENTER);
+    simulationArea.add(taxiScenarioControl.getP2PTopologyComponent(), BorderLayout.SOUTH);
+
+    JScrollPane controlsScrollPane = new JScrollPane(controls);
+    controlsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+    controlsScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+
+    var content = new JPanel(new GridLayout(1, 2, 14, 0));
+    content.setBorder(new EmptyBorder(8, 8, 8, 8));
+    content.add(controlsScrollPane);
+    content.add(simulationArea);
+    content.setPreferredSize(new Dimension(1450, 980));
+
+    var scrollPane = new JScrollPane(content);
+    scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+    scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+
     frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-    frame.add(controls);
-    frame.add(canvas);
+    frame.setContentPane(scrollPane);
     frame.setVisible(true);
     frame.pack();
   }

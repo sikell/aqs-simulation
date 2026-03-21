@@ -19,7 +19,7 @@ public class VisualizationControl extends AbstractControl {
   private JPanel setup() {
     var controls = new JPanel();
     controls.setBorder(new TitledBorder("Visualization Control"));
-    controls.setLayout(new GridLayout(4, 2, GAP, GAP));
+    controls.setLayout(new GridLayout(0, 2, GAP, GAP));
 
     controls.add(label("Scale", "scaleLabel"));
 
@@ -103,6 +103,31 @@ public class VisualizationControl extends AbstractControl {
             "Display the current time.",
             properties.isShowTime(),
             properties::setShowTime));
+
+
+    controls.add(
+        checkBox(
+            "Show RQS range overlay",
+            "showP2PRqsRange",
+            "Display the RQS range overlay in the live simulation view.",
+            properties.isShowRqsRecognitionRange(),
+            properties::setShowRqsRecognitionRange));
+
+    controls.add(
+        checkBox(
+            "Show taxi topology links",
+            "showTaxiTopologyLinks",
+            "Display taxi-to-taxi P2P overlay links on the simulation map.",
+            properties.isShowTaxiTopologyLinks(),
+            properties::setShowTaxiTopologyLinks));
+
+    controls.add(
+        checkBox(
+            "Color clients by taxi knowledge",
+            "showClientKnowledgeColors",
+            "Color clients by taxis that currently know them; multiple taxis are shown as radial color segments.",
+            properties.isShowClientKnowledgeColors(),
+            properties::setShowClientKnowledgeColors));
 
     return controls;
   }

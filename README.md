@@ -35,3 +35,14 @@ A UI displaying the simulation state and provide control buttons etc.
 
 The main class to run this simulation application and do the final dependency
 injection.
+
+### aqs-p2p
+
+Foundational P2P networking module with node services (client/vehicle) and a
+first in-memory transport to prepare distributed execution.
+
+Typical starters:
+- `de.sikeller.aqs.p2p.bootstrap.VehicleNodeMain`
+- `de.sikeller.aqs.p2p.bootstrap.ClientNodeMain`
+- `de.sikeller.aqs.runner.Main` (uses `de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmP2PCollector`)
+

@@ -108,7 +108,8 @@ public class SimulationRunner implements SimulationControl {
 
   @Override
   public void init(Map<String, Integer> parameters) {
-    worldGenerator.init(world, parameters);
+    Map<String, Integer> preparedParameters = algorithm.get().prepareWorldParameters(new HashMap<>(parameters));
+    worldGenerator.init(world, preparedParameters);
     algorithm.get().init(world);
     listeners.forEach(l -> l.onUpdate(world, true));
     print();

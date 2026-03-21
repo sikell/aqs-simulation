@@ -1,5 +1,8 @@
 package de.sikeller.aqs.visualization.drawing;
 
+import de.sikeller.aqs.model.P2PNetworkSnapshot;
+import java.util.List;
+import java.util.Map;
 import lombok.Data;
 
 @Data
@@ -17,4 +20,10 @@ public class VisualizationProperties
   private boolean showScale = true;
   private boolean showTime = true;
   private int scale = 4;
+  private boolean showRqsRecognitionRange = false;
+  private int rqsRecognitionRadius = 5000;
+  private boolean showTaxiTopologyLinks = false;
+  private P2PNetworkSnapshot p2pNetworkSnapshot = P2PNetworkSnapshot.empty();
+  private boolean showClientKnowledgeColors = false;
+  private Map<String, List<String>> taxiKnownClientIds = Map.of();
 }
