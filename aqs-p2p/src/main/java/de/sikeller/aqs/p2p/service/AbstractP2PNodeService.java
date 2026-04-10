@@ -86,19 +86,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     publishMessage(topic, payload, null, null, node -> !node.id().equals(descriptor.id()));
   }
 
-  protected void publish(String topic, String payload, Predicate<NodeDescriptor> targetFilter) {
-    publishMessage(topic, payload, null, null, targetFilter);
-  }
-
-  protected void publishMessage(
-      String topic, String payload, String requestId, String correlationId) {
-    publishMessage(
-        topic,
-        payload,
-        requestId,
-        correlationId,
-        node -> !node.id().equals(descriptor.id()));
-  }
 
   protected void publishMessage(
       String topic,
@@ -308,9 +295,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return selected;
   }
 
-  private int stableShortcutSeed(String id) {
-    return Integer.rotateLeft(id.hashCode(), 7);
-  }
 
   private long stableShortcutScore(String leftId, String rightId) {
     return Integer.toUnsignedLong(java.util.Objects.hash(leftId, rightId));

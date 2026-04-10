@@ -41,6 +41,23 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String P2P_MULTICAST_GROUP_FIELD = "p2pMulticastGroup";
   private static final Set<String> P2P_PORT_FIELDS =
       Set.of("p2pTcpPort", "p2pDiscoveryPort");
+  private static final Set<String> P2P_CORE_PARAMETERS =
+      Set.of(
+          "p2pFixedSearchRadius",
+          "p2pRequestForwardHops",
+          "p2pOverlayMaxNeighbors",
+          "p2pOverlayShortcuts",
+          "p2pOfferCollectionTicks",
+          "p2pRequestRepublishTicks",
+          "p2pTopologyScanTicks",
+          "p2pRqsRouteProximityMode",
+          "CalculateFullTaxis",
+          "p2pVehicleOpenClientStrategy");
+  private static final Set<String> P2P_ADVANCED_HIDDEN_PARAMETERS =
+      Set.of(
+          "p2pVehicleCommitLeaseTicks",
+          "p2pVehicleRebidIntervalTicks",
+          "p2pVehicleRequestCacheTtlTicks");
   private List<Class<?>> algorithmList;
   private final SimulationControl simulation;
   private Map<String, Integer> inputParameterMap;
@@ -392,8 +409,7 @@ public class TaxiScenarioControl extends AbstractControl {
               + " (shortcuts="
               + status.getOrDefault("overlayShortcuts", "1")
               + ")");
-      String rqsFixedRadius =
-          status.getOrDefault("rqsFixedRadius", status.getOrDefault("rqsMinRadius", "-"));
+      String rqsFixedRadius = status.getOrDefault("rqsFixedRadius", "-");
       p2pRqsRadiusValue.setText(rqsFixedRadius);
       p2pRqsCenterValue.setText(status.getOrDefault("rqsCenter", "client"));
       p2pVehicleStrategyValue.setText(status.getOrDefault("vehicleClientSelection", "nearest"));
@@ -418,8 +434,7 @@ public class TaxiScenarioControl extends AbstractControl {
       }
       if (p2pTopologyPanel != null) {
         P2PNetworkSnapshot topologySnapshot = provider.getP2PNetworkSnapshot();
-        int rqsMinRadius =
-            parseIntOrDefault(status.get("rqsFixedRadius"), parseIntOrDefault(status.get("rqsMinRadius"), 0));
+        int rqsMinRadius = parseIntOrDefault(status.get("rqsFixedRadius"), 0);
         p2pTopologyPanel.setSnapshot(topologySnapshot);
         if (visualizationProperties != null) {
           visualizationProperties.setP2pNetworkSnapshot(topologySnapshot);
@@ -831,6 +846,15 @@ public class TaxiScenarioControl extends AbstractControl {
     if (!isP2PModeSelected()) {
       return true;
     }
+    if (P2P_ADVANCED_HIDDEN_PARAMETERS.contains(parameterName)) {
+      return false;
+    }
+    if (!P2P_CORE_PARAMETERS.contains(parameterName)
+        && !isP2PPortField(parameterName)
+        && !isP2PMulticastOctet(parameterName)
+        && !"p2pDiscoveryWaitMs".equals(parameterName)) {
+      return false;
+    }
     String selectedMode =
         getComponentByName("simulationModeBox") instanceof JComboBox<?> combo
             ? Objects.toString(combo.getSelectedItem(), MODE_LOCAL)
@@ -974,7 +998,6 @@ public class TaxiScenarioControl extends AbstractControl {
   private String displayLabelForParameter(String parameterName) {
     return switch (parameterName) {
       case "p2pFixedSearchRadius" -> "Client RQS radius";
-      case "p2pMinSearchRadius" -> "Client RQS radius (legacy alias)";
       case "p2pRqsRouteProximityMode" -> "RQS mode (0=taxi-position,1=taxi-route)";
       case "CalculateFullTaxis" -> "Include full taxis";
       case "p2pOverlayMaxNeighbors" -> "Overlay degree k (max neighbors)";
@@ -996,8 +1019,6 @@ public class TaxiScenarioControl extends AbstractControl {
     return switch (parameterName) {
       case "p2pFixedSearchRadius" ->
           "Fixed radius around the client used for RQS seeding (world units), independent from trip distance.";
-      case "p2pMinSearchRadius" ->
-          "Legacy alias for the fixed client RQS radius used by older configs/status exports.";
       case "p2pRqsRouteProximityMode" ->
           "RQS matching mode: 0 = strict taxi position only, 1 = legacy route proximity for moving taxis.";
       case "CalculateFullTaxis" ->

@@ -134,7 +134,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
     if (!offeredLocally) {
-      // If this vehicle cannot execute the request now, pass it exactly one hop to vehicle peers.
+      // If this vehicle cannot execute the request now, forward to vehicle peers using remaining TTL.
       forwardRideRequest(message, requestPayload);
     }
   }

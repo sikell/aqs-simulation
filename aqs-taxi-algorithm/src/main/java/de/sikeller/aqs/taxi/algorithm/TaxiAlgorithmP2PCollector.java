@@ -75,6 +75,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   private static final String P2P_OFFER_COLLECTION_TICKS = "p2pOfferCollectionTicks";
   private static final String P2P_TOPOLOGY_SCAN_TICKS = "p2pTopologyScanTicks";
+  private static final String P2P_REQUEST_REPUBLISH_TICKS = "p2pRequestRepublishTicks";
   private static final String UNKNOWN_ROLE = "UNKNOWN";
   private static final String OVERLAY_MAX_NEIGHBORS_PROPERTY = "aqs.p2p.overlay.maxNeighbors";
   private static final String OVERLAY_SHORTCUTS_PROPERTY = "aqs.p2p.overlay.shortcuts";
@@ -100,7 +101,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         new AlgorithmParameter(P2P_OFFER_COLLECTION_TICKS, 0),
         new AlgorithmParameter(P2P_TOPOLOGY_SCAN_TICKS, 20),
         new AlgorithmParameter("p2pRequestForwardHops", 2),
-        new AlgorithmParameter("p2pRequestRepublishTicks", 3),
+        new AlgorithmParameter(P2P_REQUEST_REPUBLISH_TICKS, 3),
         new AlgorithmParameter("p2pFixedSearchRadius", 5000),
         new AlgorithmParameter(P2P_RQS_ROUTE_PROXIMITY_MODE, 0),
         new AlgorithmParameter(P2P_VEHICLE_COMMIT_LEASE_TICKS, 20),
@@ -246,17 +247,16 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
       double searchRadius = resolveSearchRadius();
       Set<String> rqsVehicleNodeIds = resolveRqsVehicleNodeIds(world, client, searchRadius);
-      Set<String> seededVehicleNodeIds = selectNearestSeedVehicle(world, client, rqsVehicleNodeIds);
-      if (seededVehicleNodeIds.isEmpty()) {
+      if (rqsVehicleNodeIds.isEmpty()) {
         log.info(
             "[P2P-COLLECTOR] skipped publish client={} reason=no-rqs-vehicles searchRadius={}",
             client.getName(),
             Math.round(searchRadius));
         continue;
       }
-      seededVehicleNodeIds.forEach(vehicleNodeId -> registerTaxiKnowledge(vehicleNodeId, client.getName()));
+      rqsVehicleNodeIds.forEach(vehicleNodeId -> registerTaxiKnowledge(vehicleNodeId, client.getName()));
       Predicate<NodeDescriptor> effectiveFilter =
-          node -> node.role() == NodeRole.VEHICLE && seededVehicleNodeIds.contains(node.id());
+          node -> node.role() == NodeRole.VEHICLE && rqsVehicleNodeIds.contains(node.id());
       int requestForwardHops = Math.max(0, parameters.getOrDefault("p2pRequestForwardHops", 2));
 
       Map<String, String> extraPayload = new LinkedHashMap<>();
@@ -282,18 +282,18 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
           requestId,
           new PendingRequest(requestId, client.getName(), stepCounter));
       log.info(
-          "[P2P-COLLECTOR] published requestId={} client={} scope=rqs-seeded-nearest searchRadius={} seededVehicles={} forwardHops={}",
+          "[P2P-COLLECTOR] published requestId={} client={} scope=rqs-seeded searchRadius={} seededVehicles={} forwardHops={}",
           requestId,
           client.getName(),
           Math.round(searchRadius),
-          seededVehicleNodeIds.size(),
+          rqsVehicleNodeIds.size(),
           requestForwardHops);
       refreshStatus("request-published-" + requestId);
     }
   }
 
   private void retriggerRequestsIfNeeded(Collection<Client> waitingClients) {
-    int republishTicks = Math.max(1, parameters.getOrDefault("p2pRequestRepublishTicks", 1));
+    int republishTicks = Math.max(1, parameters.getOrDefault(P2P_REQUEST_REPUBLISH_TICKS, 3));
     for (Client client : waitingClients) {
       String requestId = requestIdByClientName.get(client.getName());
       if (requestId == null) {
@@ -319,32 +319,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     }
   }
 
-  private Set<String> selectNearestSeedVehicle(
-      World world, Client client, Set<String> rqsVehicleNodeIds) {
-    if (world == null || client == null || rqsVehicleNodeIds == null || rqsVehicleNodeIds.isEmpty()) {
-      return Set.of();
-    }
-
-    Taxi nearestTaxi = null;
-    double nearestDistance = Double.MAX_VALUE;
-    for (Taxi taxi : world.getTaxis()) {
-      String nodeId = taxiNameToVehicleNodeId.get(taxi.getName());
-      if (nodeId == null || !rqsVehicleNodeIds.contains(nodeId)) {
-        continue;
-      }
-      double distance = taxi.getPosition().distance(client.getPosition());
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearestTaxi = taxi;
-      }
-    }
-
-    if (nearestTaxi == null) {
-      return rqsVehicleNodeIds.stream().sorted().findFirst().map(Set::of).orElse(Set.of());
-    }
-    String nodeId = taxiNameToVehicleNodeId.get(nearestTaxi.getName());
-    return nodeId == null ? Set.of() : Set.of(nodeId);
-  }
 
   private void applyVehicleDispatchConfig(Map<String, Integer> config) {
     int strategyCode = config.getOrDefault(P2P_VEHICLE_OPEN_CLIENT_STRATEGY, 1);
@@ -362,12 +336,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   private double resolveSearchRadius() {
-    int fixedRadius =
-        Math.max(
-            1,
-            parameters.getOrDefault(
-                "p2pFixedSearchRadius", parameters.getOrDefault("p2pMinSearchRadius", 5000)));
-    return fixedRadius;
+      return Math.max(1, parameters.getOrDefault("p2pFixedSearchRadius", 5000));
   }
 
   private Set<String> resolveRqsVehicleNodeIds(World world, Client client, double searchRadius) {
@@ -524,11 +493,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   private long resolveOfferCollectionTicks() {
-    if (parameters.containsKey(P2P_OFFER_COLLECTION_TICKS)) {
-      return Math.max(0, parameters.getOrDefault(P2P_OFFER_COLLECTION_TICKS, 0));
-    }
-    // Legacy alias: old ms-based key is interpreted as ticks for backward compatibility.
-    return Math.max(0, parameters.getOrDefault("p2pOfferCollectionMs", 0));
+    return Math.max(0, parameters.getOrDefault(P2P_OFFER_COLLECTION_TICKS, 0));
   }
 
   private long resolveTopologyScanTicks() {
@@ -984,10 +949,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     p2pStatus.put("overlayMode", "SMALL_WORLD");
     p2pStatus.put("overlayMaxNeighbors", System.getProperty(OVERLAY_MAX_NEIGHBORS_PROPERTY, "3"));
     p2pStatus.put("overlayShortcuts", System.getProperty(OVERLAY_SHORTCUTS_PROPERTY, "1"));
-    String fixedRadius =
-        String.valueOf(
-            parameters.getOrDefault(
-                "p2pFixedSearchRadius", parameters.getOrDefault("p2pMinSearchRadius", 5000)));
+    String fixedRadius = String.valueOf(parameters.getOrDefault("p2pFixedSearchRadius", 5000));
     p2pStatus.put("rqsFixedRadius", fixedRadius);
     p2pStatus.put("rqsCenter", "client");
     p2pStatus.put(
@@ -995,15 +957,10 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         parameters.getOrDefault(P2P_RQS_ROUTE_PROXIMITY_MODE, 0) == 0
             ? "taxi-position"
             : "taxi-route");
-    // Keep legacy keys for UI/config compatibility.
-    p2pStatus.put("rqsInitialRadiusFactor", "-");
-    p2pStatus.put("rqsMinRadius", fixedRadius);
     p2pStatus.put(
         "vehicleClientSelection",
         parameters.getOrDefault(P2P_VEHICLE_OPEN_CLIENT_STRATEGY, 1) == 0 ? "greedy" : "nearest");
     p2pStatus.put("clientRangeFilter", "seed-only");
-    // Legacy key consumed by older UI revisions.
-    p2pStatus.put("vehicleAllowOutsideClientRange", "true");
     p2pStatus.put("runtimeMode", isEmbeddedSimulationMode() ? "EMBEDDED" : "LAN");
     p2pStatus.put("localVehicleNodes", String.valueOf(localVehicleNodesByTaxiName.size()));
     p2pStatus.put("lastEvent", event);
