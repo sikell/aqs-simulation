@@ -205,8 +205,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return peers;
     }
 
-    // Producer special case: collector/client ride requests are range-filtered by business logic
-    // and should not be additionally capped by overlay k-neighbors.
+    // Initial client requests are already range-filtered by business logic and should not be
+    // additionally limited by overlay caps.
     if (descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.CLIENT
         && TOPIC_RIDE_REQUEST.equals(topic)) {
       return peers;
@@ -214,7 +214,18 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
     int maxNeighbors = Math.max(1, Integer.getInteger(OVERLAY_MAX_NEIGHBORS_PROPERTY, 3));
     int shortcuts = Math.max(0, Integer.getInteger(OVERLAY_SHORTCUTS_PROPERTY, 1));
-    List<NodeDescriptor> selected = smallWorldPeers(peers, maxNeighbors, shortcuts);
+
+    List<NodeDescriptor> routingPeers = peers;
+    if (TOPIC_RIDE_REQUEST.equals(topic)
+        && descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE) {
+      // Forwarding between taxis should use taxi overlay neighbors only.
+      routingPeers =
+          peers.stream()
+              .filter(peer -> peer.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE)
+              .toList();
+    }
+
+    List<NodeDescriptor> selected = smallWorldPeers(routingPeers, maxNeighbors, shortcuts);
     if (!shouldPinCollectorPeers()) {
       return selected;
     }
@@ -255,14 +266,26 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       List<NodeDescriptor> peers,
       int maxNeighbors,
       int shortcuts) {
-    List<NodeDescriptor> sortedPeers = peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
+    List<NodeDescriptor> sortedPeers =
+        peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
+    if (sortedPeers.isEmpty()) {
+      return List.of();
+    }
+
+    Map<String, NodeDescriptor> byId = new LinkedHashMap<>();
+    sortedPeers.forEach(peer -> byId.put(peer.id(), peer));
+    List<String> ringIds = new ArrayList<>(byId.keySet());
+    ringIds.add(descriptor.id());
+    ringIds = ringIds.stream().sorted().toList();
+
     int localSlots = Math.max(1, maxNeighbors - shortcuts);
-    int start = Math.floorMod(stableShortcutSeed(descriptor.id()), Math.max(1, sortedPeers.size()));
+    int selfIndex = ringIds.indexOf(descriptor.id());
 
     List<NodeDescriptor> selected = new ArrayList<>();
-    for (int offset = 0; offset < sortedPeers.size() && selected.size() < localSlots; offset++) {
-      NodeDescriptor peer = sortedPeers.get((start + offset) % sortedPeers.size());
-      if (!peer.id().equals(descriptor.id())) {
+    for (int offset = 1; offset < ringIds.size() && selected.size() < localSlots; offset++) {
+      String peerId = ringIds.get((selfIndex + offset) % ringIds.size());
+      NodeDescriptor peer = byId.get(peerId);
+      if (peer != null) {
         selected.add(peer);
       }
     }

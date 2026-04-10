@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import java.util.function.Predicate;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -99,7 +100,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         new AlgorithmParameter(P2P_OFFER_COLLECTION_TICKS, 0),
         new AlgorithmParameter(P2P_TOPOLOGY_SCAN_TICKS, 20),
         new AlgorithmParameter("p2pRequestForwardHops", 2),
-        new AlgorithmParameter("p2pRequestRepublishTicks", 1),
+        new AlgorithmParameter("p2pRequestRepublishTicks", 3),
         new AlgorithmParameter("p2pFixedSearchRadius", 5000),
         new AlgorithmParameter(P2P_RQS_ROUTE_PROXIMITY_MODE, 0),
         new AlgorithmParameter(P2P_VEHICLE_COMMIT_LEASE_TICKS, 20),
@@ -245,16 +246,17 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
       double searchRadius = resolveSearchRadius();
       Set<String> rqsVehicleNodeIds = resolveRqsVehicleNodeIds(world, client, searchRadius);
-      if (rqsVehicleNodeIds.isEmpty()) {
+      Set<String> seededVehicleNodeIds = selectNearestSeedVehicle(world, client, rqsVehicleNodeIds);
+      if (seededVehicleNodeIds.isEmpty()) {
         log.info(
             "[P2P-COLLECTOR] skipped publish client={} reason=no-rqs-vehicles searchRadius={}",
             client.getName(),
             Math.round(searchRadius));
         continue;
       }
-      rqsVehicleNodeIds.forEach(vehicleNodeId -> registerTaxiKnowledge(vehicleNodeId, client.getName()));
+      seededVehicleNodeIds.forEach(vehicleNodeId -> registerTaxiKnowledge(vehicleNodeId, client.getName()));
       Predicate<NodeDescriptor> effectiveFilter =
-          node -> node.role() == NodeRole.VEHICLE && rqsVehicleNodeIds.contains(node.id());
+          node -> node.role() == NodeRole.VEHICLE && seededVehicleNodeIds.contains(node.id());
       int requestForwardHops = Math.max(0, parameters.getOrDefault("p2pRequestForwardHops", 2));
 
       Map<String, String> extraPayload = new LinkedHashMap<>();
@@ -280,11 +282,11 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
           requestId,
           new PendingRequest(requestId, client.getName(), stepCounter));
       log.info(
-          "[P2P-COLLECTOR] published requestId={} client={} scope=rqs-seeded searchRadius={} seededVehicles={} forwardHops={}",
+          "[P2P-COLLECTOR] published requestId={} client={} scope=rqs-seeded-nearest searchRadius={} seededVehicles={} forwardHops={}",
           requestId,
           client.getName(),
           Math.round(searchRadius),
-          rqsVehicleNodeIds.size(),
+          seededVehicleNodeIds.size(),
           requestForwardHops);
       refreshStatus("request-published-" + requestId);
     }
@@ -304,6 +306,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       }
 
       if (pending.acceptedVehicleNodeId == null
+          && pending.bestOfferVehicleNodeId == null
           && stepCounter - pending.lastPublishedStep >= republishTicks) {
         log.info(
             "[P2P-COLLECTOR] republish trigger client={} requestId={} elapsedTicks={} publishCount={}",
@@ -314,6 +317,33 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         removePendingForClient(client.getName());
       }
     }
+  }
+
+  private Set<String> selectNearestSeedVehicle(
+      World world, Client client, Set<String> rqsVehicleNodeIds) {
+    if (world == null || client == null || rqsVehicleNodeIds == null || rqsVehicleNodeIds.isEmpty()) {
+      return Set.of();
+    }
+
+    Taxi nearestTaxi = null;
+    double nearestDistance = Double.MAX_VALUE;
+    for (Taxi taxi : world.getTaxis()) {
+      String nodeId = taxiNameToVehicleNodeId.get(taxi.getName());
+      if (nodeId == null || !rqsVehicleNodeIds.contains(nodeId)) {
+        continue;
+      }
+      double distance = taxi.getPosition().distance(client.getPosition());
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestTaxi = taxi;
+      }
+    }
+
+    if (nearestTaxi == null) {
+      return rqsVehicleNodeIds.stream().sorted().findFirst().map(Set::of).orElse(Set.of());
+    }
+    String nodeId = taxiNameToVehicleNodeId.get(nearestTaxi.getName());
+    return nodeId == null ? Set.of() : Set.of(nodeId);
   }
 
   private void applyVehicleDispatchConfig(Map<String, Integer> config) {
@@ -578,20 +608,34 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   @Override
   public Map<String, Set<String>> getTaxiKnowledgeByClientIds() {
+    Set<String> activeClientNames =
+        pendingByRequestId.values().stream().map(pending -> pending.clientName).collect(Collectors.toSet());
+
     if (isEmbeddedSimulationMode() && !localVehicleNodesByTaxiName.isEmpty()) {
       Map<String, Set<String>> liveSnapshot = new LinkedHashMap<>();
       localVehicleNodesByTaxiName.forEach(
           (taxiName, vehicleNode) -> {
             Set<String> knownClientIds = vehicleNode.knownClientIdsSnapshot();
             if (knownClientIds != null && !knownClientIds.isEmpty()) {
-              liveSnapshot.put(taxiName, Set.copyOf(knownClientIds));
+              Set<String> activeKnownClientIds =
+                  knownClientIds.stream().filter(activeClientNames::contains).collect(Collectors.toSet());
+              if (!activeKnownClientIds.isEmpty()) {
+                liveSnapshot.put(taxiName, Set.copyOf(activeKnownClientIds));
+              }
             }
           });
       return liveSnapshot;
     }
 
     Map<String, Set<String>> snapshot = new LinkedHashMap<>();
-    taxiKnowledgeByClientIds.forEach((taxiId, clientIds) -> snapshot.put(taxiId, Set.copyOf(clientIds)));
+    taxiKnowledgeByClientIds.forEach(
+        (taxiId, clientIds) -> {
+          Set<String> activeKnownClientIds =
+              clientIds.stream().filter(activeClientNames::contains).collect(Collectors.toSet());
+          if (!activeKnownClientIds.isEmpty()) {
+            snapshot.put(taxiId, Set.copyOf(activeKnownClientIds));
+          }
+        });
     return snapshot;
   }
 

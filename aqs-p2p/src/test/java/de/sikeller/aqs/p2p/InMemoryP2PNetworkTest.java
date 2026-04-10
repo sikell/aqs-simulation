@@ -9,8 +9,11 @@ import de.sikeller.aqs.p2p.service.ClientP2PService;
 import de.sikeller.aqs.p2p.service.KeyValuePayload;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import de.sikeller.aqs.p2p.transport.inmemory.InMemoryP2PNetwork;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class InMemoryP2PNetworkTest {
@@ -195,6 +198,328 @@ class InMemoryP2PNetworkTest {
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
       assertEquals(1, offersAfterAvailable);
+    }
+  }
+
+  @Test
+  void vehicleDoesNotOfferOutsideSearchRadiusByDefault() {
+    var network = new InMemoryP2PNetwork();
+
+    try (var client = new ClientP2PService("client-range", network);
+        var vehicle = new VehicleP2PService("vehicle-range", network)) {
+      client.start();
+      vehicle.start();
+      vehicle.setSimulationState(true, 0, 0);
+
+      String requestId =
+          client.requestRide(
+              "(1000,1000)",
+              "(1100,1100)",
+              node -> node.id().equals("vehicle-range"),
+              0,
+              "",
+              Map.of("requestX", "1000", "requestY", "1000", "searchRadius", "100"));
+
+      long offers =
+          client.inboxSnapshot().stream()
+              .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+              .filter(msg -> requestId.equals(msg.requestId()))
+              .count();
+      assertEquals(0, offers);
+    }
+  }
+
+  @Test
+  void vehicleMayOfferOutsideRangeWhenExplicitlyEnabled() {
+    withSystemProperties(
+        Map.of("aqs.p2p.vehicle.allowOutsideClientRange", "true"),
+        () -> {
+          var network = new InMemoryP2PNetwork();
+
+          try (var client = new ClientP2PService("client-range-open", network);
+              var vehicle = new VehicleP2PService("vehicle-range-open", network)) {
+            client.start();
+            vehicle.start();
+            vehicle.setSimulationState(true, 0, 0);
+
+            String requestId =
+                client.requestRide(
+                    "(1000,1000)",
+                    "(1100,1100)",
+                    node -> node.id().equals("vehicle-range-open"),
+                    0,
+                    "",
+                    Map.of("requestX", "1000", "requestY", "1000", "searchRadius", "100"));
+
+            long offers =
+                client.inboxSnapshot().stream()
+                    .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+                    .filter(msg -> requestId.equals(msg.requestId()))
+                    .count();
+            assertEquals(1, offers);
+          }
+        });
+  }
+
+  @Test
+  void forwardedRequestMayOfferOutsideInitialSeedRadiusByDefault() {
+    withSystemProperties(
+        Map.of(
+            "aqs.p2p.overlay.maxNeighbors", "3",
+            "aqs.p2p.overlay.shortcuts", "0",
+            "aqs.p2p.overlay.pinCollector", "false"),
+        () -> {
+          var network = new InMemoryP2PNetwork();
+
+          try (var client = new ClientP2PService("client-forward-range", network);
+              var seedVehicle = new VehicleP2PService("vehicle-seed", network);
+              var neighborVehicle = new VehicleP2PService("vehicle-neighbor", network)) {
+            client.start();
+            seedVehicle.start();
+            neighborVehicle.start();
+
+            // Seed is busy and forwards. Neighbor is far away and would fail strict range check.
+            seedVehicle.setSimulationState(false, 0, 0);
+            neighborVehicle.setSimulationState(true, 1000, 1000);
+
+            String requestId =
+                client.requestRide(
+                    "(0,0)",
+                    "(100,100)",
+                    node -> node.id().equals("vehicle-seed"),
+                    1,
+                    "",
+                    Map.of("requestX", "0", "requestY", "0", "searchRadius", "100"));
+
+            long offers =
+                client.inboxSnapshot().stream()
+                    .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+                    .filter(msg -> requestId.equals(msg.requestId()))
+                    .count();
+            assertEquals(1, offers);
+          }
+        });
+  }
+
+  @Test
+  void requestForwardingRespectsTtlAcrossSparseOverlay() {
+    withSystemProperties(
+        Map.of(
+            "aqs.p2p.overlay.maxNeighbors", "1",
+            "aqs.p2p.overlay.shortcuts", "0",
+            "aqs.p2p.overlay.pinCollector", "false"),
+        () -> {
+          var network = new InMemoryP2PNetwork();
+
+          try (var client = new ClientP2PService("client-ttl", network);
+              var vehicleA = new VehicleP2PService("vehicle-a", network);
+              var vehicleB = new VehicleP2PService("vehicle-b", network);
+              var vehicleC = new VehicleP2PService("vehicle-c", network);
+              var vehicleD = new VehicleP2PService("vehicle-d", network);
+              var vehicleE = new VehicleP2PService("vehicle-e", network)) {
+            client.start();
+            vehicleA.start();
+            vehicleB.start();
+            vehicleC.start();
+            vehicleD.start();
+            vehicleE.start();
+
+            List<VehicleP2PService> vehicles = List.of(vehicleA, vehicleB, vehicleC, vehicleD, vehicleE);
+            vehicles.forEach(vehicle -> vehicle.setSimulationState(false, 0, 0));
+
+            Set<String> vehicleNodeIds =
+                vehicles.stream()
+                    .map(vehicle -> vehicle.descriptor().id())
+                    .collect(java.util.stream.Collectors.toSet());
+            Map<String, Set<String>> vehicleOverlayGraph = new HashMap<>();
+            vehicles.forEach(
+                vehicle -> {
+                  Set<String> neighbors =
+                      vehicle.overlayNeighborIdsSnapshot().stream()
+                          .filter(vehicleNodeIds::contains)
+                          .collect(java.util.stream.Collectors.toSet());
+                  vehicleOverlayGraph.put(vehicle.descriptor().id(), neighbors);
+                });
+
+            String seedVehicleNodeId = selectSeedVehicle(vehicleOverlayGraph, vehicleA.descriptor().id());
+
+            long reachedTtl0 =
+                runTtlRequestAndCountReceivers(client, vehicles, seedVehicleNodeId, 0);
+            long reachedTtl1 =
+                runTtlRequestAndCountReceivers(client, vehicles, seedVehicleNodeId, 1);
+            long reachedTtl2 =
+                runTtlRequestAndCountReceivers(client, vehicles, seedVehicleNodeId, 2);
+
+            assertEquals(expectedReachableVehicles(vehicleOverlayGraph, seedVehicleNodeId, 0), reachedTtl0);
+            assertEquals(expectedReachableVehicles(vehicleOverlayGraph, seedVehicleNodeId, 1), reachedTtl1);
+            assertEquals(expectedReachableVehicles(vehicleOverlayGraph, seedVehicleNodeId, 2), reachedTtl2);
+
+            assertTrue(reachedTtl1 >= reachedTtl0);
+            assertTrue(reachedTtl2 >= reachedTtl1);
+          }
+        });
+  }
+
+  private String selectSeedVehicle(Map<String, Set<String>> vehicleOverlayGraph, String fallback) {
+    return vehicleOverlayGraph.entrySet().stream()
+        .filter(entry -> entry.getValue() != null && !entry.getValue().isEmpty())
+        .map(Map.Entry::getKey)
+        .findFirst()
+        .orElse(fallback);
+  }
+
+  private long expectedReachableVehicles(
+      Map<String, Set<String>> vehicleOverlayGraph,
+      String seedVehicleNodeId,
+      int hops) {
+    Set<String> visited = new HashSet<>();
+    Set<String> frontier = new HashSet<>();
+    visited.add(seedVehicleNodeId);
+    frontier.add(seedVehicleNodeId);
+
+    for (int hop = 0; hop < hops; hop++) {
+      Set<String> nextFrontier = new HashSet<>();
+      for (String nodeId : frontier) {
+        Set<String> neighbors = vehicleOverlayGraph.getOrDefault(nodeId, Set.of());
+        for (String neighbor : neighbors) {
+          if (visited.add(neighbor)) {
+            nextFrontier.add(neighbor);
+          }
+        }
+      }
+      if (nextFrontier.isEmpty()) {
+        break;
+      }
+      frontier = nextFrontier;
+    }
+    return visited.size();
+  }
+
+  @Test
+  void requestForwardingDoesNotSendBackToImmediateSender() {
+    var network = new InMemoryP2PNetwork();
+
+    try (var client = new ClientP2PService("client-forward", network);
+        var vehicleA = new VehicleP2PService("vehicle-a", network);
+        var vehicleB = new VehicleP2PService("vehicle-b", network);
+        var vehicleC = new VehicleP2PService("vehicle-c", network)) {
+      client.start();
+      vehicleA.start();
+      vehicleB.start();
+      vehicleC.start();
+
+      vehicleA.setSimulationState(false, 0, 0);
+      vehicleB.setSimulationState(false, 0, 0);
+      vehicleC.setSimulationState(false, 0, 0);
+
+      String requestId =
+          client.requestRide(
+              "(0,0)",
+              "(100,100)",
+              node -> node.id().equals("vehicle-a"),
+              2,
+              "");
+
+      long requestsSeenBySeedVehicle =
+          vehicleA.inboxSnapshot().stream()
+              .filter(msg -> ClientP2PService.TOPIC_RIDE_REQUEST.equals(msg.topic()))
+              .filter(msg -> requestId.equals(msg.requestId()))
+              .count();
+
+      // Seed receives exactly the client-origin request and no bounce-back copy from forwarded peers.
+      assertEquals(1, requestsSeenBySeedVehicle);
+    }
+  }
+
+  @Test
+  void kHopForwardingUsesReciprocalOverlayLinksForVehicles() {
+    withSystemProperties(
+        Map.of(
+            "aqs.p2p.overlay.maxNeighbors", "1",
+            "aqs.p2p.overlay.shortcuts", "0",
+            "aqs.p2p.overlay.pinCollector", "false"),
+        () -> {
+          var network = new InMemoryP2PNetwork();
+
+          try (var client = new ClientP2PService("client-reciprocal", network);
+              var seedVehicle = new VehicleP2PService("vehicle-seed", network);
+              var neighborVehicle = new VehicleP2PService("vehicle-neighbor", network);
+              var idleVehicle = new VehicleP2PService("vehicle-idle", network)) {
+            client.start();
+            seedVehicle.start();
+            neighborVehicle.start();
+            idleVehicle.start();
+
+            seedVehicle.setSimulationState(false, 0, 0);
+            neighborVehicle.setSimulationState(true, 10, 10);
+            idleVehicle.setSimulationState(true, 20, 20);
+
+            String requestId =
+                client.requestRide(
+                    "(0,0)",
+                    "(100,100)",
+                    node -> node.id().equals("vehicle-seed"),
+                    1,
+                    "",
+                    Map.of("requestX", "0", "requestY", "0", "searchRadius", "50"));
+
+            long offers =
+                client.inboxSnapshot().stream()
+                    .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+                    .filter(msg -> requestId.equals(msg.requestId()))
+                    .count();
+            assertTrue(offers >= 1);
+          }
+        });
+  }
+
+  private long runTtlRequestAndCountReceivers(
+      ClientP2PService client,
+      List<VehicleP2PService> vehicles,
+      String seedVehicleNodeId,
+      int hops) {
+    int[] beforeSizes = vehicles.stream().mapToInt(vehicle -> vehicle.inboxSnapshot().size()).toArray();
+
+    client.requestRide(
+        "(0,0)",
+        "(100,100)",
+        node -> node.id().equals(seedVehicleNodeId),
+        hops,
+        "");
+
+    long reachedVehicles = 0;
+    for (int i = 0; i < vehicles.size(); i++) {
+      int previous = beforeSizes[i];
+      List<P2PMessage> inbox = vehicles.get(i).inboxSnapshot();
+      boolean gotRequest =
+          inbox.stream()
+              .skip(previous)
+              .anyMatch(msg -> ClientP2PService.TOPIC_RIDE_REQUEST.equals(msg.topic()));
+      if (gotRequest) {
+        reachedVehicles++;
+      }
+    }
+    return reachedVehicles;
+  }
+
+
+  private void withSystemProperties(Map<String, String> properties, Runnable body) {
+    Map<String, String> previousValues = new HashMap<>();
+    Set<String> keys = properties.keySet();
+    keys.forEach(key -> previousValues.put(key, System.getProperty(key)));
+    properties.forEach(System::setProperty);
+    try {
+      body.run();
+    } finally {
+      keys.forEach(
+          key -> {
+            String previous = previousValues.get(key);
+            if (previous == null) {
+              System.clearProperty(key);
+            } else {
+              System.setProperty(key, previous);
+            }
+          });
     }
   }
 }

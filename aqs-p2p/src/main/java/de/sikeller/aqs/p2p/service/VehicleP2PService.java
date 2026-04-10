@@ -31,6 +31,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final String VEHICLE_REBID_MOVE_DISTANCE_M_PROPERTY = "aqs.p2p.vehicle.rebidMoveDistanceMeters";
   private static final String VEHICLE_REQUEST_CACHE_TTL_TICKS_PROPERTY =
       "aqs.p2p.vehicle.requestCacheTtlTicks";
+  private static final String VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE_PROPERTY =
+      "aqs.p2p.vehicle.allowOutsideClientRange";
   private static final long DEFAULT_VEHICLE_COMMIT_LEASE_TICKS = 20L;
   private static final double DEFAULT_ASSUMED_SPEED_MPS = 12.0;
   private static final long DEFAULT_VEHICLE_REBID_MIN_INTERVAL_TICKS = 1L;
@@ -291,7 +293,36 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (requestPayload == null) {
       return true;
     }
-    return true;
+    if (Boolean.parseBoolean(System.getProperty(VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE_PROPERTY, "false"))) {
+      return true;
+    }
+
+    // k-hop expands request visibility; forwarded requests are allowed to bid by default.
+    String forwardedBy = requestPayload.get("forwardedBy");
+    if (forwardedBy != null && !forwardedBy.isBlank()) {
+      return true;
+    }
+
+
+    Integer reqX = parseCoordinate(requestPayload.get("requestX"));
+    Integer reqY = parseCoordinate(requestPayload.get("requestY"));
+    Integer searchRadius = parseNonNegativeIntOrNull(requestPayload.get("searchRadius"));
+    if (reqX == null || reqY == null || searchRadius == null || simulationX == null || simulationY == null) {
+      return true;
+    }
+
+    boolean inRange = distance(simulationX, simulationY, reqX, reqY) <= searchRadius;
+    if (!inRange) {
+      log.debug(
+          "Vehicle {} skips offer for out-of-range request (requestId? unknown req=({}, {}) radius={} vehicle=({}, {}))",
+          descriptor().id(),
+          reqX,
+          reqY,
+          searchRadius,
+          simulationX,
+          simulationY);
+    }
+    return inRange;
   }
 
   private String buildOfferPayload(String requestId, int etaSeconds, String trigger) {
@@ -318,8 +349,28 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   }
 
   private void forwardRideRequest(P2PMessage message, Map<String, String> requestPayload) {
+    int incomingHops = parseNonNegativeInt(requestPayload.get("hopsRemaining"), 0);
+    if (incomingHops <= 0) {
+      log.info(
+          "Vehicle {} not forwarding requestId={} (remainingHops={} reason=ttl-exhausted)",
+          descriptor().id(),
+          message.requestId(),
+          incomingHops);
+      return;
+    }
+
+    int nextHops = incomingHops - 1;
+    Set<String> overlayNeighbors = overlayNeighborIdsSnapshot();
+    long targetCount =
+        network().peers().stream()
+            .filter(node -> node.role() == NodeRole.VEHICLE)
+            .filter(node -> !node.id().equals(descriptor().id()))
+            .filter(node -> !node.id().equals(message.senderId()))
+            .filter(node -> overlayNeighbors.contains(node.id()))
+            .count();
+
     Map<String, String> forwardedPayload = new LinkedHashMap<>(requestPayload);
-    forwardedPayload.put("hopsRemaining", "0");
+    forwardedPayload.put("hopsRemaining", String.valueOf(nextHops));
     forwardedPayload.put("forwardedBy", descriptor().id());
 
     publishMessage(
@@ -333,10 +384,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
                 && !node.id().equals(message.senderId()));
 
     log.info(
-        "Vehicle {} forwarded requestId={} to vehicle peers (remainingHops={})",
+        "Vehicle {} forwarded requestId={} to vehicle peers (incomingHops={} nextHops={} targets={})",
         descriptor().id(),
         message.requestId(),
-        0);
+        incomingHops,
+        nextHops,
+        targetCount);
   }
 
 
@@ -348,6 +401,28 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return Double.parseDouble(value.trim());
     } catch (NumberFormatException ex) {
       return defaultValue;
+    }
+  }
+
+  private int parseNonNegativeInt(String value, int defaultValue) {
+    if (value == null || value.isBlank()) {
+      return Math.max(0, defaultValue);
+    }
+    try {
+      return Math.max(0, Integer.parseInt(value.trim()));
+    } catch (NumberFormatException ex) {
+      return Math.max(0, defaultValue);
+    }
+  }
+
+  private Integer parseNonNegativeIntOrNull(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      return Math.max(0, Integer.parseInt(value.trim()));
+    } catch (NumberFormatException ex) {
+      return null;
     }
   }
 
