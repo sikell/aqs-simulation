@@ -389,10 +389,11 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     String nodeId = payload.getOrDefault("node", message.senderId());
     String role = payload.getOrDefault("role", UNKNOWN_ROLE);
     Set<String> neighbors = parseNeighbors(payload.get("neighbors"));
+    Set<String> shortcutNeighbors = parseNeighbors(payload.get("shortcutNeighbors"));
 
     topologyViewsByNodeId.put(
         nodeId,
-        new TopologyPeerView(nodeId, role, neighbors));
+        new TopologyPeerView(nodeId, role, neighbors, shortcutNeighbors));
     refreshStatus("topology-response-" + nodeId);
   }
 
@@ -640,28 +641,30 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       nodes.add(new P2PNetworkNodeSnapshot(nodeId, role, localNode));
     }
 
-    Set<String> edgeKeys = new HashSet<>();
+    Map<String, Boolean> shortcutByEdgeKey = new HashMap<>();
     for (TopologyPeerView view : topologyViewsByNodeId.values()) {
       for (String neighborId : view.neighborIds) {
         String key = edgeKey(view.nodeId, neighborId);
         if (!key.isBlank()) {
-          edgeKeys.add(key);
+          boolean shortcut = view.shortcutNeighborIds.contains(neighborId);
+          shortcutByEdgeKey.merge(key, shortcut, (existing, candidate) -> existing || candidate);
         }
       }
     }
 
     List<P2PNetworkEdgeSnapshot> edges =
-        edgeKeys.stream()
-            .sorted()
+        shortcutByEdgeKey.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
             .map(
-                edgeKey -> {
+                entry -> {
+                  String edgeKey = entry.getKey();
                   int separator = edgeKey.indexOf('\u0000');
                   if (separator < 1 || separator >= edgeKey.length() - 1) {
                     return null;
                   }
                   String from = edgeKey.substring(0, separator);
                   String to = edgeKey.substring(separator + 1);
-                  return new P2PNetworkEdgeSnapshot(from, to);
+                  return new P2PNetworkEdgeSnapshot(from, to, entry.getValue());
                 })
             .filter(java.util.Objects::nonNull)
             .toList();
@@ -695,7 +698,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         new TopologyPeerView(
             localNodeId,
             clientNode.descriptor().role().name(),
-            neighbors));
+            neighbors,
+            Set.of()));
   }
 
   private Set<String> parseNeighbors(String value) {
@@ -1015,11 +1019,20 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     private final String nodeId;
     private final String role;
     private final Set<String> neighborIds;
+    private final Set<String> shortcutNeighborIds;
 
-    private TopologyPeerView(String nodeId, String role, Set<String> neighborIds) {
+    private TopologyPeerView(
+        String nodeId,
+        String role,
+        Set<String> neighborIds,
+        Set<String> shortcutNeighborIds) {
       this.nodeId = nodeId;
       this.role = role;
       this.neighborIds = neighborIds == null ? Set.of() : Set.copyOf(neighborIds);
+      this.shortcutNeighborIds =
+          shortcutNeighborIds == null
+              ? Set.of()
+              : shortcutNeighborIds.stream().filter(this.neighborIds::contains).collect(Collectors.toSet());
     }
   }
 }

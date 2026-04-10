@@ -153,13 +153,19 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     payload.put("node", descriptor.id());
     payload.put("role", descriptor.role().name());
 
+    OverlaySelection selection = overlaySelection(TOPIC_TOPOLOGY_SCAN_RESPONSE);
+
     String neighbors =
-        overlayPeers(TOPIC_TOPOLOGY_SCAN_RESPONSE).stream()
+        selection.peers().stream()
             .map(NodeDescriptor::id)
             .sorted()
             .reduce((left, right) -> left + "," + right)
             .orElse("");
     payload.put("neighbors", neighbors);
+
+    String shortcutNeighbors =
+        selection.shortcutPeerIds().stream().sorted().reduce((left, right) -> left + "," + right).orElse("");
+    payload.put("shortcutNeighbors", shortcutNeighbors);
 
     sendToMessage(
         request.senderId(),
@@ -176,47 +182,52 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   }
 
   private List<NodeDescriptor> overlayPeers(String topic) {
+    return overlaySelection(topic).peers();
+  }
+
+  private OverlaySelection overlaySelection(String topic) {
     List<NodeDescriptor> peers =
         network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
     if (peers.isEmpty()) {
-      return List.of();
+      return new OverlaySelection(List.of(), Set.of());
     }
 
     // Scan requests must reach all nodes so the collector can stitch a full topology snapshot.
     if (TOPIC_TOPOLOGY_SCAN_REQUEST.equals(topic)) {
-      return peers;
+      return new OverlaySelection(peers, Set.of());
     }
 
     // Collector node is the aggregation root and must have direct links to all peers.
     if (isCollectorNodeId(descriptor.id())) {
-      return peers;
+      return new OverlaySelection(peers, Set.of());
     }
 
     // Initial client requests are already range-filtered by business logic and should not be
     // additionally limited by overlay caps.
     if (descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.CLIENT
         && TOPIC_RIDE_REQUEST.equals(topic)) {
-      return peers;
+      return new OverlaySelection(peers, Set.of());
     }
 
     int maxNeighbors = Math.max(1, Integer.getInteger(OVERLAY_MAX_NEIGHBORS_PROPERTY, 3));
     int shortcuts = Math.max(0, Integer.getInteger(OVERLAY_SHORTCUTS_PROPERTY, 1));
 
     List<NodeDescriptor> routingPeers = peers;
-    if (TOPIC_RIDE_REQUEST.equals(topic)
+    if ((TOPIC_RIDE_REQUEST.equals(topic) || TOPIC_TOPOLOGY_SCAN_RESPONSE.equals(topic))
         && descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE) {
-      // Forwarding between taxis should use taxi overlay neighbors only.
+      // Vehicle nodes should expose/route over taxi-only overlay links.
       routingPeers =
           peers.stream()
               .filter(peer -> peer.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE)
               .toList();
     }
 
-    List<NodeDescriptor> selected = smallWorldPeers(routingPeers, maxNeighbors, shortcuts);
+    SmallWorldSelection smallWorld = smallWorldPeers(routingPeers, maxNeighbors, shortcuts);
+    List<NodeDescriptor> selected = smallWorld.peers();
     if (!shouldPinCollectorPeers()) {
-      return selected;
+      return new OverlaySelection(selected, smallWorld.shortcutPeerIds());
     }
-    return includeCollectorPeers(selected, peers);
+    return new OverlaySelection(includeCollectorPeers(selected, peers), smallWorld.shortcutPeerIds());
   }
 
   private boolean shouldPinCollectorPeers() {
@@ -249,14 +260,14 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return nodeId.startsWith(COLLECTOR_NODE_ID_PREFIX);
   }
 
-  private List<NodeDescriptor> smallWorldPeers(
+  private SmallWorldSelection smallWorldPeers(
       List<NodeDescriptor> peers,
       int maxNeighbors,
       int shortcuts) {
     List<NodeDescriptor> sortedPeers =
         peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
     if (sortedPeers.isEmpty()) {
-      return List.of();
+      return new SmallWorldSelection(List.of(), Set.of());
     }
 
     Map<String, NodeDescriptor> byId = new LinkedHashMap<>();
@@ -279,7 +290,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
     int remaining = Math.max(0, maxNeighbors - selected.size());
     if (remaining == 0) {
-      return selected;
+      return new SmallWorldSelection(selected, Set.of());
     }
 
     List<NodeDescriptor> shortcutsByStableHash =
@@ -292,13 +303,19 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
             .limit(remaining)
             .toList();
     selected.addAll(shortcutsByStableHash);
-    return selected;
+    Set<String> shortcutPeerIds =
+        shortcutsByStableHash.stream().map(NodeDescriptor::id).collect(java.util.stream.Collectors.toSet());
+    return new SmallWorldSelection(selected, shortcutPeerIds);
   }
 
 
   private long stableShortcutScore(String leftId, String rightId) {
     return Integer.toUnsignedLong(java.util.Objects.hash(leftId, rightId));
   }
+
+  private record SmallWorldSelection(List<NodeDescriptor> peers, Set<String> shortcutPeerIds) {}
+
+  private record OverlaySelection(List<NodeDescriptor> peers, Set<String> shortcutPeerIds) {}
 
 
 

@@ -84,6 +84,8 @@ public class TaxiScenarioControl extends AbstractControl {
   private JLabel p2pRqsCenterValue;
   private JLabel p2pVehicleStrategyValue;
   private JLabel p2pVehicleOutOfRangeValue;
+  private JLabel p2pTopologyEdgesValue;
+  private JLabel p2pShortcutEdgesValue;
   private JLabel p2pLastEventValue;
   private JLabel p2pModeWarningLabel;
   private VisualizationProperties visualizationProperties;
@@ -204,7 +206,7 @@ public class TaxiScenarioControl extends AbstractControl {
   }
 
   private JPanel setupP2PStatusPanel() {
-    JPanel panel = new JPanel(new GridLayout(11, 2, GAP, GAP));
+    JPanel panel = new JPanel(new GridLayout(13, 2, GAP, GAP));
     panel.setBorder(new TitledBorder("P2P Network Status"));
 
     panel.add(label("Mode", "p2pModeLabel"));
@@ -246,6 +248,14 @@ public class TaxiScenarioControl extends AbstractControl {
     panel.add(label("Client range filter", "p2pVehicleOutsideRadiusLabel"));
     p2pVehicleOutOfRangeValue = new JLabel("-");
     panel.add(p2pVehicleOutOfRangeValue);
+
+    panel.add(label("Topology edges (veh)", "p2pTopologyEdgesLabel"));
+    p2pTopologyEdgesValue = new JLabel("-");
+    panel.add(p2pTopologyEdgesValue);
+
+    panel.add(label("Shortcut edges (veh)", "p2pShortcutEdgesLabel"));
+    p2pShortcutEdgesValue = new JLabel("-");
+    panel.add(p2pShortcutEdgesValue);
 
     panel.add(label("Last event", "p2pLastEventLabel"));
     p2pLastEventValue = new JLabel("-");
@@ -435,6 +445,9 @@ public class TaxiScenarioControl extends AbstractControl {
       if (p2pTopologyPanel != null) {
         P2PNetworkSnapshot topologySnapshot = provider.getP2PNetworkSnapshot();
         int rqsMinRadius = parseIntOrDefault(status.get("rqsFixedRadius"), 0);
+        int[] edgeCounts = vehicleEdgeCounts(topologySnapshot);
+        p2pTopologyEdgesValue.setText(String.valueOf(edgeCounts[0]));
+        p2pShortcutEdgesValue.setText(String.valueOf(edgeCounts[1]));
         p2pTopologyPanel.setSnapshot(topologySnapshot);
         if (visualizationProperties != null) {
           visualizationProperties.setP2pNetworkSnapshot(topologySnapshot);
@@ -459,6 +472,8 @@ public class TaxiScenarioControl extends AbstractControl {
     p2pRqsCenterValue.setText("-");
     p2pVehicleStrategyValue.setText("-");
     p2pVehicleOutOfRangeValue.setText("-");
+    p2pTopologyEdgesValue.setText("-");
+    p2pShortcutEdgesValue.setText("-");
     p2pLastEventValue.setText("-");
     if (visualizationProperties != null) {
       visualizationProperties.setTaxiKnownClientIds(Map.of());
@@ -478,6 +493,37 @@ public class TaxiScenarioControl extends AbstractControl {
     } catch (NumberFormatException ex) {
       return defaultValue;
     }
+  }
+
+  private int[] vehicleEdgeCounts(P2PNetworkSnapshot snapshot) {
+    if (snapshot == null || snapshot.nodes() == null || snapshot.edges() == null) {
+      return new int[] {0, 0};
+    }
+
+    Map<String, String> roleByNodeId = new HashMap<>();
+    for (P2PNetworkNodeSnapshot node : snapshot.nodes()) {
+      if (node == null || node.id() == null) {
+        continue;
+      }
+      roleByNodeId.put(node.id(), node.role() == null ? "" : node.role().trim().toUpperCase(Locale.ROOT));
+    }
+
+    int vehicleEdges = 0;
+    int shortcutEdges = 0;
+    for (P2PNetworkEdgeSnapshot edge : snapshot.edges()) {
+      if (edge == null) {
+        continue;
+      }
+      if (!"VEHICLE".equals(roleByNodeId.getOrDefault(edge.fromNodeId(), ""))
+          || !"VEHICLE".equals(roleByNodeId.getOrDefault(edge.toNodeId(), ""))) {
+        continue;
+      }
+      vehicleEdges++;
+      if (edge.shortcut()) {
+        shortcutEdges++;
+      }
+    }
+    return new int[] {vehicleEdges, shortcutEdges};
   }
 
   public JComponent getP2PTopologyComponent() {
@@ -1480,7 +1526,7 @@ public class TaxiScenarioControl extends AbstractControl {
         if (from == null || to == null) {
           continue;
         }
-        drawEdge(g2, from.x, from.y, to.x, to.y);
+        drawEdge(g2, edge, from.x, from.y, to.x, to.y);
       }
     }
 
@@ -1502,9 +1548,18 @@ public class TaxiScenarioControl extends AbstractControl {
           getHeight() - 12);
     }
 
-    private void drawEdge(Graphics2D g2, int x1, int y1, int x2, int y2) {
-      g2.setColor(new Color(180, 180, 180));
+    private void drawEdge(Graphics2D g2, P2PNetworkEdgeSnapshot edge, int x1, int y1, int x2, int y2) {
+      Stroke previous = g2.getStroke();
+      if (edge.shortcut()) {
+        g2.setStroke(
+            new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 10f, new float[] {6f, 4f}, 0f));
+        g2.setColor(new Color(0, 220, 120));
+      } else {
+        g2.setStroke(new BasicStroke(1.2f));
+        g2.setColor(new Color(180, 180, 180));
+      }
       g2.drawLine(x1, y1, x2, y2);
+      g2.setStroke(previous);
     }
 
     private void drawNode(Graphics2D g2, P2PNetworkNodeSnapshot node, int x, int y) {

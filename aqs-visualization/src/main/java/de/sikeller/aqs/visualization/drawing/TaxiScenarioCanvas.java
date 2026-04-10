@@ -188,8 +188,9 @@ public class TaxiScenarioCanvas extends JPanel {
     }
 
     Stroke previous = g2d.getStroke();
-    g2d.setStroke(new BasicStroke(1.4f));
-    g2d.setColor(new Color(255, 140, 0, 130));
+    Stroke defaultEdgeStroke = new BasicStroke(1.4f);
+    Stroke shortcutEdgeStroke =
+        new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 10f, new float[] {6f, 4f}, 0f);
 
     for (P2PNetworkEdgeSnapshot edge : snapshot.edges()) {
       if (!"VEHICLE".equals(roleByNodeId.getOrDefault(edge.fromNodeId(), ""))
@@ -207,6 +208,13 @@ public class TaxiScenarioCanvas extends JPanel {
       int y1 = (int) Math.round(fromTaxi.getPosition().getY() * heightRatio);
       int x2 = (int) Math.round(toTaxi.getPosition().getX() * widthRatio);
       int y2 = (int) Math.round(toTaxi.getPosition().getY() * heightRatio);
+      if (edge.shortcut()) {
+        g2d.setStroke(shortcutEdgeStroke);
+        g2d.setColor(new Color(0, 220, 120, 255));
+      } else {
+        g2d.setStroke(defaultEdgeStroke);
+        g2d.setColor(new Color(255, 140, 0, 130));
+      }
       g2d.drawLine(x1, y1, x2, y2);
     }
 
