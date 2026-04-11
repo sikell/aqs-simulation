@@ -5,6 +5,8 @@ import de.sikeller.aqs.p2p.api.NodeRuntimeStatus;
 import de.sikeller.aqs.p2p.api.P2PMessage;
 import de.sikeller.aqs.p2p.api.P2PNetwork;
 import de.sikeller.aqs.p2p.api.P2PNodeService;
+import de.sikeller.aqs.p2p.api.P2PSystemProperties;
+import de.sikeller.aqs.p2p.api.P2PTopics;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -24,14 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractP2PNodeService implements P2PNodeService {
-  public static final String TOPIC_TOPOLOGY_SCAN_REQUEST = "topology.scan.request";
-  public static final String TOPIC_TOPOLOGY_SCAN_RESPONSE = "topology.scan.response";
-  private static final String TOPIC_RIDE_REQUEST = "ride.request";
-
-  private static final String OVERLAY_MAX_NEIGHBORS_PROPERTY = "aqs.p2p.overlay.maxNeighbors";
-  private static final String OVERLAY_SHORTCUTS_PROPERTY = "aqs.p2p.overlay.shortcuts";
-  private static final String OVERLAY_COLLECTOR_NODE_ID_PROPERTY = "aqs.p2p.overlay.collectorNodeId";
-  private static final String OVERLAY_PIN_COLLECTOR_PROPERTY = "aqs.p2p.overlay.pinCollector";
   private static final String COLLECTOR_NODE_ID_PREFIX = "sim-collector-";
   private static final ConcurrentMap<String, VehiclePosition> VEHICLE_POSITIONS = new ConcurrentHashMap<>();
 
@@ -94,6 +88,12 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     VEHICLE_POSITIONS.put(descriptor.id(), new VehiclePosition(x, y, simulationTick));
   }
 
+  protected Map<String, int[]> vehiclePositionSnapshot() {
+    Map<String, int[]> snapshot = new LinkedHashMap<>();
+    VEHICLE_POSITIONS.forEach((nodeId, position) -> snapshot.put(nodeId, new int[] {position.x(), position.y()}));
+    return snapshot;
+  }
+
   @Override
   public void publish(String topic, String payload) {
     publishMessage(topic, payload, null, null, node -> !node.id().equals(descriptor.id()));
@@ -145,7 +145,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   public Set<String> overlayNeighborIdsSnapshot() {
     Set<String> ids = new HashSet<>();
-    overlayPeers(TOPIC_TOPOLOGY_SCAN_RESPONSE).forEach(peer -> ids.add(peer.id()));
+    overlayPeers(P2PTopics.TOPOLOGY_SCAN_RESPONSE).forEach(peer -> ids.add(peer.id()));
     return ids;
   }
 
@@ -153,7 +153,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     inbox.add(message);
     messagesReceived.incrementAndGet();
 
-    if (TOPIC_TOPOLOGY_SCAN_REQUEST.equals(message.topic())) {
+    if (P2PTopics.TOPOLOGY_SCAN_REQUEST.equals(message.topic())) {
       respondToTopologyScan(message);
       return;
     }
@@ -166,7 +166,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     payload.put("node", descriptor.id());
     payload.put("role", descriptor.role().name());
 
-    OverlaySelection selection = overlaySelection(TOPIC_TOPOLOGY_SCAN_RESPONSE);
+    OverlaySelection selection = overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE);
 
     String neighbors =
         selection.peers().stream()
@@ -182,7 +182,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
     sendToMessage(
         request.senderId(),
-        TOPIC_TOPOLOGY_SCAN_RESPONSE,
+        P2PTopics.TOPOLOGY_SCAN_RESPONSE,
         KeyValuePayload.write(payload),
         request.requestId(),
         request.requestId());
@@ -206,7 +206,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     }
 
     // Scan requests must reach all nodes so the collector can stitch a full topology snapshot.
-    if (TOPIC_TOPOLOGY_SCAN_REQUEST.equals(topic)) {
+    if (P2PTopics.TOPOLOGY_SCAN_REQUEST.equals(topic)) {
       return new OverlaySelection(peers, Set.of());
     }
 
@@ -218,15 +218,15 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     // Initial client requests are already range-filtered by business logic and should not be
     // additionally limited by overlay caps.
     if (descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.CLIENT
-        && TOPIC_RIDE_REQUEST.equals(topic)) {
+        && P2PTopics.RIDE_REQUEST.equals(topic)) {
       return new OverlaySelection(peers, Set.of());
     }
 
-    int maxNeighbors = Math.max(1, Integer.getInteger(OVERLAY_MAX_NEIGHBORS_PROPERTY, 3));
-    int shortcuts = Math.max(0, Integer.getInteger(OVERLAY_SHORTCUTS_PROPERTY, 1));
+    int maxNeighbors = Math.max(1, Integer.getInteger(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, 3));
+    int shortcuts = Math.max(0, Integer.getInteger(P2PSystemProperties.OVERLAY_SHORTCUTS, 1));
 
     List<NodeDescriptor> routingPeers = peers;
-    if ((TOPIC_RIDE_REQUEST.equals(topic) || TOPIC_TOPOLOGY_SCAN_RESPONSE.equals(topic))
+    if ((P2PTopics.RIDE_REQUEST.equals(topic) || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic))
         && descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE) {
       // Vehicle nodes should expose/route over taxi-only overlay links.
       routingPeers =
@@ -244,7 +244,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   }
 
   private boolean shouldPinCollectorPeers() {
-    return Boolean.parseBoolean(System.getProperty(OVERLAY_PIN_COLLECTOR_PROPERTY, "true"));
+    return Boolean.parseBoolean(System.getProperty(P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "true"));
   }
 
   private List<NodeDescriptor> includeCollectorPeers(
@@ -266,7 +266,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     if (nodeId == null || nodeId.isBlank()) {
       return false;
     }
-    String configured = System.getProperty(OVERLAY_COLLECTOR_NODE_ID_PROPERTY, "");
+    String configured = System.getProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, "");
     if (!configured.isBlank() && configured.equals(nodeId)) {
       return true;
     }

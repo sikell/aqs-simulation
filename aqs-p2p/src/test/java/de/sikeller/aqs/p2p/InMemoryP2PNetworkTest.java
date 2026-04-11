@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import de.sikeller.aqs.p2p.api.P2PMessage;
+import de.sikeller.aqs.p2p.api.P2PSystemProperties;
+import de.sikeller.aqs.p2p.api.P2PTopics;
 import de.sikeller.aqs.p2p.service.ClientP2PService;
 import de.sikeller.aqs.p2p.service.KeyValuePayload;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
@@ -32,17 +34,17 @@ class InMemoryP2PNetworkTest {
 
       assertTrue(
           vehicle.inboxSnapshot().stream()
-              .anyMatch(msg -> msg.topic().equals(ClientP2PService.TOPIC_RIDE_REQUEST)));
+              .anyMatch(msg -> msg.topic().equals(P2PTopics.RIDE_REQUEST)));
       assertTrue(
           client.inboxSnapshot().stream()
-              .anyMatch(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER)));
+              .anyMatch(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER)));
       assertTrue(
           vehicle.inboxSnapshot().stream()
               .anyMatch(msg -> msg.requestId() != null && !msg.requestId().isBlank()));
       assertEquals(
           requestId,
           vehicle.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(ClientP2PService.TOPIC_RIDE_REQUEST))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_REQUEST))
               .findFirst()
               .map(P2PMessage::requestId)
               .orElseThrow());
@@ -62,7 +64,7 @@ class InMemoryP2PNetworkTest {
 
       List<P2PMessage> offers =
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
               .toList();
       assertFalse(offers.isEmpty());
 
@@ -74,21 +76,56 @@ class InMemoryP2PNetworkTest {
 
       long commits =
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_COMMIT))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
               .filter(msg -> msg.requestId().equals(requestId))
               .count();
       assertEquals(1, commits);
 
       assertTrue(
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_COMMIT))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
               .allMatch(msg -> msg.correlationId().equals(msg.requestId())));
     }
   }
 
   @Test
+  void clientAutoAcceptsFirstOfferAndCommitsExactlyOnce() {
+    var network = new InMemoryP2PNetwork();
+
+    try (var client = new ClientP2PService("client-fcfs", network);
+        var vehicleA = new VehicleP2PService("vehicle-fcfs-a", network);
+        var vehicleB = new VehicleP2PService("vehicle-fcfs-b", network)) {
+      client.start();
+      vehicleA.start();
+      vehicleB.start();
+
+      String requestId =
+          client.requestRide(
+              "(0,0)",
+              "(100,100)",
+              node -> node.id().startsWith("vehicle-fcfs-"),
+              0,
+              "");
+
+      long offers =
+          client.inboxSnapshot().stream()
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
+              .filter(msg -> requestId.equals(msg.requestId()))
+              .count();
+      assertTrue(offers >= 1);
+
+      long commits =
+          client.inboxSnapshot().stream()
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
+              .filter(msg -> requestId.equals(msg.requestId()))
+              .count();
+      assertEquals(1, commits);
+    }
+  }
+
+  @Test
   void producerRideRequestBypassesNeighborCap() {
-    String property = "aqs.p2p.overlay.maxNeighbors";
+    String property = P2PSystemProperties.OVERLAY_MAX_NEIGHBORS;
     String previous = System.getProperty(property);
     System.setProperty(property, "1");
     try {
@@ -107,7 +144,7 @@ class InMemoryP2PNetworkTest {
 
         long offers =
             client.inboxSnapshot().stream()
-                .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+                .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
                 .count();
         assertEquals(3, offers);
       }
@@ -122,8 +159,8 @@ class InMemoryP2PNetworkTest {
 
   @Test
   void collectorIsPinnedAsNeighborForAllNodesEvenWithNeighborCap() {
-    String maxNeighborsProperty = "aqs.p2p.overlay.maxNeighbors";
-    String collectorNodeProperty = "aqs.p2p.overlay.collectorNodeId";
+    String maxNeighborsProperty = P2PSystemProperties.OVERLAY_MAX_NEIGHBORS;
+    String collectorNodeProperty = P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID;
     String previousMaxNeighbors = System.getProperty(maxNeighborsProperty);
     String previousCollectorNode = System.getProperty(collectorNodeProperty);
     System.setProperty(maxNeighborsProperty, "1");
@@ -185,7 +222,7 @@ class InMemoryP2PNetworkTest {
 
       long offersWhileBusy =
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
       assertEquals(0, offersWhileBusy);
@@ -194,7 +231,7 @@ class InMemoryP2PNetworkTest {
 
       long offersAfterAvailable =
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
       assertEquals(1, offersAfterAvailable);
@@ -222,7 +259,7 @@ class InMemoryP2PNetworkTest {
 
       long offers =
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
       assertEquals(0, offers);
@@ -232,7 +269,7 @@ class InMemoryP2PNetworkTest {
   @Test
   void vehicleMayOfferOutsideRangeWhenExplicitlyEnabled() {
     withSystemProperties(
-        Map.of("aqs.p2p.vehicle.allowOutsideClientRange", "true"),
+        Map.of(P2PSystemProperties.VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE, "true"),
         () -> {
           var network = new InMemoryP2PNetwork();
 
@@ -253,7 +290,7 @@ class InMemoryP2PNetworkTest {
 
             long offers =
                 client.inboxSnapshot().stream()
-                    .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
                     .filter(msg -> requestId.equals(msg.requestId()))
                     .count();
             assertEquals(1, offers);
@@ -265,9 +302,9 @@ class InMemoryP2PNetworkTest {
   void forwardedRequestMayOfferOutsideInitialSeedRadiusByDefault() {
     withSystemProperties(
         Map.of(
-            "aqs.p2p.overlay.maxNeighbors", "3",
-            "aqs.p2p.overlay.shortcuts", "0",
-            "aqs.p2p.overlay.pinCollector", "false"),
+            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "3",
+            P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
+            P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
         () -> {
           var network = new InMemoryP2PNetwork();
 
@@ -293,7 +330,7 @@ class InMemoryP2PNetworkTest {
 
             long offers =
                 client.inboxSnapshot().stream()
-                    .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
                     .filter(msg -> requestId.equals(msg.requestId()))
                     .count();
             assertEquals(1, offers);
@@ -305,9 +342,9 @@ class InMemoryP2PNetworkTest {
   void requestForwardingRespectsTtlAcrossSparseOverlay() {
     withSystemProperties(
         Map.of(
-            "aqs.p2p.overlay.maxNeighbors", "1",
-            "aqs.p2p.overlay.shortcuts", "0",
-            "aqs.p2p.overlay.pinCollector", "false"),
+            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "1",
+            P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
+            P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
         () -> {
           var network = new InMemoryP2PNetwork();
 
@@ -356,6 +393,47 @@ class InMemoryP2PNetworkTest {
 
             assertTrue(reachedTtl1 >= reachedTtl0);
             assertTrue(reachedTtl2 >= reachedTtl1);
+          }
+        });
+  }
+
+  @Test
+  void firstSeenRequestIsForwardedEvenWhenSeedCanOffer() {
+    withSystemProperties(
+        Map.of(
+            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "2",
+            P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
+            P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
+        () -> {
+          var network = new InMemoryP2PNetwork();
+
+          try (var client = new ClientP2PService("client-forward-and-offer", network);
+              var seedVehicle = new VehicleP2PService("vehicle-seed-forward", network);
+              var neighborVehicle = new VehicleP2PService("vehicle-neighbor-forward", network)) {
+            client.start();
+            seedVehicle.start();
+            neighborVehicle.start();
+
+            seedVehicle.setSimulationState(true, 0, 0);
+            neighborVehicle.setSimulationState(true, 10, 10);
+
+            int beforeNeighborInbox = neighborVehicle.inboxSnapshot().size();
+            String requestId =
+                client.requestRide(
+                    "(0,0)",
+                    "(100,100)",
+                    node -> node.id().equals("vehicle-seed-forward"),
+                    1,
+                    "",
+                    Map.of("requestX", "0", "requestY", "0", "searchRadius", "200"));
+
+            boolean neighborGotForwardedRequest =
+                neighborVehicle.inboxSnapshot().stream()
+                    .skip(beforeNeighborInbox)
+                    .filter(msg -> P2PTopics.RIDE_REQUEST.equals(msg.topic()))
+                    .anyMatch(msg -> requestId.equals(msg.requestId()));
+
+            assertTrue(neighborGotForwardedRequest);
           }
         });
   }
@@ -422,7 +500,7 @@ class InMemoryP2PNetworkTest {
 
       long requestsSeenBySeedVehicle =
           vehicleA.inboxSnapshot().stream()
-              .filter(msg -> ClientP2PService.TOPIC_RIDE_REQUEST.equals(msg.topic()))
+              .filter(msg -> P2PTopics.RIDE_REQUEST.equals(msg.topic()))
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
 
@@ -435,9 +513,9 @@ class InMemoryP2PNetworkTest {
   void kHopForwardingUsesReciprocalOverlayLinksForVehicles() {
     withSystemProperties(
         Map.of(
-            "aqs.p2p.overlay.maxNeighbors", "1",
-            "aqs.p2p.overlay.shortcuts", "0",
-            "aqs.p2p.overlay.pinCollector", "false"),
+            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "1",
+            P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
+            P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
         () -> {
           var network = new InMemoryP2PNetwork();
 
@@ -465,7 +543,7 @@ class InMemoryP2PNetworkTest {
 
             long offers =
                 client.inboxSnapshot().stream()
-                    .filter(msg -> msg.topic().equals(VehicleP2PService.TOPIC_RIDE_OFFER))
+                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
                     .filter(msg -> requestId.equals(msg.requestId()))
                     .count();
             assertTrue(offers >= 1);
@@ -494,7 +572,7 @@ class InMemoryP2PNetworkTest {
       boolean gotRequest =
           inbox.stream()
               .skip(previous)
-              .anyMatch(msg -> ClientP2PService.TOPIC_RIDE_REQUEST.equals(msg.topic()));
+              .anyMatch(msg -> P2PTopics.RIDE_REQUEST.equals(msg.topic()));
       if (gotRequest) {
         reachedVehicles++;
       }
