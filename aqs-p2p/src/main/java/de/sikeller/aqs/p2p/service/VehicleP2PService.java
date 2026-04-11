@@ -80,6 +80,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     externallyAvailable = available;
     simulationX = positionX;
     simulationY = positionY;
+    updateVehiclePositionSnapshot(positionX, positionY, currentSimulationTick);
 
     if (becameAvailable) {
       retriggerOpenRequests("availability");
