@@ -163,7 +163,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   private void respondToTopologyScan(P2PMessage request) {
     Map<String, String> payload = new LinkedHashMap<>();
-    payload.put("node", descriptor.id());
     payload.put("role", descriptor.role().name());
 
     OverlaySelection selection = overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE);

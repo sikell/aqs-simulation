@@ -47,15 +47,8 @@ public class ClientP2PService extends AbstractP2PNodeService {
       Map<String, String> extraPayloadFields) {
     String requestId = UUID.randomUUID().toString();
     Map<String, String> payload = new LinkedHashMap<>();
-    payload.put("schemaVersion", String.valueOf(P2PMessage.SCHEMA_VERSION));
-    payload.put("requestId", requestId);
     payload.put("originNode", descriptor().id());
     payload.put("hopsRemaining", String.valueOf(Math.max(0, maxForwardHops)));
-    if (requestGeoHash != null && !requestGeoHash.isBlank()) {
-      payload.put("requestGeoHash", requestGeoHash);
-    }
-    payload.put("from", from);
-    payload.put("to", to);
     if (extraPayloadFields != null) {
       extraPayloadFields.forEach(
           (key, value) -> {
@@ -83,21 +76,14 @@ public class ClientP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    Map<String, String> payload = new LinkedHashMap<>();
-    payload.put("schemaVersion", String.valueOf(P2PMessage.SCHEMA_VERSION));
-    payload.put("requestId", requestId);
-    payload.put("client", descriptor().id());
-    sendToMessage(vehicleNodeId, P2PTopics.RIDE_ACCEPT, KeyValuePayload.write(payload), requestId, requestId);
+    sendToMessage(vehicleNodeId, P2PTopics.RIDE_ACCEPT, "", requestId, requestId);
   }
 
   public String requestTopologyScan() {
     String scanId = UUID.randomUUID().toString();
-    Map<String, String> payload = new LinkedHashMap<>();
-    payload.put("scanId", scanId);
-    payload.put("requester", descriptor().id());
     publishMessage(
         P2PTopics.TOPOLOGY_SCAN_REQUEST,
-        KeyValuePayload.write(payload),
+        "",
         scanId,
         scanId,
         node -> !node.id().equals(descriptor().id()));

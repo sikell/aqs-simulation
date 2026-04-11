@@ -36,14 +36,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final String PAYLOAD_CLIENT_NAME = "clientName";
   private static final String PAYLOAD_VEHICLE = "vehicle";
   private static final String PAYLOAD_ETA_SECONDS = "etaSeconds";
-  private static final String PAYLOAD_STATUS = "status";
-  private static final String PAYLOAD_DECISION = "decision";
-  private static final String PAYLOAD_PRICE = "price";
-  private static final String PAYLOAD_OFFER_TRIGGER = "offerTrigger";
-  private static final String DECISION_LOCAL_OFFER = "vehicle-local-offer";
-  private static final String DECISION_ACCEPTED = "vehicle-accepted";
-  private static final String STATUS_COMMITTED = "committed";
-  private static final String DEFAULT_PRICE = "12";
   private static final long DEFAULT_VEHICLE_COMMIT_LEASE_TICKS = 20L;
   private static final double DEFAULT_ASSUMED_SPEED_MPS = 12.0;
   private static final long DEFAULT_VEHICLE_REBID_MIN_INTERVAL_TICKS = 1L;
@@ -184,6 +176,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (openRequest == null || openRequest.payload == null) {
       return true;
     }
+    if (isForwardedRequest(openRequest.payload)) {
+      // Forwarded requests should stay serviceable by neighbors to keep k-hop diffusion useful.
+      return true;
+    }
 
     Integer reqX = parseCoordinate(openRequest.payload.get(PAYLOAD_REQUEST_X));
     Integer reqY = parseCoordinate(openRequest.payload.get(PAYLOAD_REQUEST_Y));
@@ -217,6 +213,14 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       }
     }
     return descriptor().id().equals(bestNodeId);
+  }
+
+  private boolean isForwardedRequest(Map<String, String> requestPayload) {
+    if (requestPayload == null) {
+      return false;
+    }
+    String forwardedBy = requestPayload.get(PAYLOAD_FORWARDED_BY);
+    return forwardedBy != null && !forwardedBy.isBlank();
   }
 
   private void retriggerOpenRequests(String trigger) {
@@ -397,9 +401,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     payload.put(PAYLOAD_REQUEST_ID, requestId);
     payload.put(PAYLOAD_VEHICLE, descriptor().id());
     payload.put(PAYLOAD_ETA_SECONDS, String.valueOf(etaSeconds));
-    payload.put(PAYLOAD_PRICE, DEFAULT_PRICE); // TODO: Future work - Auction
-    payload.put(PAYLOAD_DECISION, DECISION_LOCAL_OFFER);
-    payload.put(PAYLOAD_OFFER_TRIGGER, trigger);
     return KeyValuePayload.write(payload);
   }
 
@@ -534,8 +535,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     Map<String, String> payload = new LinkedHashMap<>();
     payload.put(PAYLOAD_REQUEST_ID, requestId);
     payload.put(PAYLOAD_VEHICLE, descriptor().id());
-    payload.put(PAYLOAD_STATUS, STATUS_COMMITTED);
-    payload.put(PAYLOAD_DECISION, DECISION_ACCEPTED);
     long leaseTicks =
         Math.max(
             1L,

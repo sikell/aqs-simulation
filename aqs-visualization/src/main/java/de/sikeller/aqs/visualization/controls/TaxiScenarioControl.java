@@ -38,6 +38,10 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String MODE_LOCAL = "LOCAL";
   private static final String MODE_P2P_SIMULATED = "P2P-SIMULATED";
   private static final String MODE_P2P_LAN = "P2P-LAN";
+  private static final String P2P_VEHICLE_STRATEGY_PROPERTY = "aqs.p2p.vehicle.openRequestStrategy";
+  private static final String P2P_VEHICLE_STRATEGY_CONFIG_KEY = "p2pVehicleDecisionStrategy";
+  private static final String P2P_STRATEGY_NEAREST = "nearest";
+  private static final String P2P_STRATEGY_GREEDY = "greedy";
   private static final String P2P_MULTICAST_GROUP_FIELD = "p2pMulticastGroup";
   private static final Set<String> P2P_PORT_FIELDS =
       Set.of("p2pTcpPort", "p2pDiscoveryPort");
@@ -47,17 +51,8 @@ public class TaxiScenarioControl extends AbstractControl {
           "p2pRequestForwardHops",
           "p2pOverlayMaxNeighbors",
           "p2pOverlayShortcuts",
-          "p2pOfferCollectionTicks",
           "p2pRequestRepublishTicks",
-          "p2pTopologyScanTicks",
-          "p2pRqsRouteProximityMode",
-          "CalculateFullTaxis",
-          "p2pVehicleOpenClientStrategy");
-  private static final Set<String> P2P_ADVANCED_HIDDEN_PARAMETERS =
-      Set.of(
-          "p2pVehicleCommitLeaseTicks",
-          "p2pVehicleRebidIntervalTicks",
-          "p2pVehicleRequestCacheTtlTicks");
+          "p2pTopologyScanTicks");
   private List<Class<?>> algorithmList;
   private final SimulationControl simulation;
   private Map<String, Integer> inputParameterMap;
@@ -73,6 +68,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private JPanel batchProcessing;
   private JPanel p2pStatusPanel;
   private JButton p2pScanNowButton;
+  private JComboBox<String> p2pVehicleStrategyBox;
   private P2PTopologyPanel p2pTopologyPanel;
   private JLabel p2pModeValue;
   private JLabel p2pPeersValue;
@@ -177,6 +173,19 @@ public class TaxiScenarioControl extends AbstractControl {
     refreshP2PStatus();
 
     return controls;
+  }
+
+  private JComboBox<String> createP2PVehicleStrategyBox() {
+    JComboBox<String> strategyBox = new JComboBox<>();
+    strategyBox.setName(P2P_VEHICLE_STRATEGY_CONFIG_KEY);
+    strategyBox.addItem(P2P_STRATEGY_NEAREST);
+    strategyBox.addItem(P2P_STRATEGY_GREEDY);
+    String configured = System.getProperty(P2P_VEHICLE_STRATEGY_PROPERTY, P2P_STRATEGY_NEAREST);
+    strategyBox.setSelectedItem(normalizedStrategyKey(configured));
+    strategyBox.setToolTipText("Taxi decision strategy for selecting open client requests.");
+    strategyBox.addActionListener(e -> applySelectedP2PVehicleStrategy());
+    p2pVehicleStrategyBox = strategyBox;
+    return strategyBox;
   }
 
   private JComboBox<String> algorithmSelectionBox() {
@@ -314,6 +323,10 @@ public class TaxiScenarioControl extends AbstractControl {
         algorithmSelectButton.setEnabled(!p2pMode);
       }
 
+      if (p2pVehicleStrategyBox != null) {
+        p2pVehicleStrategyBox.setEnabled(p2pMode);
+      }
+
       Component taxiCountLabel = getComponentByName("taxiCountLabel");
       JComponent taxiCountSpinner =
           getComponentByName("taxiCount") instanceof JComponent component ? component : null;
@@ -353,6 +366,7 @@ public class TaxiScenarioControl extends AbstractControl {
       controls.revalidate();
       controls.repaint();
       updateP2PModeWarning(p2pMode);
+      applySelectedP2PVehicleStrategy();
     } finally {
       modeSwitchInProgress = false;
     }
@@ -828,6 +842,30 @@ public class TaxiScenarioControl extends AbstractControl {
     inputParameterMap.put("clientCount", 0);
     boolean multicastFieldAdded = false;
     int rowCount = 0;
+
+    boolean showP2PStrategyOption =
+        isP2PModeSelected()
+            || parameters.stream()
+                .map(AlgorithmParameter::name)
+                .anyMatch(
+                    name ->
+                        P2P_CORE_PARAMETERS.contains(name)
+                            || isP2PPortField(name)
+                            || isP2PMulticastOctet(name)
+                            || "p2pDiscoveryWaitMs".equals(name));
+
+    if (showP2PStrategyOption) {
+      JLabel strategyLabel = new JLabel("Vehicle decision");
+      strategyLabel.setName("p2pVehicleDecisionStrategyLabel");
+      algorithmInputs.add(strategyLabel);
+      if (p2pVehicleStrategyBox == null) {
+        createP2PVehicleStrategyBox();
+      }
+      p2pVehicleStrategyBox.setEnabled(isP2PModeSelected());
+      algorithmInputs.add(p2pVehicleStrategyBox);
+      rowCount++;
+    }
+
     for (AlgorithmParameter parameter : parameters) {
       if (!shouldShowAlgorithmParameter(parameter.name())) {
         continue;
@@ -891,9 +929,6 @@ public class TaxiScenarioControl extends AbstractControl {
     }
     if (!isP2PModeSelected()) {
       return true;
-    }
-    if (P2P_ADVANCED_HIDDEN_PARAMETERS.contains(parameterName)) {
-      return false;
     }
     if (!P2P_CORE_PARAMETERS.contains(parameterName)
         && !isP2PPortField(parameterName)
@@ -972,6 +1007,7 @@ public class TaxiScenarioControl extends AbstractControl {
         int embeddedValue = MODE_P2P_SIMULATED.equals(selectedMode) ? 1 : 0;
         allParameterMap.put("p2pEmbeddedSimulation", embeddedValue);
         algorithmParameterMap.put("p2pEmbeddedSimulation", embeddedValue);
+        applySelectedP2PVehicleStrategy();
       }
 
       inputParameterMap.putAll(allParameterMap);
@@ -990,6 +1026,20 @@ public class TaxiScenarioControl extends AbstractControl {
     if (component != null) {
       component.setEnabled(enabled);
     }
+  }
+
+
+  private void applySelectedP2PVehicleStrategy() {
+    String selected =
+        p2pVehicleStrategyBox != null
+            ? Objects.toString(p2pVehicleStrategyBox.getSelectedItem(), P2P_STRATEGY_NEAREST)
+            : P2P_STRATEGY_NEAREST;
+    System.setProperty(P2P_VEHICLE_STRATEGY_PROPERTY, normalizedStrategyKey(selected));
+  }
+
+  private String normalizedStrategyKey(String value) {
+    String key = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    return P2P_STRATEGY_GREEDY.equals(key) ? P2P_STRATEGY_GREEDY : P2P_STRATEGY_NEAREST;
   }
 
 
@@ -1044,19 +1094,12 @@ public class TaxiScenarioControl extends AbstractControl {
   private String displayLabelForParameter(String parameterName) {
     return switch (parameterName) {
       case "p2pFixedSearchRadius" -> "Client RQS radius";
-      case "p2pRqsRouteProximityMode" -> "RQS mode (0=taxi-position,1=taxi-route)";
-      case "CalculateFullTaxis" -> "Include full taxis";
       case "p2pOverlayMaxNeighbors" -> "Overlay degree k (max neighbors)";
       case "p2pOverlayShortcuts" -> "Overlay shortcuts";
       case "p2pRequestForwardHops" -> "Flood TTL (Hops)";
       case "p2pRequestRepublishTicks" -> "Republish throttle [ticks]";
-      case "p2pOfferCollectionTicks" -> "Offer collection window [ticks]";
       case "p2pTopologyScanTicks" -> "Topology scan interval [ticks]";
-      case "p2pVehicleCommitLeaseTicks" -> "Vehicle commit lease [ticks]";
-      case "p2pVehicleRebidIntervalTicks" -> "Vehicle rebid interval [ticks]";
-      case "p2pVehicleRequestCacheTtlTicks" -> "Vehicle request cache TTL [ticks]";
       case "p2pDiscoveryWaitMs" -> "Discovery wait [ms]";
-      case "p2pVehicleOpenClientStrategy" -> "Vehicle client strategy (0=greedy,1=nearest)";
       default -> parameterName;
     };
   }
@@ -1065,10 +1108,6 @@ public class TaxiScenarioControl extends AbstractControl {
     return switch (parameterName) {
       case "p2pFixedSearchRadius" ->
           "Fixed radius around the client used for RQS seeding (world units), independent from trip distance.";
-      case "p2pRqsRouteProximityMode" ->
-          "RQS matching mode: 0 = strict taxi position only, 1 = legacy route proximity for moving taxis.";
-      case "CalculateFullTaxis" ->
-          "0 = only free taxis, 1 = include full/active taxis in RQS candidate search.";
       case "p2pOverlayMaxNeighbors" ->
           "Maximum overlay neighbors per node (k in the small-world graph).";
       case "p2pOverlayShortcuts" ->
@@ -1077,20 +1116,10 @@ public class TaxiScenarioControl extends AbstractControl {
           "TTL for flooding request forwarding in hops.";
       case "p2pRequestRepublishTicks" ->
           "Minimum simulation ticks before an unaccepted client request is republished.";
-      case "p2pOfferCollectionTicks" ->
-          "How many simulation ticks offers are collected before accepting the best one.";
       case "p2pTopologyScanTicks" ->
           "How many simulation ticks between automatic topology scans.";
-      case "p2pVehicleCommitLeaseTicks" ->
-          "How many simulation ticks a vehicle stays reserved after commit acceptance.";
-      case "p2pVehicleRebidIntervalTicks" ->
-          "Minimum simulation ticks between repeated offers for the same request.";
-      case "p2pVehicleRequestCacheTtlTicks" ->
-          "How many simulation ticks a vehicle keeps an unassigned request in cache.";
       case "p2pDiscoveryWaitMs" ->
           "LAN mode only: waiting time for peer discovery during init.";
-      case "p2pVehicleOpenClientStrategy" ->
-          "Taxi-side decision among open clients: 0 = greedy (oldest request first), 1 = nearest (shortest taxi->client distance).";
       default -> isP2PPortField(parameterName) ? "Port (1-65535)" : parameterName;
     };
   }
@@ -1103,6 +1132,11 @@ public class TaxiScenarioControl extends AbstractControl {
         (JComboBox<String>) getComponentByName("algorithmSelectionBox");
     if (algoComboBox != null) {
       props.setProperty("algorithmSelectionBox", (String) algoComboBox.getSelectedItem());
+    }
+    if (p2pVehicleStrategyBox != null) {
+      props.setProperty(
+          P2P_VEHICLE_STRATEGY_CONFIG_KEY,
+          Objects.toString(p2pVehicleStrategyBox.getSelectedItem(), P2P_STRATEGY_NEAREST));
     }
 
     // World Parameters
@@ -1172,6 +1206,7 @@ public class TaxiScenarioControl extends AbstractControl {
       }
 
       String algoNameFromProps = props.getProperty("algorithmSelectionBox");
+      String pastedStrategy = props.getProperty(P2P_VEHICLE_STRATEGY_CONFIG_KEY);
       boolean algorithmChanged = false;
 
       if (algoNameFromProps != null) {
@@ -1212,8 +1247,15 @@ public class TaxiScenarioControl extends AbstractControl {
         generateParameters();
       }
 
+      if (p2pVehicleStrategyBox != null && pastedStrategy != null) {
+        p2pVehicleStrategyBox.setSelectedItem(normalizedStrategyKey(pastedStrategy));
+        applySelectedP2PVehicleStrategy();
+      }
+
       for (String name : props.stringPropertyNames()) {
-        if (name.equals("algorithmSelectionBox")) continue; // already handled above
+        if (name.equals("algorithmSelectionBox") || name.equals(P2P_VEHICLE_STRATEGY_CONFIG_KEY)) {
+          continue; // already handled above
+        }
 
         String valueStr = props.getProperty(name);
         boolean valueSet = false;
