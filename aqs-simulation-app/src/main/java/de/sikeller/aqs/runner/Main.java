@@ -4,7 +4,7 @@ import de.sikeller.aqs.model.Algorithm;
 import de.sikeller.aqs.model.WorldObject;
 import de.sikeller.aqs.simulation.SimulationRunner;
 import de.sikeller.aqs.simulation.WorldGeneratorRandom;
-import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmSinglePassenger;
+import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmP2PCollector;
 import de.sikeller.aqs.visualization.SimulationVisualization;
 
 public class Main {
@@ -12,7 +12,7 @@ public class Main {
   public static void main(String[] args) {
     var world = WorldObject.builder().maxX(40000).maxY(40000).build();
 
-    var algorithm = new Algorithm(new TaxiAlgorithmSinglePassenger());
+    var algorithm = new Algorithm(new TaxiAlgorithmP2PCollector());
 
     var runner = new SimulationRunner(world, algorithm, new WorldGeneratorRandom());
     var visualisation = new SimulationVisualization(world, runner);

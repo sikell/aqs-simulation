@@ -68,6 +68,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private JPanel batchProcessing;
   private JPanel p2pStatusPanel;
   private JButton p2pScanNowButton;
+  private JButton p2pToggleCollectorButton;
   private JComboBox<String> p2pVehicleStrategyBox;
   private P2PTopologyPanel p2pTopologyPanel;
   private JLabel p2pModeValue;
@@ -157,8 +158,11 @@ public class TaxiScenarioControl extends AbstractControl {
     p2pStatusPanel = setupP2PStatusPanel();
     p2pScanNowButton = createP2PScanNowButton();
     p2pTopologyPanel = new P2PTopologyPanel();
+    p2pTopologyPanel.setShowLocalCollector(false);
     p2pTopologyPanel.setBorder(new TitledBorder("P2P Network Topology"));
     p2pTopologyPanel.setPreferredSize(new Dimension(460, 230));
+    p2pToggleCollectorButton = createP2PToggleCollectorButton();
+    p2pTopologyPanel.setLegendToggleButton(p2pToggleCollectorButton);
     batchProcessing = new BatchProcessingControl(batchProperties);
     controls.add(selection);
     controls.add(buttons);
@@ -288,6 +292,30 @@ public class TaxiScenarioControl extends AbstractControl {
     return button;
   }
 
+  private JButton createP2PToggleCollectorButton() {
+    JButton button = new JButton();
+    button.setName("p2pToggleCollectorButton");
+    updateP2PToggleCollectorButtonLabel(button, false);
+    button.setToolTipText("Toggle visibility of the local collector node in the topology view.");
+    button.addActionListener(
+        e -> {
+          if (p2pTopologyPanel == null) {
+            return;
+          }
+          boolean next = !p2pTopologyPanel.isShowLocalCollector();
+          p2pTopologyPanel.setShowLocalCollector(next);
+          updateP2PToggleCollectorButtonLabel(button, next);
+        });
+    return button;
+  }
+
+  private void updateP2PToggleCollectorButtonLabel(JButton button, boolean collectorVisible) {
+    if (button == null) {
+      return;
+    }
+    button.setText(collectorVisible ? "Hide collector" : "Show collector");
+  }
+
   private void applyModeToUi() {
     if (modeSwitchInProgress) {
       return;
@@ -356,6 +384,10 @@ public class TaxiScenarioControl extends AbstractControl {
         p2pScanNowButton.setVisible(p2pMode);
         p2pScanNowButton.setEnabled(p2pMode && simulation.getAlgorithm().get() instanceof P2PStatusProvider);
       }
+      if (p2pToggleCollectorButton != null) {
+        p2pToggleCollectorButton.setVisible(p2pMode);
+        p2pToggleCollectorButton.setEnabled(p2pMode);
+      }
       // Show algorithm parameters in every mode; P2P-specific fields are filtered in generateParameters().
       algorithmInputs.setVisible(true);
 
@@ -422,6 +454,12 @@ public class TaxiScenarioControl extends AbstractControl {
       if (p2pScanNowButton != null) {
         p2pScanNowButton.setEnabled(true);
       }
+      if (p2pToggleCollectorButton != null) {
+        p2pToggleCollectorButton.setEnabled(true);
+        updateP2PToggleCollectorButtonLabel(
+            p2pToggleCollectorButton,
+            p2pTopologyPanel != null && p2pTopologyPanel.isShowLocalCollector());
+      }
       Map<String, String> status = provider.getP2PStatus();
       p2pModeValue.setText(status.getOrDefault("mode", "P2P"));
       p2pPeersValue.setText(status.getOrDefault("knownPeers", "0"));
@@ -475,6 +513,12 @@ public class TaxiScenarioControl extends AbstractControl {
 
     if (p2pScanNowButton != null) {
       p2pScanNowButton.setEnabled(false);
+    }
+    if (p2pToggleCollectorButton != null) {
+      p2pToggleCollectorButton.setEnabled(false);
+      updateP2PToggleCollectorButtonLabel(
+          p2pToggleCollectorButton,
+          p2pTopologyPanel != null && p2pTopologyPanel.isShowLocalCollector());
     }
     p2pModeValue.setText("LOCAL");
     p2pPeersValue.setText("-");
@@ -1348,6 +1392,8 @@ public class TaxiScenarioControl extends AbstractControl {
 
   private static class P2PTopologyPanel extends JPanel {
     private P2PNetworkSnapshot snapshot = P2PNetworkSnapshot.empty();
+    private JButton legendToggleButton;
+    private boolean showLocalCollector;
     private double zoom = 0.82;
     private double panX;
     private double panY;
@@ -1358,6 +1404,7 @@ public class TaxiScenarioControl extends AbstractControl {
 
     private P2PTopologyPanel() {
       setBackground(Color.WHITE);
+      setLayout(null);
       setMinimumSize(new Dimension(420, 230));
 
       MouseAdapter interaction =
@@ -1428,7 +1475,32 @@ public class TaxiScenarioControl extends AbstractControl {
       Set<String> aliveIds =
           this.snapshot.nodes().stream().map(P2PNetworkNodeSnapshot::id).collect(java.util.stream.Collectors.toSet());
       manualNodeOffsets.keySet().removeIf(id -> !aliveIds.contains(id));
+      updateLegendToggleBounds();
       repaint();
+    }
+
+    private void setLegendToggleButton(JButton button) {
+      if (legendToggleButton != null) {
+        remove(legendToggleButton);
+      }
+      legendToggleButton = button;
+      if (legendToggleButton != null) {
+        legendToggleButton.setFocusable(false);
+        add(legendToggleButton);
+      }
+      updateLegendToggleBounds();
+      revalidate();
+      repaint();
+    }
+
+    private void setShowLocalCollector(boolean showLocalCollector) {
+      this.showLocalCollector = showLocalCollector;
+      updateLegendToggleBounds();
+      repaint();
+    }
+
+    private boolean isShowLocalCollector() {
+      return showLocalCollector;
     }
 
     private Point panelCenter() {
@@ -1464,6 +1536,7 @@ public class TaxiScenarioControl extends AbstractControl {
     @Override
     protected void paintComponent(Graphics g) {
       super.paintComponent(g);
+      updateLegendToggleBounds();
       Graphics2D g2 = (Graphics2D) g.create();
       try {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -1475,6 +1548,14 @@ public class TaxiScenarioControl extends AbstractControl {
           return;
         }
 
+        List<P2PNetworkNodeSnapshot> visibleNodes =
+            nodes.stream().filter(node -> showLocalCollector || !node.localNode()).toList();
+        if (visibleNodes.isEmpty()) {
+          g2.setColor(Color.GRAY);
+          g2.drawString("Collector hidden; no other nodes visible.", 16, 24);
+          return;
+        }
+
         int width = getWidth();
         int height = getHeight();
         int centerX = width / 2 + (int) Math.round(panX);
@@ -1483,17 +1564,20 @@ public class TaxiScenarioControl extends AbstractControl {
         int radius = Math.max(60, Math.min(width, height) / 2 - 85);
 
         P2PNetworkNodeSnapshot local =
-            nodes.stream().filter(P2PNetworkNodeSnapshot::localNode).findFirst().orElse(nodes.getFirst());
+            nodes.stream().filter(P2PNetworkNodeSnapshot::localNode).findFirst().orElse(null);
+        boolean drawLocal = showLocalCollector && local != null;
         List<P2PNetworkNodeSnapshot> peers =
-            nodes.stream()
-                .filter(node -> !node.localNode())
+            visibleNodes.stream()
+                .filter(node -> !drawLocal || !node.localNode())
                 .sorted(
                     Comparator.comparing(P2PNetworkNodeSnapshot::role)
                         .thenComparing(P2PNetworkNodeSnapshot::id))
                 .toList();
 
         renderedNodePositions.clear();
-        renderedNodePositions.put(local.id(), new Point(centerX, centerY));
+        if (drawLocal) {
+          renderedNodePositions.put(local.id(), new Point(centerX, centerY));
+        }
 
         for (int i = 0; i < peers.size(); i++) {
           P2PNetworkNodeSnapshot peer = peers.get(i);
@@ -1516,8 +1600,10 @@ public class TaxiScenarioControl extends AbstractControl {
           drawNode(g2, peer, point.x, point.y);
         }
 
-        drawNode(g2, local, centerX, centerY);
-        drawLegendAndCounts(g2, nodes);
+        if (drawLocal) {
+          drawNode(g2, local, centerX, centerY);
+        }
+        drawLegendAndCounts(g2, visibleNodes, drawLocal);
         drawViewportHint(g2);
       } finally {
         g2.dispose();
@@ -1539,23 +1625,34 @@ public class TaxiScenarioControl extends AbstractControl {
       return new Point2D.Double(x, y);
     }
 
-    private void drawLegendAndCounts(Graphics2D g2, List<P2PNetworkNodeSnapshot> nodes) {
+    private void updateLegendToggleBounds() {
+      if (legendToggleButton == null) {
+        return;
+      }
+      int x = 12;
+      int y = 34;
+      int buttonWidth = 120;
+      int buttonHeight = 22;
+      legendToggleButton.setBounds(x + 130, y - 14, buttonWidth, buttonHeight);
+    }
+
+    private void drawLegendAndCounts(Graphics2D g2, List<P2PNetworkNodeSnapshot> nodes, boolean drawLocal) {
       long vehicleCount = nodes.stream().filter(n -> "VEHICLE".equals(n.role())).count();
-      long clientCount = nodes.stream().filter(n -> "CLIENT".equals(n.role())).count();
 
       int x = 12;
       int y = 34;
       g2.setColor(new Color(250, 250, 250, 235));
-      g2.fillRoundRect(x - 10, y - 18, 270, 98, 12, 12);
+      g2.fillRoundRect(x - 10, y - 18, 270, 78, 12, 12);
       g2.setColor(new Color(205, 205, 205));
-      g2.drawRoundRect(x - 10, y - 18, 270, 98, 12, 12);
+      g2.drawRoundRect(x - 10, y - 18, 270, 78, 12, 12);
 
-      drawLegendEntry(g2, x, y, colorForRole("LOCAL", true), "Collector/local");
-      drawLegendEntry(g2, x, y + 18, colorForRole("VEHICLE", false), "Vehicle peers");
-      drawLegendEntry(g2, x, y + 36, colorForRole("CLIENT", false), "Client peers");
+      if (drawLocal) {
+        drawLegendEntry(g2, x, y, colorForRole("LOCAL", true), "Collector/local");
+      }
+      drawLegendEntry(g2, x, y + (drawLocal ? 18 : 0), colorForRole("VEHICLE", false), "Vehicle peers");
 
       g2.setColor(Color.DARK_GRAY);
-      g2.drawString("Counts: VEHICLE=" + vehicleCount + " CLIENT=" + clientCount, x, y + 58);
+      g2.drawString("Counts: VEHICLE=" + vehicleCount, x, y + 38);
     }
 
     private void drawEdges(Graphics2D g2, List<P2PNetworkEdgeSnapshot> edges) {

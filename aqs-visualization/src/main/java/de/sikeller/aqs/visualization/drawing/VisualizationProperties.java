@@ -20,10 +20,10 @@ public class VisualizationProperties
   private boolean showScale = true;
   private boolean showTime = true;
   private int scale = 4;
-  private boolean showRqsRecognitionRange = false;
+  private boolean showRqsRecognitionRange = true;
   private int rqsRecognitionRadius = 5000;
-  private boolean showTaxiTopologyLinks = false;
+  private boolean showTaxiTopologyLinks = true;
   private P2PNetworkSnapshot p2pNetworkSnapshot = P2PNetworkSnapshot.empty();
-  private boolean showClientKnowledgeColors = false;
+  private boolean showClientKnowledgeColors = true;
   private Map<String, List<String>> taxiKnownClientIds = Map.of();
 }
