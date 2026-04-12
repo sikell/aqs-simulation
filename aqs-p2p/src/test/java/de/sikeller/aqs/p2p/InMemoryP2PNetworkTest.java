@@ -161,10 +161,13 @@ class InMemoryP2PNetworkTest {
   void collectorIsPinnedAsNeighborForAllNodesEvenWithNeighborCap() {
     String maxNeighborsProperty = P2PSystemProperties.OVERLAY_MAX_NEIGHBORS;
     String collectorNodeProperty = P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID;
+    String pinCollectorProperty = P2PSystemProperties.OVERLAY_PIN_COLLECTOR;
     String previousMaxNeighbors = System.getProperty(maxNeighborsProperty);
     String previousCollectorNode = System.getProperty(collectorNodeProperty);
+    String previousPinCollector = System.getProperty(pinCollectorProperty);
     System.setProperty(maxNeighborsProperty, "1");
     System.setProperty(collectorNodeProperty, "main-app-collector");
+    System.setProperty(pinCollectorProperty, "true");
     try {
       var network = new InMemoryP2PNetwork();
 
@@ -198,7 +201,40 @@ class InMemoryP2PNetworkTest {
       } else {
         System.setProperty(collectorNodeProperty, previousCollectorNode);
       }
+      if (previousPinCollector == null) {
+        System.clearProperty(pinCollectorProperty);
+      } else {
+        System.setProperty(pinCollectorProperty, previousPinCollector);
+      }
     }
+  }
+
+  @Test
+  void vehicleOverlayPrefersNearestByPosition() {
+    withSystemProperties(
+        Map.of(
+            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "1",
+            P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
+            P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
+        () -> {
+          var network = new InMemoryP2PNetwork();
+
+          try (var vehicleA = new VehicleP2PService("vehicle-a", network);
+              var vehicleB = new VehicleP2PService("vehicle-b", network);
+              var vehicleC = new VehicleP2PService("vehicle-c", network)) {
+            vehicleA.start();
+            vehicleB.start();
+            vehicleC.start();
+
+            vehicleA.setSimulationState(true, 0, 0, 1);
+            vehicleB.setSimulationState(true, 10_000, 10_000, 1);
+            vehicleC.setSimulationState(true, 5, 5, 1);
+
+            Set<String> neighbors = vehicleA.overlayNeighborIdsSnapshot();
+            assertTrue(neighbors.contains("vehicle-c"));
+            assertFalse(neighbors.contains("vehicle-b"));
+          }
+        });
   }
 
   @Test

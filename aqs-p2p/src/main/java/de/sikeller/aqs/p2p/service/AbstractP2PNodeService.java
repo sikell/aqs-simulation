@@ -223,6 +223,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
     int maxNeighbors = Math.max(1, Integer.getInteger(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, 3));
     int shortcuts = Math.max(0, Integer.getInteger(P2PSystemProperties.OVERLAY_SHORTCUTS, 1));
+    shortcuts = Math.min(shortcuts, maxNeighbors);
 
     List<NodeDescriptor> routingPeers = peers;
     if ((P2PTopics.RIDE_REQUEST.equals(topic) || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic))
@@ -234,21 +235,31 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
               .toList();
     }
 
-    SmallWorldSelection smallWorld = smallWorldPeers(routingPeers, maxNeighbors, shortcuts);
+    boolean vehicleOnlyRouting =
+        descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE
+            && (P2PTopics.RIDE_REQUEST.equals(topic) || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic));
+    if (vehicleOnlyRouting) {
+      shortcuts = 0;
+    }
+
+    SmallWorldSelection smallWorld = smallWorldPeers(routingPeers, maxNeighbors, shortcuts, vehicleOnlyRouting);
     List<NodeDescriptor> selected = smallWorld.peers();
     if (!shouldPinCollectorPeers()) {
       return new OverlaySelection(selected, smallWorld.shortcutPeerIds());
     }
-    return new OverlaySelection(includeCollectorPeers(selected, peers), smallWorld.shortcutPeerIds());
+    return new OverlaySelection(
+        includeCollectorPeers(selected, peers, maxNeighbors),
+        smallWorld.shortcutPeerIds());
   }
 
   private boolean shouldPinCollectorPeers() {
-    return Boolean.parseBoolean(System.getProperty(P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "true"));
+    return Boolean.parseBoolean(System.getProperty(P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"));
   }
 
   private List<NodeDescriptor> includeCollectorPeers(
       List<NodeDescriptor> selected,
-      List<NodeDescriptor> allPeers) {
+      List<NodeDescriptor> allPeers,
+      int maxNeighbors) {
     List<NodeDescriptor> collectorPeers =
         allPeers.stream().filter(peer -> isCollectorNodeId(peer.id())).toList();
     if (collectorPeers.isEmpty()) {
@@ -258,7 +269,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     Map<String, NodeDescriptor> byId = new LinkedHashMap<>();
     selected.forEach(peer -> byId.put(peer.id(), peer));
     collectorPeers.forEach(peer -> byId.put(peer.id(), peer));
-    return byId.values().stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
+    return byId.values().stream().sorted(Comparator.comparing(NodeDescriptor::id)).limit(maxNeighbors).toList();
   }
 
   private boolean isCollectorNodeId(String nodeId) {
@@ -275,7 +286,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   private SmallWorldSelection smallWorldPeers(
       List<NodeDescriptor> peers,
       int maxNeighbors,
-      int shortcuts) {
+      int shortcuts,
+      boolean preferNearestVehicles) {
     List<NodeDescriptor> sortedPeers =
         peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
     if (sortedPeers.isEmpty()) {
@@ -288,30 +300,19 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     ringIds.add(descriptor.id());
     ringIds = ringIds.stream().sorted().toList();
 
-    int localSlots = Math.max(1, maxNeighbors - shortcuts);
+    int localSlots = Math.max(0, maxNeighbors - shortcuts);
     int selfIndex = ringIds.indexOf(descriptor.id());
 
     List<NodeDescriptor> selected = new ArrayList<>();
     Set<String> selectedIds = new HashSet<>();
 
-    if (descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE && localSlots > 0) {
-      // Keep one ring neighbor to preserve global reachability.
-      String ringPeerId = ringIds.get((selfIndex + 1) % ringIds.size());
-      NodeDescriptor ringPeer = byId.get(ringPeerId);
-      if (ringPeer != null) {
-        selected.add(ringPeer);
-        selectedIds.add(ringPeer.id());
-      }
-
-      int remainingLocalSlots = Math.max(0, localSlots - selected.size());
-      if (remainingLocalSlots > 0) {
-        List<NodeDescriptor> nearest = nearestVehiclePeers(sortedPeers, remainingLocalSlots, selectedIds);
-        selected.addAll(nearest);
-        nearest.forEach(peer -> selectedIds.add(peer.id()));
-      }
+    if (preferNearestVehicles && localSlots > 0) {
+      List<NodeDescriptor> nearest = nearestVehiclePeers(sortedPeers, localSlots, selectedIds);
+      selected.addAll(nearest);
+      nearest.forEach(peer -> selectedIds.add(peer.id()));
     }
 
-    if (selected.isEmpty()) {
+    if (selected.size() < localSlots) {
       for (int offset = 1; offset < ringIds.size() && selected.size() < localSlots; offset++) {
         String peerId = ringIds.get((selfIndex + offset) % ringIds.size());
         NodeDescriptor peer = byId.get(peerId);
@@ -321,13 +322,14 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       }
     }
 
-    int remaining = Math.max(0, maxNeighbors - selected.size());
-    if (remaining == 0) {
+    int remainingCapacity = Math.max(0, maxNeighbors - selected.size());
+    int shortcutSlots = Math.min(shortcuts, remainingCapacity);
+    if (shortcutSlots == 0) {
       return new SmallWorldSelection(selected, Set.of());
     }
 
     List<NodeDescriptor> shortcutsByStableHash =
-        distributedShortcutPeers(ringIds, selfIndex, byId, selectedIds, remaining);
+        distributedShortcutPeers(ringIds, selfIndex, byId, selectedIds, shortcutSlots);
     selected.addAll(shortcutsByStableHash);
     Set<String> shortcutPeerIds =
         shortcutsByStableHash.stream().map(NodeDescriptor::id).collect(java.util.stream.Collectors.toSet());
@@ -387,9 +389,10 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return sortedPeers.stream()
         .filter(peer -> peer.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE)
         .filter(peer -> excludedPeerIds == null || !excludedPeerIds.contains(peer.id()))
-        .filter(peer -> VEHICLE_POSITIONS.containsKey(peer.id()))
         .sorted(
-            Comparator.comparingDouble((NodeDescriptor peer) -> distance(self, VEHICLE_POSITIONS.get(peer.id())))
+            Comparator
+                .comparing((NodeDescriptor peer) -> VEHICLE_POSITIONS.get(peer.id()) == null)
+                .thenComparingDouble(peer -> distance(self, VEHICLE_POSITIONS.get(peer.id())))
                 .thenComparing(NodeDescriptor::id))
         .limit(localSlots)
         .toList();
