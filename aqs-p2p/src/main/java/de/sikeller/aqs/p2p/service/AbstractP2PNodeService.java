@@ -1,12 +1,6 @@
 package de.sikeller.aqs.p2p.service;
 
-import de.sikeller.aqs.p2p.api.NodeDescriptor;
-import de.sikeller.aqs.p2p.api.NodeRuntimeStatus;
-import de.sikeller.aqs.p2p.api.P2PMessage;
-import de.sikeller.aqs.p2p.api.P2PNetwork;
-import de.sikeller.aqs.p2p.api.P2PNodeService;
-import de.sikeller.aqs.p2p.api.P2PSystemProperties;
-import de.sikeller.aqs.p2p.api.P2PTopics;
+import de.sikeller.aqs.p2p.api.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -27,7 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AbstractP2PNodeService implements P2PNodeService {
   private static final String COLLECTOR_NODE_ID_PREFIX = "sim-collector-";
-  private static final ConcurrentMap<String, VehiclePosition> VEHICLE_POSITIONS = new ConcurrentHashMap<>();
+  private static final long DEFAULT_POSITION_TTL_TICKS = 200L;
+  private static final ConcurrentMap<String, VehiclePosition> vehiclePositions = new ConcurrentHashMap<>();
 
   private final NodeDescriptor descriptor;
   private final P2PNetwork network;
@@ -52,7 +47,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   }
 
   @Override
-  public void start() {
+  public synchronized void start() {
     if (running) {
       return;
     }
@@ -60,11 +55,11 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     running = true;
     log.info("Node {} joined network as {}", descriptor.id(), descriptor.role());
     statusScheduler = createStatusScheduler();
-    statusScheduler.scheduleAtFixedRate(this::logStatus, 0, 5, TimeUnit.SECONDS);
+    statusScheduler.scheduleAtFixedRate(this::logStatus, 0, 10, TimeUnit.SECONDS);
   }
 
   @Override
-  public void stop() {
+  public synchronized void stop() {
     if (!running) {
       return;
     }
@@ -75,23 +70,46 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     if (scheduler != null) {
       scheduler.shutdownNow();
     }
-    if (descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE) {
-      VEHICLE_POSITIONS.remove(descriptor.id());
+    if (descriptor.role() == NodeRole.VEHICLE) {
+      vehiclePositions.remove(descriptor.id());
     }
     log.info("Node {} left network", descriptor.id());
   }
 
   protected void updateVehiclePositionSnapshot(int x, int y, long simulationTick) {
-    if (descriptor.role() != de.sikeller.aqs.p2p.api.NodeRole.VEHICLE) {
+    if (descriptor.role() != NodeRole.VEHICLE) {
       return;
     }
-    VEHICLE_POSITIONS.put(descriptor.id(), new VehiclePosition(x, y, simulationTick));
+    VehiclePosition position = new VehiclePosition(x, y, simulationTick);
+    vehiclePositions.put(descriptor.id(), position);
+    publishVehiclePosition(position);
   }
 
   protected Map<String, int[]> vehiclePositionSnapshot() {
+    long nowTick = currentPositionTick();
+    long ttlTicks = Math.max(1L, Long.getLong(P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, DEFAULT_POSITION_TTL_TICKS));
     Map<String, int[]> snapshot = new LinkedHashMap<>();
-    VEHICLE_POSITIONS.forEach((nodeId, position) -> snapshot.put(nodeId, new int[] {position.x(), position.y()}));
+    vehiclePositions.forEach(
+        (nodeId, position) -> {
+          if (position == null || nowTick - position.simulationTick() > ttlTicks) {
+            return;
+          }
+          snapshot.put(nodeId, new int[] {position.x(), position.y()});
+        });
     return snapshot;
+  }
+
+  private void publishVehiclePosition(VehiclePosition position) {
+    if (!running || position == null) {
+      return;
+    }
+    Map<String, String> payload = new LinkedHashMap<>();
+    payload.put(P2PPayloadKeys.POSITION_X, String.valueOf(position.x()));
+    payload.put(P2PPayloadKeys.POSITION_Y, String.valueOf(position.y()));
+    payload.put(P2PPayloadKeys.POSITION_TICK, String.valueOf(position.simulationTick()));
+    publish(
+        P2PTopics.VEHICLE_POSITION,
+        KeyValuePayload.write(payload));
   }
 
   @Override
@@ -99,16 +117,12 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     publishMessage(topic, payload, null, null, node -> !node.id().equals(descriptor.id()));
   }
 
-
-  protected void publishMessage(
+  protected synchronized void publishMessage(
       String topic,
       String payload,
       String requestId,
       String correlationId,
       Predicate<NodeDescriptor> targetFilter) {
-    if (!running) {
-      throw new IllegalStateException("Node service is not running.");
-    }
     messagesSent.incrementAndGet();
     P2PMessage message =
         requestId == null
@@ -116,10 +130,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
             : P2PMessage.now(descriptor.id(), topic, payload, requestId, correlationId == null ? "" : correlationId);
     Set<String> overlayNeighborIds = overlayNeighborIds(topic);
     network.broadcast(message, node -> targetFilter.test(node) && overlayNeighborIds.contains(node.id()));
-  }
-
-  protected void sendTo(String targetNodeId, String topic, String payload) {
-    sendToMessage(targetNodeId, topic, payload, null, null);
   }
 
   protected void sendToMessage(
@@ -145,13 +155,18 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   public Set<String> overlayNeighborIdsSnapshot() {
     Set<String> ids = new HashSet<>();
-    overlayPeers(P2PTopics.TOPOLOGY_SCAN_RESPONSE).forEach(peer -> ids.add(peer.id()));
+    overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE).peers().forEach(peer -> ids.add(peer.id()));
     return ids;
   }
 
   protected void handleIncoming(P2PMessage message) {
     inbox.add(message);
     messagesReceived.incrementAndGet();
+
+    if (P2PTopics.VEHICLE_POSITION.equals(message.topic())) {
+      handleVehiclePosition(message);
+      return;
+    }
 
     if (P2PTopics.TOPOLOGY_SCAN_REQUEST.equals(message.topic())) {
       respondToTopologyScan(message);
@@ -163,7 +178,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   private void respondToTopologyScan(P2PMessage request) {
     Map<String, String> payload = new LinkedHashMap<>();
-    payload.put("role", descriptor.role().name());
+    payload.put(P2PPayloadKeys.ROLE, descriptor.role().name());
 
     OverlaySelection selection = overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE);
 
@@ -173,11 +188,11 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
             .sorted()
             .reduce((left, right) -> left + "," + right)
             .orElse("");
-    payload.put("neighbors", neighbors);
+    payload.put(P2PPayloadKeys.NEIGHBORS, neighbors);
 
     String shortcutNeighbors =
         selection.shortcutPeerIds().stream().sorted().reduce((left, right) -> left + "," + right).orElse("");
-    payload.put("shortcutNeighbors", shortcutNeighbors);
+    payload.put(P2PPayloadKeys.SHORTCUT_NEIGHBORS, shortcutNeighbors);
 
     sendToMessage(
         request.senderId(),
@@ -189,12 +204,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   private Set<String> overlayNeighborIds(String topic) {
     Set<String> ids = new HashSet<>();
-    overlayPeers(topic).forEach(peer -> ids.add(peer.id()));
+    overlaySelection(topic).peers().forEach(peer -> ids.add(peer.id()));
     return ids;
-  }
-
-  private List<NodeDescriptor> overlayPeers(String topic) {
-    return overlaySelection(topic).peers();
   }
 
   private OverlaySelection overlaySelection(String topic) {
@@ -209,15 +220,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return new OverlaySelection(peers, Set.of());
     }
 
-    // Collector node is the aggregation root and must have direct links to all peers.
-    if (isCollectorNodeId(descriptor.id())) {
-      return new OverlaySelection(peers, Set.of());
-    }
-
-    // Initial client requests are already range-filtered by business logic and should not be
-    // additionally limited by overlay caps.
-    if (descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.CLIENT
-        && P2PTopics.RIDE_REQUEST.equals(topic)) {
+    // Initial client requests are already seed-filtered by collector logic and must not be
+    // additionally reduced by client-side overlay caps.
+    if (descriptor.role() == NodeRole.CLIENT && P2PTopics.RIDE_REQUEST.equals(topic)) {
       return new OverlaySelection(peers, Set.of());
     }
 
@@ -225,24 +230,17 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     int shortcuts = Math.max(0, Integer.getInteger(P2PSystemProperties.OVERLAY_SHORTCUTS, 1));
     shortcuts = Math.min(shortcuts, maxNeighbors);
 
-    List<NodeDescriptor> routingPeers = peers;
-    if ((P2PTopics.RIDE_REQUEST.equals(topic) || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic))
-        && descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE) {
-      // Vehicle nodes should expose/route over taxi-only overlay links.
-      routingPeers =
-          peers.stream()
-              .filter(peer -> peer.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE)
-              .toList();
-    }
-
-    boolean vehicleOnlyRouting =
-        descriptor.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE
-            && (P2PTopics.RIDE_REQUEST.equals(topic) || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic));
-    if (vehicleOnlyRouting) {
+    List<NodeDescriptor> routingPeers = resolveRoutingPeers(peers, topic);
+    boolean vehicleRelevant =
+        descriptor.role() == NodeRole.VEHICLE
+            && (P2PTopics.RIDE_REQUEST.equals(topic)
+                || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic)
+                || P2PTopics.VEHICLE_POSITION.equals(topic));
+    if (vehicleRelevant && !routingPeers.isEmpty()) {
       shortcuts = 0;
     }
 
-    SmallWorldSelection smallWorld = smallWorldPeers(routingPeers, maxNeighbors, shortcuts, vehicleOnlyRouting);
+    OverlaySelection smallWorld = smallWorldPeers(routingPeers, maxNeighbors, shortcuts, vehicleRelevant);
     List<NodeDescriptor> selected = smallWorld.peers();
     if (!shouldPinCollectorPeers()) {
       return new OverlaySelection(selected, smallWorld.shortcutPeerIds());
@@ -250,6 +248,15 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return new OverlaySelection(
         includeCollectorPeers(selected, peers, maxNeighbors),
         smallWorld.shortcutPeerIds());
+  }
+
+  private List<NodeDescriptor> resolveRoutingPeers(List<NodeDescriptor> peers, String topic) {
+    if (P2PTopics.RIDE_REQUEST.equals(topic)
+        || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic)
+        || P2PTopics.VEHICLE_POSITION.equals(topic)) {
+      return peers.stream().filter(peer -> peer.role() == NodeRole.VEHICLE).toList();
+    }
+    return peers;
   }
 
   private boolean shouldPinCollectorPeers() {
@@ -283,40 +290,80 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return nodeId.startsWith(COLLECTOR_NODE_ID_PREFIX);
   }
 
-  private SmallWorldSelection smallWorldPeers(
+  private void handleVehiclePosition(P2PMessage message) {
+    if (message == null || message.senderId() == null || message.senderId().isBlank()) {
+      return;
+    }
+    Map<String, String> payload = KeyValuePayload.parse(message.payload());
+    Integer x = parseInteger(payload.get(P2PPayloadKeys.POSITION_X));
+    Integer y = parseInteger(payload.get(P2PPayloadKeys.POSITION_Y));
+    Long tick = parseLong(payload.get(P2PPayloadKeys.POSITION_TICK));
+    if (x == null || y == null || tick == null) {
+      return;
+    }
+    vehiclePositions.put(message.senderId(), new VehiclePosition(x, y, tick));
+  }
+
+  private Integer parseInteger(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      return Integer.parseInt(value.trim());
+    } catch (NumberFormatException ex) {
+      return null;
+    }
+  }
+
+  private Long parseLong(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      return Long.parseLong(value.trim());
+    } catch (NumberFormatException ex) {
+      return null;
+    }
+  }
+
+  // TODO: link with world ticks
+  private long currentPositionTick() {
+    long maxTick = 0L;
+    for (VehiclePosition position : vehiclePositions.values()) {
+      if (position != null) {
+        maxTick = Math.max(maxTick, position.simulationTick());
+      }
+    }
+    return maxTick;
+  }
+
+  private OverlaySelection smallWorldPeers(
       List<NodeDescriptor> peers,
       int maxNeighbors,
       int shortcuts,
       boolean preferNearestVehicles) {
-    List<NodeDescriptor> sortedPeers =
-        peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
-    if (sortedPeers.isEmpty()) {
-      return new SmallWorldSelection(List.of(), Set.of());
+    if (peers.isEmpty()) {
+      return new OverlaySelection(List.of(), Set.of());
     }
 
-    Map<String, NodeDescriptor> byId = new LinkedHashMap<>();
-    sortedPeers.forEach(peer -> byId.put(peer.id(), peer));
-    List<String> ringIds = new ArrayList<>(byId.keySet());
-    ringIds.add(descriptor.id());
-    ringIds = ringIds.stream().sorted().toList();
+    List<NodeDescriptor> sortedPeers = peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
+    int startIndex = insertionIndex(sortedPeers, descriptor.id());
 
     int localSlots = Math.max(0, maxNeighbors - shortcuts);
-    int selfIndex = ringIds.indexOf(descriptor.id());
 
     List<NodeDescriptor> selected = new ArrayList<>();
     Set<String> selectedIds = new HashSet<>();
 
     if (preferNearestVehicles && localSlots > 0) {
-      List<NodeDescriptor> nearest = nearestVehiclePeers(sortedPeers, localSlots, selectedIds);
+      List<NodeDescriptor> nearest = nearestVehiclePeers(peers, localSlots, selectedIds);
       selected.addAll(nearest);
       nearest.forEach(peer -> selectedIds.add(peer.id()));
     }
 
     if (selected.size() < localSlots) {
-      for (int offset = 1; offset < ringIds.size() && selected.size() < localSlots; offset++) {
-        String peerId = ringIds.get((selfIndex + offset) % ringIds.size());
-        NodeDescriptor peer = byId.get(peerId);
-        if (peer != null && selectedIds.add(peer.id())) {
+      for (int offset = 0; offset < sortedPeers.size() && selected.size() < localSlots; offset++) {
+        NodeDescriptor peer = sortedPeers.get((startIndex + offset) % sortedPeers.size());
+        if (selectedIds.add(peer.id())) {
           selected.add(peer);
         }
       }
@@ -325,28 +372,41 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     int remainingCapacity = Math.max(0, maxNeighbors - selected.size());
     int shortcutSlots = Math.min(shortcuts, remainingCapacity);
     if (shortcutSlots == 0) {
-      return new SmallWorldSelection(selected, Set.of());
+      return new OverlaySelection(selected, Set.of());
     }
 
     List<NodeDescriptor> shortcutsByStableHash =
-        distributedShortcutPeers(ringIds, selfIndex, byId, selectedIds, shortcutSlots);
+        distributedShortcutPeers(sortedPeers, startIndex, selectedIds, shortcutSlots);
     selected.addAll(shortcutsByStableHash);
     Set<String> shortcutPeerIds =
         shortcutsByStableHash.stream().map(NodeDescriptor::id).collect(java.util.stream.Collectors.toSet());
-    return new SmallWorldSelection(selected, shortcutPeerIds);
+    return new OverlaySelection(selected, shortcutPeerIds);
+  }
+
+  private int insertionIndex(List<NodeDescriptor> sortedPeers, String selfId) {
+    int low = 0;
+    int high = sortedPeers.size();
+    while (low < high) {
+      int mid = (low + high) >>> 1;
+      if (sortedPeers.get(mid).id().compareTo(selfId) < 0) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return low;
   }
 
   private List<NodeDescriptor> distributedShortcutPeers(
-      List<String> ringIds,
-      int selfIndex,
-      Map<String, NodeDescriptor> byId,
+      List<NodeDescriptor> sortedPeers,
+      int startIndex,
       Set<String> excludedPeerIds,
       int limit) {
-    if (limit <= 0 || ringIds == null || ringIds.size() <= 1) {
+    if (limit <= 0 || sortedPeers == null || sortedPeers.isEmpty()) {
       return List.of();
     }
 
-    int maxOffset = ringIds.size() - 1;
+    int maxOffset = sortedPeers.size();
     Set<String> usedIds = new HashSet<>();
     if (excludedPeerIds != null) {
       usedIds.addAll(excludedPeerIds);
@@ -357,15 +417,12 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       int suggestedOffset = Math.max(1, (int) Math.round((double) slot * maxOffset / (limit + 1.0)));
       for (int shift = 0; shift < maxOffset; shift++) {
         int offset = ((suggestedOffset - 1 + shift) % maxOffset) + 1;
-        String candidateId = ringIds.get((selfIndex + offset) % ringIds.size());
-        if (!usedIds.add(candidateId)) {
+        NodeDescriptor candidate = sortedPeers.get((startIndex + offset - 1) % maxOffset);
+        if (!usedIds.add(candidate.id())) {
           continue;
         }
-        NodeDescriptor candidate = byId.get(candidateId);
-        if (candidate != null) {
-          shortcuts.add(candidate);
-          break;
-        }
+        shortcuts.add(candidate);
+        break;
       }
       if (shortcuts.size() >= limit) {
         break;
@@ -378,21 +435,21 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       List<NodeDescriptor> sortedPeers,
       int localSlots,
       Set<String> excludedPeerIds) {
-    if (descriptor.role() != de.sikeller.aqs.p2p.api.NodeRole.VEHICLE || localSlots <= 0) {
+    if (descriptor.role() != NodeRole.VEHICLE || localSlots <= 0) {
       return List.of();
     }
-    VehiclePosition self = VEHICLE_POSITIONS.get(descriptor.id());
+    VehiclePosition self = vehiclePositions.get(descriptor.id());
     if (self == null) {
       return List.of();
     }
 
     return sortedPeers.stream()
-        .filter(peer -> peer.role() == de.sikeller.aqs.p2p.api.NodeRole.VEHICLE)
+        .filter(peer -> peer.role() == NodeRole.VEHICLE)
         .filter(peer -> excludedPeerIds == null || !excludedPeerIds.contains(peer.id()))
         .sorted(
             Comparator
-                .comparing((NodeDescriptor peer) -> VEHICLE_POSITIONS.get(peer.id()) == null)
-                .thenComparingDouble(peer -> distance(self, VEHICLE_POSITIONS.get(peer.id())))
+                .comparing((NodeDescriptor peer) -> vehiclePositions.get(peer.id()) == null)
+                .thenComparingDouble(peer -> distance(self, vehiclePositions.get(peer.id())))
                 .thenComparing(NodeDescriptor::id))
         .limit(localSlots)
         .toList();
@@ -406,8 +463,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     double dy = left.y() - right.y();
     return Math.sqrt(dx * dx + dy * dy);
   }
-
-  private record SmallWorldSelection(List<NodeDescriptor> peers, Set<String> shortcutPeerIds) {}
 
   private record OverlaySelection(List<NodeDescriptor> peers, Set<String> shortcutPeerIds) {}
 

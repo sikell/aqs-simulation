@@ -25,6 +25,10 @@ Parameter-Beispiel:
 
 `--id=vehicle-1 --tcpPort=46001 --discoveryPort=45892 --multicastGroup=239.255.42.99`
 
+Optional (Overlay-Tuning fuer Standalone-Nodes):
+
+`--overlayMaxNeighbors=3 --overlayShortcuts=1 --overlayPositionTtlTicks=200`
+
 Hinweis: Wenn `--tcpPort` fehlt, wird fuer IDs wie `vehicle-2` automatisch ein Port
 aus der ID abgeleitet (`46000 + 2 => 46002`). Fuer parallele Starts sind dennoch
 explizite, eindeutige Ports empfehlenswert.
@@ -66,9 +70,13 @@ Zusatz (UI-steuerbar im Algorithmus-Parameterbereich des `TaxiAlgorithmP2PCollec
 - `p2pEmbeddedSimulation`: `1` = alles lokal simuliert (kein externer Vehicle-Prozess noetig), `0` = LAN-Mode
 - `p2pOverlayMaxNeighbors`: maximale lokale Nachbarn pro Node
 - `p2pOverlayShortcuts`: Anzahl deterministischer Small-World-Shortcuts je Node
+- `p2pOverlayPositionTtlTicks`: Gueltigkeit empfangener Vehicle-Positionen fuer die Nachbarwahl
 - `p2pRequestForwardHops`: k-Hop-TTL fuer Request-Flooding
 
 Hinweis: Diese UI-Parameter setzen JVM-Properties im Simulationsprozess.
 Extern gestartete Nodes (`VehicleNodeMain`/`ClientNodeMain` in separaten Prozessen)
 muessen dieselben Werte separat per `-Daqs.p2p.overlay.*` bekommen.
+
+Zusatz: Vehicle-Nodes tauschen Positionen ueber `vehicle.position` aus; das Small-World-Overlay
+bevorzugt dadurch nahe Vehicle-Peers und nutzt Shortcuts fuer Weitbereichsverbindungen.
 

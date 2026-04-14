@@ -1,5 +1,6 @@
 package de.sikeller.aqs.p2p.bootstrap;
 
+import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import de.sikeller.aqs.p2p.transport.network.LanP2PNetwork;
 import java.util.Locale;
@@ -19,6 +20,13 @@ public class VehicleNodeMain {
     int tcpPort = resolveTcpPort(nodeId, explicitTcpPort);
     int discoveryPort = Integer.parseInt(arg(args, "--discoveryPort", "45892"));
     String multicastGroup = arg(args, "--multicastGroup", "239.255.42.99");
+    String overlayMaxNeighbors = arg(args, "--overlayMaxNeighbors", null);
+    String overlayShortcuts = arg(args, "--overlayShortcuts", null);
+    String overlayPositionTtlTicks = arg(args, "--overlayPositionTtlTicks", null);
+
+    setIfPresent(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, overlayMaxNeighbors);
+    setIfPresent(P2PSystemProperties.OVERLAY_SHORTCUTS, overlayShortcuts);
+    setIfPresent(P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, overlayPositionTtlTicks);
 
     if (explicitTcpPort == null || explicitTcpPort.isBlank()) {
       log.info("No --tcpPort provided for '{}'. Using derived default tcpPort={}", nodeId, tcpPort);
@@ -88,6 +96,13 @@ public class VehicleNodeMain {
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException("--tcpPort must be numeric", e);
     }
+  }
+
+  private static void setIfPresent(String key, String value) {
+    if (value == null || value.isBlank()) {
+      return;
+    }
+    System.setProperty(key, value.trim());
   }
 }
 

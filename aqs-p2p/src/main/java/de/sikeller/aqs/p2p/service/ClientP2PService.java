@@ -2,6 +2,7 @@ package de.sikeller.aqs.p2p.service;
 
 import de.sikeller.aqs.p2p.api.NodeDescriptor;
 import de.sikeller.aqs.p2p.api.NodeRole;
+import de.sikeller.aqs.p2p.api.P2PPayloadKeys;
 import de.sikeller.aqs.p2p.api.P2PMessage;
 import de.sikeller.aqs.p2p.api.P2PNetwork;
 import de.sikeller.aqs.p2p.api.P2PTopics;
@@ -15,19 +16,23 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClientP2PService extends AbstractP2PNodeService {
+  private final NodeDescriptor nodeDescriptor;
   private final ConcurrentMap<String, String> acceptedVehicleByRequestId = new ConcurrentHashMap<>();
 
   public ClientP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.CLIENT), network);
+    this.nodeDescriptor = new NodeDescriptor(nodeId, NodeRole.CLIENT);
+  }
+
+  @Override
+  public NodeDescriptor descriptor() {
+    return nodeDescriptor;
   }
 
   public String requestRide(String from, String to) {
     return requestRide(from, to, node -> !node.id().equals(descriptor().id()), 0, "");
   }
 
-  public String requestRide(String from, String to, Predicate<NodeDescriptor> targetFilter) {
-    return requestRide(from, to, targetFilter, 0, "");
-  }
 
   public String requestRide(
       String from,
@@ -47,8 +52,17 @@ public class ClientP2PService extends AbstractP2PNodeService {
       Map<String, String> extraPayloadFields) {
     String requestId = UUID.randomUUID().toString();
     Map<String, String> payload = new LinkedHashMap<>();
-    payload.put("originNode", descriptor().id());
-    payload.put("hopsRemaining", String.valueOf(Math.max(0, maxForwardHops)));
+    payload.put(P2PPayloadKeys.ORIGIN_NODE, descriptor().id());
+    payload.put(P2PPayloadKeys.HOPS_REMAINING, String.valueOf(Math.max(0, maxForwardHops)));
+    if (from != null && !from.isBlank()) {
+      payload.put(P2PPayloadKeys.FROM, from);
+    }
+    if (to != null && !to.isBlank()) {
+      payload.put(P2PPayloadKeys.TO, to);
+    }
+    if (requestGeoHash != null && !requestGeoHash.isBlank()) {
+      payload.put(P2PPayloadKeys.REQUEST_GEO_HASH, requestGeoHash);
+    }
     if (extraPayloadFields != null) {
       extraPayloadFields.forEach(
           (key, value) -> {
