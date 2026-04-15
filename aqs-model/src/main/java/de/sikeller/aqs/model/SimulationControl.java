@@ -21,4 +21,14 @@ public interface SimulationControl {
   int getSpeed();
 
   void setSpeed(int speed);
+
+  default ResultTable getLatestResultTable() {
+    return null;
+  }
+
+  default void setRealtimeVisualizationEnabled(boolean enabled) {}
+
+  default boolean isRealtimeVisualizationEnabled() {
+    return true;
+  }
 }

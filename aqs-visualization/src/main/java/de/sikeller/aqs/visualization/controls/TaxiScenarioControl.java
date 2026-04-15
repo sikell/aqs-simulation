@@ -5,8 +5,11 @@ import de.sikeller.aqs.model.P2PNetworkEdgeSnapshot;
 import de.sikeller.aqs.model.P2PNetworkNodeSnapshot;
 import de.sikeller.aqs.model.P2PNetworkSnapshot;
 import de.sikeller.aqs.model.P2PStatusProvider;
+import de.sikeller.aqs.model.ResultTable;
 import de.sikeller.aqs.model.SimulationControl;
 import de.sikeller.aqs.model.TaxiAlgorithm;
+import de.sikeller.aqs.visualization.drawing.VisualizationProperties;
+import de.sikeller.aqs.visualization.drawing.VisualizationUtils;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
@@ -16,21 +19,19 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.geom.Point2D;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import javax.swing.Timer;
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.Properties;
-
-import de.sikeller.aqs.visualization.drawing.VisualizationProperties;
-import de.sikeller.aqs.visualization.drawing.VisualizationUtils;
+import javax.swing.border.TitledBorder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -88,6 +89,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private JLabel p2pModeWarningLabel;
   private VisualizationProperties visualizationProperties;
   private Timer p2pStatusTimer;
+  private volatile boolean massRunInProgress;
   private boolean modeSwitchInProgress;
   private Consumer<Boolean> p2pModeUiListener = ignored -> {};
   private static final String DEFAULT_TAXI_COUNT_TOOLTIP =
@@ -113,6 +115,7 @@ public class TaxiScenarioControl extends AbstractControl {
     buttons.add(copyConfigButton());
     buttons.add(pasteConfigButton());
     buttons.add(showResultsButton());
+    buttons.add(massRunButton());
     selection.add(label("Simulation mode", "simulationModeLabel"));
     selection.add(modeSelectionBox());
     p2pModeWarningLabel = new JLabel(" ");
@@ -762,6 +765,381 @@ public class TaxiScenarioControl extends AbstractControl {
     button.setName("showResultsButton");
     button.addActionListener(e -> simulation.showResultVisualization());
     return button;
+  }
+
+  private JButton massRunButton() {
+    JButton button = new JButton("Mass Run");
+    button.setName("massRunButton");
+    button.setToolTipText("Run multiple simulations and export CSV statistics.");
+    button.addActionListener(
+        e -> {
+          if (massRunInProgress) {
+            return;
+          }
+          List<String> availableAlgorithms = resolveAlgorithmSimpleNames();
+          MassRunDialog.MassRunConfig config =
+              MassRunDialog.open(this, availableAlgorithms, defaultMassRunDialogValues());
+          if (config == null) {
+            return;
+          }
+          startMassRun(config);
+        });
+    return button;
+  }
+
+  private MassRunDialog.Defaults defaultMassRunDialogValues() {
+    List<String> availableAlgorithms = resolveAlgorithmSimpleNames();
+    int defaultKHops = readSpinnerValue("p2pRequestForwardHops", 2);
+    int taxiCount = readSpinnerValue("taxiCount", 5);
+    int clientCount = readSpinnerValue("clientCount", 100);
+    int clientSpawnWindow = readSpinnerValue("clientSpawnWindow", 10000);
+    int clientSpeed = readSpinnerValue("clientSpeed", 5);
+    int taxiSeatCount = readSpinnerValue("taxiSeatCount", 2);
+    int taxiSpeed = readSpinnerValue("taxiSpeed", 80);
+    int simulationSpeed = 100;
+    return new MassRunDialog.Defaults(
+        resolveDefaultMassRunAlgorithmsCsv(availableAlgorithms),
+        String.valueOf(defaultKHops),
+        P2P_STRATEGY_NEAREST,
+        readSpinnerValue("p2pOverlayMinNeighbors", 1),
+        readSpinnerValue("p2pOverlayShortcuts", 1),
+        10,
+        1,
+        "mass-run-results",
+        String.valueOf(taxiCount),
+        clientCount,
+        clientSpawnWindow,
+        clientSpeed,
+        String.valueOf(taxiSeatCount),
+        taxiSpeed,
+        simulationSpeed);
+  }
+
+  private String resolveDefaultMassRunAlgorithmsCsv(List<String> availableAlgorithms) {
+    List<String> defaults = new ArrayList<>();
+    if (availableAlgorithms.contains(P2P_COLLECTOR_SIMPLE_NAME)) {
+      defaults.add(P2P_COLLECTOR_SIMPLE_NAME);
+    }
+    if (availableAlgorithms.contains("TaxiAlgorithmSinglePassenger")) {
+      defaults.add("TaxiAlgorithmSinglePassenger");
+    } else if (availableAlgorithms.contains("TaxiAlgorithmVehicleRouting")) {
+      defaults.add("TaxiAlgorithmVehicleRouting");
+    }
+    if (defaults.isEmpty() && !availableAlgorithms.isEmpty()) {
+      defaults.add(availableAlgorithms.getFirst());
+    }
+    return String.join(",", defaults);
+  }
+
+  private List<String> resolveAlgorithmSimpleNames() {
+    algorithmList = simulation.getAlgorithm().getAllAlgorithms();
+    return algorithmList.stream().map(Class::getSimpleName).sorted().toList();
+  }
+
+  private void startMassRun(MassRunDialog.MassRunConfig config) {
+    massRunInProgress = true;
+    setControlsEnabledForMassRun(false);
+    simulation.stop();
+    simulation.setRealtimeVisualizationEnabled(false);
+    if (p2pStatusTimer != null) {
+      p2pStatusTimer.stop();
+    }
+
+    JDialog progressDialog = createMassRunProgressDialog();
+    SwingWorker<MassRunCsvWriter.OutputFiles, Void> worker =
+        new SwingWorker<>() {
+          @Override
+          protected MassRunCsvWriter.OutputFiles doInBackground() throws Exception {
+            List<MassRunCsvWriter.RunMetricRow> runRows = new ArrayList<>();
+            int totalRuns =
+                config.algorithms().stream()
+                    .mapToInt(
+                        algorithmSimpleName ->
+                            effectiveKHopsForAlgorithm(algorithmSimpleName, config).size()
+                                * effectiveStrategiesForAlgorithm(algorithmSimpleName, config).size()
+                                * config.taxiCounts().size()
+                                * config.taxiSeatCounts().size()
+                                * config.runs())
+                    .sum();
+            int doneRuns = 0;
+
+            for (String algorithmSimpleName : config.algorithms()) {
+              List<Integer> effectiveKHops = effectiveKHopsForAlgorithm(algorithmSimpleName, config);
+              List<String> effectiveStrategies = effectiveStrategiesForAlgorithm(algorithmSimpleName, config);
+              for (int kHops : effectiveKHops) {
+                for (String p2pStrategy : effectiveStrategies) {
+                  for (int taxiCount : config.taxiCounts()) {
+                    for (int taxiSeatCount : config.taxiSeatCounts()) {
+                      for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
+                        int seed = config.baseSeed() + (runIndex - 1);
+                        MassRunIterationResult result =
+                            executeMassRunIteration(
+                                config,
+                                algorithmSimpleName,
+                                kHops,
+                                p2pStrategy,
+                                taxiCount,
+                                taxiSeatCount,
+                                seed);
+                        String timestamp = java.time.Instant.now().toString();
+                        runRows.addAll(
+                            MassRunCsvWriter.toRunRows(
+                                result.table(),
+                                result.executedAlgorithm(),
+                                kHops,
+                                taxiCount,
+                                taxiSeatCount,
+                                result.executedStrategy(),
+                                runIndex,
+                                seed,
+                                timestamp));
+
+                        doneRuns++;
+                        int progress = (int) Math.round(doneRuns * 100.0 / Math.max(1, totalRuns));
+                        setProgress(Math.max(0, Math.min(100, progress)));
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            return MassRunCsvWriter.write(config.outputDir(), runRows);
+          }
+
+          @Override
+          protected void done() {
+            progressDialog.dispose();
+            massRunInProgress = false;
+            simulation.setRealtimeVisualizationEnabled(true);
+            if (p2pStatusTimer != null && !p2pStatusTimer.isRunning()) {
+              p2pStatusTimer.start();
+            }
+            setControlsEnabledForMassRun(true);
+            try {
+              MassRunCsvWriter.OutputFiles output = get();
+              JOptionPane.showMessageDialog(
+                  TaxiScenarioControl.this,
+                  "Mass run completed.\n" + output,
+                  "Mass run finished",
+                  JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+              log.error("Mass run failed", ex);
+              JOptionPane.showMessageDialog(
+                  TaxiScenarioControl.this,
+                  ex.getMessage(),
+                  "Mass run failed",
+                  JOptionPane.ERROR_MESSAGE);
+            }
+          }
+        };
+
+    worker.addPropertyChangeListener(
+        evt -> {
+          if (!"progress".equals(evt.getPropertyName())) {
+            return;
+          }
+          Object value = evt.getNewValue();
+          if (value instanceof Integer progress) {
+            updateMassRunProgress(progressDialog, progress);
+          }
+        });
+    worker.execute();
+    progressDialog.setVisible(true);
+  }
+
+  private MassRunIterationResult executeMassRunIteration(
+      MassRunDialog.MassRunConfig config,
+      String algorithmSimpleName,
+      int kHops,
+      String p2pStrategy,
+      int taxiCount,
+      int taxiSeatCount,
+      int seed)
+      throws Exception {
+    MassRunIterationResult result =
+        runOnEdt(
+        () -> {
+          selectAlgorithmForMassRun(algorithmSimpleName);
+          setSpinnerValueIfPresent("worldSeed", seed);
+          setSpinnerValueIfPresent("taxiCount", taxiCount);
+          setSpinnerValueIfPresent("clientCount", config.clientCount());
+          setSpinnerValueIfPresent("clientSpawnWindow", config.clientSpawnWindow());
+          setSpinnerValueIfPresent("clientSpeed", config.clientSpeed());
+          setSpinnerValueIfPresent("taxiSeatCount", taxiSeatCount);
+          setSpinnerValueIfPresent("taxiSpeed", config.taxiSpeed());
+          String executedAlgorithm = simulation.getAlgorithm().get().getClass().getSimpleName();
+          String executedStrategy = "n/a";
+          if (isCollectorAlgorithmName(executedAlgorithm)) {
+            setSpinnerValueIfPresent("p2pRequestForwardHops", kHops);
+            setSpinnerValueIfPresent("p2pOverlayMinNeighbors", config.overlayMinNeighbors());
+            setSpinnerValueIfPresent("p2pOverlayShortcuts", config.overlayShortcuts());
+            executedStrategy = applyP2PStrategyForMassRun(p2pStrategy);
+          }
+          simulation.setSpeed(config.simulationSpeed());
+          initializeSimulation();
+          simulation.start();
+          return new MassRunIterationResult(null, executedAlgorithm, executedStrategy);
+        });
+
+    while (!simulation.isSimulationFinished()) {
+      Thread.sleep(20);
+    }
+
+    ResultTable table = simulation.getLatestResultTable();
+    if (table == null) {
+      throw new IllegalStateException("Simulation completed without result table.");
+    }
+    return new MassRunIterationResult(table, result.executedAlgorithm(), result.executedStrategy());
+  }
+
+  private void selectAlgorithmForMassRun(String algorithmSimpleName) {
+    // Prevent LOCAL algorithms from being overridden by P2P-mode collector forcing.
+    setSimulationModeForMassRunAlgorithm(algorithmSimpleName);
+    Class<?> algorithmClass = resolveAlgorithmClassBySimpleName(algorithmSimpleName);
+    simulation.getAlgorithm().setAlgorithm(instantiateAlgorithm(algorithmClass.getName(), algorithmParameterMap));
+    generateParameters();
+    applyModeToUi();
+    updateP2PModeWarning(isP2PModeSelected());
+  }
+
+  private Class<?> resolveAlgorithmClassBySimpleName(String algorithmSimpleName) {
+    algorithmList = simulation.getAlgorithm().getAllAlgorithms();
+    for (Class<?> algorithmClass : algorithmList) {
+      if (algorithmClass.getSimpleName().equals(algorithmSimpleName)) {
+        return algorithmClass;
+      }
+    }
+    throw new IllegalArgumentException("Unknown algorithm: " + algorithmSimpleName);
+  }
+
+  private void setSpinnerValueIfPresent(String name, int value) {
+    Component component = getComponentByName(name);
+    if (component instanceof JSpinner spinner) {
+      spinner.setValue(value);
+    }
+  }
+
+  private int readSpinnerValue(String name, int defaultValue) {
+    Component component = getComponentByName(name);
+    if (component instanceof JSpinner spinner) {
+      Object value = spinner.getValue();
+      if (value instanceof Number number) {
+        return number.intValue();
+      }
+    }
+    return defaultValue;
+  }
+
+  private String applyP2PStrategyForMassRun(String strategy) {
+    String normalized = normalizedStrategyKey(strategy);
+    if (p2pVehicleStrategyBox != null) {
+      p2pVehicleStrategyBox.setSelectedItem(normalized);
+    }
+    System.setProperty(P2P_VEHICLE_STRATEGY_PROPERTY, normalized);
+    return normalized;
+  }
+
+  private void setSimulationModeForMassRunAlgorithm(String algorithmSimpleName) {
+    Component component = getComponentByName("simulationModeBox");
+    if (!(component instanceof JComboBox<?> modeBox)) {
+      return;
+    }
+    String targetMode = isCollectorAlgorithmName(algorithmSimpleName) ? MODE_P2P_SIMULATED : MODE_LOCAL;
+    modeBox.setSelectedItem(targetMode);
+  }
+
+  private boolean isCollectorAlgorithmName(String algorithmSimpleName) {
+    if (algorithmSimpleName == null || algorithmSimpleName.isBlank()) {
+      return false;
+    }
+    return algorithmSimpleName.equals(P2P_COLLECTOR_SIMPLE_NAME)
+        || algorithmSimpleName.toLowerCase(Locale.ROOT).contains("p2pcollector");
+  }
+
+  private List<Integer> effectiveKHopsForAlgorithm(
+      String algorithmSimpleName, MassRunDialog.MassRunConfig config) {
+    if (isCollectorAlgorithmName(algorithmSimpleName)) {
+      return config.kHops();
+    }
+    int fallback = config.kHops().isEmpty() ? 0 : config.kHops().getFirst();
+    return List.of(fallback);
+  }
+
+  private List<String> effectiveStrategiesForAlgorithm(
+      String algorithmSimpleName, MassRunDialog.MassRunConfig config) {
+    if (isCollectorAlgorithmName(algorithmSimpleName)) {
+      return config.p2pStrategies();
+    }
+    return List.of("n/a");
+  }
+
+  private record MassRunIterationResult(
+      ResultTable table,
+      String executedAlgorithm,
+      String executedStrategy) {}
+
+
+  private void setControlsEnabledForMassRun(boolean enabled) {
+    for (Component component : buttons.getComponents()) {
+      if (component != null) {
+        component.setEnabled(enabled);
+      }
+    }
+    Object speedSlider = getComponentByName("simulationSpeedSlider");
+    if (speedSlider instanceof JSlider slider) {
+      slider.setEnabled(enabled);
+    }
+  }
+
+  private JDialog createMassRunProgressDialog() {
+    JDialog dialog =
+        new JDialog(
+            SwingUtilities.getWindowAncestor(this),
+            "Mass run progress",
+            Dialog.ModalityType.APPLICATION_MODAL);
+    dialog.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+    dialog.getContentPane().setLayout(new BorderLayout(8, 8));
+    JProgressBar progressBar = new JProgressBar(0, 100);
+    progressBar.setName("massRunProgressBar");
+    progressBar.setStringPainted(true);
+    progressBar.setValue(0);
+    dialog.getContentPane().add(new JLabel("Running mass simulation..."), BorderLayout.NORTH);
+    dialog.getContentPane().add(progressBar, BorderLayout.CENTER);
+    dialog.pack();
+    dialog.setLocationRelativeTo(this);
+    return dialog;
+  }
+
+  private void updateMassRunProgress(JDialog dialog, int progress) {
+    for (Component component : dialog.getContentPane().getComponents()) {
+      if (component instanceof JProgressBar progressBar) {
+        progressBar.setValue(progress);
+        progressBar.setString(progress + "%");
+      }
+    }
+  }
+
+  private <T> T runOnEdt(Callable<T> action) throws Exception {
+    if (SwingUtilities.isEventDispatchThread()) {
+      return action.call();
+    }
+    final Object[] holder = new Object[1];
+    final Exception[] error = new Exception[1];
+    SwingUtilities.invokeAndWait(
+        () -> {
+          try {
+            holder[0] = action.call();
+          } catch (Exception ex) {
+            error[0] = ex;
+          }
+        });
+    if (error[0] != null) {
+      throw error[0];
+    }
+    @SuppressWarnings("unchecked")
+    T result = (T) holder[0];
+    return result;
   }
 
   @SuppressWarnings(value = "BusyWait")

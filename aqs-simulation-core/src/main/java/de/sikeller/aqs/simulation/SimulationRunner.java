@@ -2,26 +2,26 @@ package de.sikeller.aqs.simulation;
 
 import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.events.EventDispatcher;
+import de.sikeller.aqs.simulation.result.SimulationResultSink;
 import de.sikeller.aqs.simulation.stats.CollectorMinMaxAverage;
 import de.sikeller.aqs.simulation.stats.StatsCollector;
 import de.sikeller.aqs.visualization.ResultVisualization;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
 @Setter
 @Getter
 public class SimulationRunner implements SimulationControl {
   private final WorldObject world;
   private final Algorithm algorithm;
   private final WorldGenerator worldGenerator;
-  private final ResultVisualization resultVisualization = new ResultVisualization();
+  private final ResultVisualization resultVisualization;
+  private final SimulationResultSink resultSink;
   private final StatsCollector statsCollector = new StatsCollector();
   private final EventDispatcher eventDispatcher = EventDispatcher.instance();
   private final List<SimulationObserver> listeners = new LinkedList<>();
@@ -29,6 +29,28 @@ public class SimulationRunner implements SimulationControl {
   private volatile int speed = 15;
   private volatile boolean simulationInitialized = false;
   private volatile boolean simulationFinished = false;
+  private volatile ResultTable latestResultTable;
+  private volatile boolean realtimeVisualizationEnabled = true;
+
+  public SimulationRunner(WorldObject world, Algorithm algorithm, WorldGenerator worldGenerator) {
+    this(world, algorithm, worldGenerator, null);
+  }
+
+  public SimulationRunner(
+      WorldObject world,
+      Algorithm algorithm,
+      WorldGenerator worldGenerator,
+      SimulationResultSink resultSink) {
+    this.world = world;
+    this.algorithm = algorithm;
+    this.worldGenerator = worldGenerator;
+    this.resultVisualization = new ResultVisualization();
+    this.resultSink = resultSink == null ? table -> this.resultVisualization.showResults(table) : resultSink;
+  }
+
+  public static SimulationResultSink noVisualizationResultSink() {
+    return table -> {};
+  }
 
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
@@ -37,6 +59,7 @@ public class SimulationRunner implements SimulationControl {
       return;
     }
 
+    latestResultTable = null;
     simulationFinished = false;
     simulationInitialized = false;
 
@@ -54,11 +77,12 @@ public class SimulationRunner implements SimulationControl {
       var result = algorithm.get().nextStep(world);
       var calculationTime = System.nanoTime() - startTime;
       algorithmCalculationTime.collect(calculationTime);
-      customCalculationTime.collect(
-          result.getCalculationTime() != null ? result.getCalculationTime() : 0);
+      customCalculationTime.collect(result.getCalculationTime() != null ? result.getCalculationTime() : 0);
       log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
-      listeners.forEach(l -> l.onUpdate(world, false));
+      if (realtimeVisualizationEnabled) {
+        listeners.forEach(l -> l.onUpdate(world, false));
+      }
     }
 
     eventDispatcher.print();
@@ -70,8 +94,9 @@ public class SimulationRunner implements SimulationControl {
         customCalculationTime.result(TimeUnit.NANOSECONDS::toMicros));
     statsCollector.print();
 
+    latestResultTable = statsCollector.tableResults();
     try {
-      resultVisualization.showResults(statsCollector.tableResults());
+      resultSink.accept(latestResultTable);
     } catch (Exception e) {
       log.error(e.getMessage(), e);
     }
@@ -79,8 +104,10 @@ public class SimulationRunner implements SimulationControl {
 
     simulationFinished = true;
 
-    // A final force update to ensure the last state:
-    listeners.forEach(l -> l.onUpdate(world, true));
+    if (realtimeVisualizationEnabled) {
+      // A final force update to ensure the last state:
+      listeners.forEach(l -> l.onUpdate(world, true));
+    }
   }
 
   public void print() {
@@ -111,7 +138,9 @@ public class SimulationRunner implements SimulationControl {
     Map<String, Integer> preparedParameters = algorithm.get().prepareWorldParameters(new HashMap<>(parameters));
     worldGenerator.init(world, preparedParameters);
     algorithm.get().init(world);
-    listeners.forEach(l -> l.onUpdate(world, true));
+    if (realtimeVisualizationEnabled) {
+      listeners.forEach(l -> l.onUpdate(world, true));
+    }
     print();
     simulationFinished = false;
     simulationInitialized = true;
@@ -122,7 +151,22 @@ public class SimulationRunner implements SimulationControl {
     return algorithm.get().getParameters();
   }
 
+  @Override
+  public ResultTable getLatestResultTable() {
+    return latestResultTable;
+  }
+
   public void showResultVisualization() {
     this.resultVisualization.openResults();
+  }
+
+  @Override
+  public void setRealtimeVisualizationEnabled(boolean enabled) {
+    this.realtimeVisualizationEnabled = enabled;
+  }
+
+  @Override
+  public boolean isRealtimeVisualizationEnabled() {
+    return realtimeVisualizationEnabled;
   }
 }
