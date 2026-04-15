@@ -226,9 +226,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return new OverlaySelection(peers, Set.of());
     }
 
-    int maxNeighbors = Math.max(1, Integer.getInteger(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, 3));
+    int minNeighbors = resolveOverlayMinNeighbors();
     int shortcuts = Math.max(0, Integer.getInteger(P2PSystemProperties.OVERLAY_SHORTCUTS, 1));
-    shortcuts = Math.min(shortcuts, maxNeighbors);
+    double maxDistance = resolveOverlayMaxDistance();
 
     List<NodeDescriptor> routingPeers = resolveRoutingPeers(peers, topic);
     boolean vehicleRelevant =
@@ -240,14 +240,39 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       shortcuts = 0;
     }
 
-    OverlaySelection smallWorld = smallWorldPeers(routingPeers, maxNeighbors, shortcuts, vehicleRelevant);
+    OverlaySelection smallWorld =
+        distanceBoundOverlayPeers(routingPeers, minNeighbors, shortcuts, vehicleRelevant, maxDistance);
     List<NodeDescriptor> selected = smallWorld.peers();
     if (!shouldPinCollectorPeers()) {
       return new OverlaySelection(selected, smallWorld.shortcutPeerIds());
     }
     return new OverlaySelection(
-        includeCollectorPeers(selected, peers, maxNeighbors),
+        includeCollectorPeers(selected, peers),
         smallWorld.shortcutPeerIds());
+  }
+
+  private int resolveOverlayMinNeighbors() {
+    String configured = System.getProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "").trim();
+    if (!configured.isBlank()) {
+      try {
+        return Math.max(1, Integer.parseInt(configured));
+      } catch (NumberFormatException ignored) {
+        // fall through to default
+      }
+    }
+    return 1;
+  }
+
+  private double resolveOverlayMaxDistance() {
+    String configured = System.getProperty(P2PSystemProperties.OVERLAY_MAX_DISTANCE, "").trim();
+    if (configured.isBlank()) {
+      return Double.MAX_VALUE;
+    }
+    try {
+      return Math.max(0d, Double.parseDouble(configured));
+    } catch (NumberFormatException ignored) {
+      return Double.MAX_VALUE;
+    }
   }
 
   private List<NodeDescriptor> resolveRoutingPeers(List<NodeDescriptor> peers, String topic) {
@@ -263,10 +288,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return Boolean.parseBoolean(System.getProperty(P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"));
   }
 
-  private List<NodeDescriptor> includeCollectorPeers(
-      List<NodeDescriptor> selected,
-      List<NodeDescriptor> allPeers,
-      int maxNeighbors) {
+  private List<NodeDescriptor> includeCollectorPeers(List<NodeDescriptor> selected, List<NodeDescriptor> allPeers) {
     List<NodeDescriptor> collectorPeers =
         allPeers.stream().filter(peer -> isCollectorNodeId(peer.id())).toList();
     if (collectorPeers.isEmpty()) {
@@ -276,7 +298,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     Map<String, NodeDescriptor> byId = new LinkedHashMap<>();
     selected.forEach(peer -> byId.put(peer.id(), peer));
     collectorPeers.forEach(peer -> byId.put(peer.id(), peer));
-    return byId.values().stream().sorted(Comparator.comparing(NodeDescriptor::id)).limit(maxNeighbors).toList();
+    return byId.values().stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
   }
 
   private boolean isCollectorNodeId(String nodeId) {
@@ -337,11 +359,12 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return maxTick;
   }
 
-  private OverlaySelection smallWorldPeers(
+  private OverlaySelection distanceBoundOverlayPeers(
       List<NodeDescriptor> peers,
-      int maxNeighbors,
+      int minNeighbors,
       int shortcuts,
-      boolean preferNearestVehicles) {
+      boolean preferNearestVehicles,
+      double maxDistance) {
     if (peers.isEmpty()) {
       return new OverlaySelection(List.of(), Set.of());
     }
@@ -349,19 +372,21 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     List<NodeDescriptor> sortedPeers = peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
     int startIndex = insertionIndex(sortedPeers, descriptor.id());
 
-    int localSlots = Math.max(0, maxNeighbors - shortcuts);
-
     List<NodeDescriptor> selected = new ArrayList<>();
     Set<String> selectedIds = new HashSet<>();
 
-    if (preferNearestVehicles && localSlots > 0) {
-      List<NodeDescriptor> nearest = nearestVehiclePeers(peers, localSlots, selectedIds);
-      selected.addAll(nearest);
-      nearest.forEach(peer -> selectedIds.add(peer.id()));
-    }
+    if (preferNearestVehicles) {
+      List<NodeDescriptor> inRange = vehiclePeersWithinDistance(peers, maxDistance, selectedIds);
+      selected.addAll(inRange);
+      inRange.forEach(peer -> selectedIds.add(peer.id()));
 
-    if (selected.size() < localSlots) {
-      for (int offset = 0; offset < sortedPeers.size() && selected.size() < localSlots; offset++) {
+      if (selected.size() < minNeighbors) {
+        List<NodeDescriptor> nearestFallback = nearestVehiclePeers(peers, minNeighbors - selected.size(), selectedIds);
+        selected.addAll(nearestFallback);
+        nearestFallback.forEach(peer -> selectedIds.add(peer.id()));
+      }
+    } else {
+      for (int offset = 0; offset < sortedPeers.size() && selected.size() < minNeighbors; offset++) {
         NodeDescriptor peer = sortedPeers.get((startIndex + offset) % sortedPeers.size());
         if (selectedIds.add(peer.id())) {
           selected.add(peer);
@@ -369,8 +394,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       }
     }
 
-    int remainingCapacity = Math.max(0, maxNeighbors - selected.size());
-    int shortcutSlots = Math.min(shortcuts, remainingCapacity);
+    int shortcutSlots = Math.max(0, shortcuts);
     if (shortcutSlots == 0) {
       return new OverlaySelection(selected, Set.of());
     }
@@ -381,6 +405,33 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     Set<String> shortcutPeerIds =
         shortcutsByStableHash.stream().map(NodeDescriptor::id).collect(java.util.stream.Collectors.toSet());
     return new OverlaySelection(selected, shortcutPeerIds);
+  }
+
+  private List<NodeDescriptor> vehiclePeersWithinDistance(
+      List<NodeDescriptor> sortedPeers,
+      double maxDistance,
+      Set<String> excludedPeerIds) {
+    if (descriptor.role() != NodeRole.VEHICLE || maxDistance < 0) {
+      return List.of();
+    }
+    VehiclePosition self = vehiclePositions.get(descriptor.id());
+    if (self == null) {
+      return List.of();
+    }
+
+    return sortedPeers.stream()
+        .filter(peer -> peer.role() == NodeRole.VEHICLE)
+        .filter(peer -> excludedPeerIds == null || !excludedPeerIds.contains(peer.id()))
+        .filter(
+            peer -> {
+              VehiclePosition other = vehiclePositions.get(peer.id());
+              return other != null && distance(self, other) <= maxDistance;
+            })
+        .sorted(
+            Comparator
+                .comparingDouble((NodeDescriptor peer) -> distance(self, vehiclePositions.get(peer.id())))
+                .thenComparing(NodeDescriptor::id))
+        .toList();
   }
 
   private int insertionIndex(List<NodeDescriptor> sortedPeers, String selfId) {

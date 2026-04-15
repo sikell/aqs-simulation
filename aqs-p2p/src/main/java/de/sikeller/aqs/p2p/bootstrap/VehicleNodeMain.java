@@ -20,11 +20,13 @@ public class VehicleNodeMain {
     int tcpPort = resolveTcpPort(nodeId, explicitTcpPort);
     int discoveryPort = Integer.parseInt(arg(args, "--discoveryPort", "45892"));
     String multicastGroup = arg(args, "--multicastGroup", "239.255.42.99");
-    String overlayMaxNeighbors = arg(args, "--overlayMaxNeighbors", null);
+    String overlayMinNeighbors = arg(args, "--overlayMinNeighbors", null);
+    String overlayMaxDistance = arg(args, "--overlayMaxDistance", null);
     String overlayShortcuts = arg(args, "--overlayShortcuts", null);
     String overlayPositionTtlTicks = arg(args, "--overlayPositionTtlTicks", null);
 
-    setIfPresent(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, overlayMaxNeighbors);
+    setIfPresent(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, overlayMinNeighbors);
+    setIfPresent(P2PSystemProperties.OVERLAY_MAX_DISTANCE, overlayMaxDistance);
     setIfPresent(P2PSystemProperties.OVERLAY_SHORTCUTS, overlayShortcuts);
     setIfPresent(P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, overlayPositionTtlTicks);
 

@@ -27,7 +27,7 @@ Parameter-Beispiel:
 
 Optional (Overlay-Tuning fuer Standalone-Nodes):
 
-`--overlayMaxNeighbors=3 --overlayShortcuts=1 --overlayPositionTtlTicks=200`
+`--overlayMinNeighbors=1 --overlayMaxDistance=10000 --overlayShortcuts=1 --overlayPositionTtlTicks=200`
 
 Hinweis: Wenn `--tcpPort` fehlt, wird fuer IDs wie `vehicle-2` automatisch ein Port
 aus der ID abgeleitet (`46000 + 2 => 46002`). Fuer parallele Starts sind dennoch
@@ -53,7 +53,7 @@ Optional fuer dezentrale Vehicle-Entscheidung mit Hop-Weiterleitung:
 
 2. Die Simulation starten (`aqs-simulation-app`, `de.sikeller.aqs.runner.Main`).
 
-Die App nutzt den `de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmP2PCollector`. Im eingebetteten
+Die App nutzt den `de.sikeller.aqs.taxi.algorithm.collector.TaxiAlgorithmP2PCollector`. Im eingebetteten
 Simulationsmodus (`p2pEmbeddedSimulation=1`) wird ein In-Memory-P2P-Netz erzeugt und pro Taxi ein
 `VehicleP2PService`-Agent gestartet. Requests werden mit k-Hop-Weiterleitung verteilt, Vehicles
 entscheiden lokal ueber Offers (inkl. Radius/ETA), und der Collector orchestriert Commit/World-Mutation.
@@ -68,7 +68,7 @@ Zusammen mit `p2pRequestForwardHops` ergibt das lokale, stufenweise Reichweite s
 Zusatz (UI-steuerbar im Algorithmus-Parameterbereich des `TaxiAlgorithmP2PCollector`):
 
 - `p2pEmbeddedSimulation`: `1` = alles lokal simuliert (kein externer Vehicle-Prozess noetig), `0` = LAN-Mode
-- `p2pOverlayMaxNeighbors`: maximale lokale Nachbarn pro Node
+- `p2pOverlayMinNeighbors`: Mindestzahl lokaler Nachbarn pro Node
 - `p2pOverlayShortcuts`: Anzahl deterministischer Small-World-Shortcuts je Node
 - `p2pOverlayPositionTtlTicks`: Gueltigkeit empfangener Vehicle-Positionen fuer die Nachbarwahl
 - `p2pRequestForwardHops`: k-Hop-TTL fuer Request-Flooding
@@ -77,6 +77,7 @@ Hinweis: Diese UI-Parameter setzen JVM-Properties im Simulationsprozess.
 Extern gestartete Nodes (`VehicleNodeMain`/`ClientNodeMain` in separaten Prozessen)
 muessen dieselben Werte separat per `-Daqs.p2p.overlay.*` bekommen.
 
-Zusatz: Vehicle-Nodes tauschen Positionen ueber `vehicle.position` aus; das Small-World-Overlay
-bevorzugt dadurch nahe Vehicle-Peers und nutzt Shortcuts fuer Weitbereichsverbindungen.
+Zusatz: Vehicle-Nodes tauschen Positionen ueber `vehicle.position` aus; das Overlay verbindet
+primaer Peers innerhalb einer Maximaldistanz (`aqs.p2p.overlay.maxDistance`) und fuellt bei Bedarf
+auf `overlayMinNeighbors` auf. Shortcuts koennen weiterhin fuer Weitbereichsverbindungen genutzt werden.
 

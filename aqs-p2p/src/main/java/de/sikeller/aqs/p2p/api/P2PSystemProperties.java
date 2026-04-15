@@ -6,7 +6,8 @@ package de.sikeller.aqs.p2p.api;
 public final class P2PSystemProperties {
   private P2PSystemProperties() {}
 
-  public static final String OVERLAY_MAX_NEIGHBORS = "aqs.p2p.overlay.maxNeighbors";
+  public static final String OVERLAY_MIN_NEIGHBORS = "aqs.p2p.overlay.minNeighbors";
+  public static final String OVERLAY_MAX_DISTANCE = "aqs.p2p.overlay.maxDistance";
   public static final String OVERLAY_SHORTCUTS = "aqs.p2p.overlay.shortcuts";
   public static final String OVERLAY_COLLECTOR_NODE_ID = "aqs.p2p.overlay.collectorNodeId";
   public static final String OVERLAY_PIN_COLLECTOR = "aqs.p2p.overlay.pinCollector";

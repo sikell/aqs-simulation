@@ -33,7 +33,9 @@ public class SimulationVisualization extends AbstractVisualization implements Si
     controls.add(taxiScenarioControl, BorderLayout.NORTH);
     var visuProperties = new VisualizationProperties();
     taxiScenarioControl.setVisualizationProperties(visuProperties);
-    controls.add(new VisualizationControl(visuProperties), BorderLayout.SOUTH);
+    VisualizationControl visualizationControl = new VisualizationControl(visuProperties);
+    taxiScenarioControl.setP2PModeUiListener(visualizationControl::setP2PModeUiState);
+    controls.add(visualizationControl, BorderLayout.SOUTH);
     canvas = new TaxiScenarioCanvas(world, visuProperties);
 
     var simulationArea = new JPanel(new BorderLayout(0, 14));

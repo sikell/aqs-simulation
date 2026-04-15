@@ -4,7 +4,7 @@ import de.sikeller.aqs.model.Algorithm;
 import de.sikeller.aqs.model.WorldObject;
 import de.sikeller.aqs.simulation.SimulationRunner;
 import de.sikeller.aqs.simulation.WorldGeneratorRandom;
-import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmP2PCollector;
+import de.sikeller.aqs.taxi.algorithm.collector.TaxiAlgorithmP2PCollector;
 import de.sikeller.aqs.visualization.SimulationVisualization;
 
 public class Main {

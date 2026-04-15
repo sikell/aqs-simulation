@@ -44,5 +44,5 @@ first in-memory transport to prepare distributed execution.
 Typical starters:
 - `de.sikeller.aqs.p2p.bootstrap.VehicleNodeMain`
 - `de.sikeller.aqs.p2p.bootstrap.ClientNodeMain`
-- `de.sikeller.aqs.runner.Main` (uses `de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmP2PCollector`)
+- `de.sikeller.aqs.runner.Main` (uses `de.sikeller.aqs.taxi.algorithm.collector.TaxiAlgorithmP2PCollector`)
 

@@ -20,6 +20,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.Timer;
@@ -49,7 +50,7 @@ public class TaxiScenarioControl extends AbstractControl {
       Set.of(
           "p2pFixedSearchRadius",
           "p2pRequestForwardHops",
-          "p2pOverlayMaxNeighbors",
+          "p2pOverlayMinNeighbors",
           "p2pOverlayShortcuts",
           "p2pRequestRepublishTicks",
           "p2pTopologyScanTicks");
@@ -88,6 +89,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private VisualizationProperties visualizationProperties;
   private Timer p2pStatusTimer;
   private boolean modeSwitchInProgress;
+  private Consumer<Boolean> p2pModeUiListener = ignored -> {};
   private static final String DEFAULT_TAXI_COUNT_TOOLTIP =
       "Set the count of taxis to be spawned in the simulation run";
 
@@ -333,6 +335,7 @@ public class TaxiScenarioControl extends AbstractControl {
       String selectedMode = Objects.toString(modeBox.getSelectedItem(), MODE_LOCAL);
       boolean p2pMode = isP2PModeSelected();
       boolean simulatedP2PMode = MODE_P2P_SIMULATED.equals(selectedMode);
+      p2pModeUiListener.accept(p2pMode);
 
       JComboBox<String> algorithmBox =
           getComponentByName("algorithmSelectionBox") instanceof JComboBox<?> combo
@@ -385,7 +388,6 @@ public class TaxiScenarioControl extends AbstractControl {
         p2pScanNowButton.setEnabled(p2pMode && simulation.getAlgorithm().get() instanceof P2PStatusProvider);
       }
       if (p2pToggleCollectorButton != null) {
-        p2pToggleCollectorButton.setVisible(p2pMode);
         p2pToggleCollectorButton.setEnabled(p2pMode);
       }
       // Show algorithm parameters in every mode; P2P-specific fields are filtered in generateParameters().
@@ -466,8 +468,13 @@ public class TaxiScenarioControl extends AbstractControl {
       p2pVehiclePeersValue.setText(status.getOrDefault("vehiclePeers", "0"));
       p2pPendingValue.setText(status.getOrDefault("pendingRequests", "0"));
       p2pOverlayModeValue.setText(status.getOrDefault("overlayMode", "SMALL_WORLD"));
+      String minNeighbors = status.getOrDefault("overlayMinNeighbors", "1");
+      String maxDistance = status.getOrDefault("overlayMaxDistance", "-");
       p2pOverlayNeighborsValue.setText(
-          status.getOrDefault("overlayMaxNeighbors", "3")
+          "min="
+              + minNeighbors
+              + ", d_max="
+              + maxDistance
               + " (shortcuts="
               + status.getOrDefault("overlayShortcuts", "1")
               + ")");
@@ -590,6 +597,11 @@ public class TaxiScenarioControl extends AbstractControl {
 
   public void setVisualizationProperties(VisualizationProperties visualizationProperties) {
     this.visualizationProperties = visualizationProperties;
+  }
+
+  public void setP2PModeUiListener(Consumer<Boolean> listener) {
+    this.p2pModeUiListener = listener == null ? ignored -> {} : listener;
+    this.p2pModeUiListener.accept(isP2PModeSelected());
   }
 
   private boolean forceAlgorithmSelection(String simpleClassName) {
@@ -1138,7 +1150,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private String displayLabelForParameter(String parameterName) {
     return switch (parameterName) {
       case "p2pFixedSearchRadius" -> "Client RQS radius";
-      case "p2pOverlayMaxNeighbors" -> "Overlay degree k (max neighbors)";
+      case "p2pOverlayMinNeighbors" -> "Overlay min neighbors";
       case "p2pOverlayShortcuts" -> "Overlay shortcuts";
       case "p2pRequestForwardHops" -> "Flood TTL (Hops)";
       case "p2pRequestRepublishTicks" -> "Republish throttle [ticks]";
@@ -1152,8 +1164,8 @@ public class TaxiScenarioControl extends AbstractControl {
     return switch (parameterName) {
       case "p2pFixedSearchRadius" ->
           "Fixed radius around the client used for RQS seeding (world units), independent from trip distance.";
-      case "p2pOverlayMaxNeighbors" ->
-          "Maximum overlay neighbors per node (k in the small-world graph).";
+      case "p2pOverlayMinNeighbors" ->
+          "Minimum overlay neighbors per node; additional neighbors can appear within distance bound.";
       case "p2pOverlayShortcuts" ->
           "Number of additional small-world shortcut links per node.";
       case "p2pRequestForwardHops" ->
@@ -1301,13 +1313,14 @@ public class TaxiScenarioControl extends AbstractControl {
           continue; // already handled above
         }
 
+        String effectiveName = name;
         String valueStr = props.getProperty(name);
         boolean valueSet = false;
 
         // 1. try: set algorithm parameters
         if (algorithmInputs != null) {
           for (Component compInAlgoPanel : algorithmInputs.getComponents()) {
-            if (compInAlgoPanel instanceof JSpinner && name.equals(compInAlgoPanel.getName())) {
+            if (compInAlgoPanel instanceof JSpinner && effectiveName.equals(compInAlgoPanel.getName())) {
               try {
                 ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
                 log.trace("Set ALGORITHM JSpinner '{}' to '{}'", name, valueStr);
@@ -1319,12 +1332,12 @@ public class TaxiScenarioControl extends AbstractControl {
               }
             }
             if (compInAlgoPanel instanceof JTextField textField
-                && name.equals(compInAlgoPanel.getName())) {
+                && effectiveName.equals(compInAlgoPanel.getName())) {
               textField.setText(valueStr);
               valueSet = true;
               break;
             }
-            if (compInAlgoPanel instanceof JSlider && name.equals(compInAlgoPanel.getName())) {
+            if (compInAlgoPanel instanceof JSlider && effectiveName.equals(compInAlgoPanel.getName())) {
               try {
                 ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
                 log.trace("Set ALGORITHM JSlider '{}' to '{}'", name, valueStr);
@@ -1340,7 +1353,7 @@ public class TaxiScenarioControl extends AbstractControl {
 
         // 2. try: set global parameters
         if (!valueSet) {
-          Component generalComp = getComponentByName(name);
+          Component generalComp = getComponentByName(effectiveName);
           if (generalComp instanceof JSpinner) {
             try {
               ((JSpinner) generalComp).setValue(Integer.parseInt(valueStr));
@@ -1629,11 +1642,16 @@ public class TaxiScenarioControl extends AbstractControl {
       if (legendToggleButton == null) {
         return;
       }
+      legendToggleButton.setVisible(isLegendVisible());
       int x = 12;
       int y = 34;
       int buttonWidth = 120;
       int buttonHeight = 22;
       legendToggleButton.setBounds(x + 130, y - 14, buttonWidth, buttonHeight);
+    }
+
+    private boolean isLegendVisible() {
+      return snapshot != null && snapshot.nodes() != null && !snapshot.nodes().isEmpty();
     }
 
     private void drawLegendAndCounts(Graphics2D g2, List<P2PNetworkNodeSnapshot> nodes, boolean drawLocal) {

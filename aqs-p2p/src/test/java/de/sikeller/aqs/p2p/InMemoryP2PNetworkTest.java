@@ -30,7 +30,7 @@ class InMemoryP2PNetworkTest {
       vehicle.start();
 
       String requestId = client.requestRide("(0,0)", "(100,100)");
-      vehicle.sendOffer("client-1", "etaSeconds=90");
+      vehicle.sendOffer("client-1", requestId, "etaSeconds=90");
 
       assertTrue(
           vehicle.inboxSnapshot().stream()
@@ -125,7 +125,7 @@ class InMemoryP2PNetworkTest {
 
   @Test
   void producerRideRequestBypassesNeighborCap() {
-    String property = P2PSystemProperties.OVERLAY_MAX_NEIGHBORS;
+    String property = P2PSystemProperties.OVERLAY_MIN_NEIGHBORS;
     String previous = System.getProperty(property);
     System.setProperty(property, "1");
     try {
@@ -159,7 +159,7 @@ class InMemoryP2PNetworkTest {
 
   @Test
   void collectorIsPinnedAsNeighborForAllNodesEvenWithNeighborCap() {
-    String maxNeighborsProperty = P2PSystemProperties.OVERLAY_MAX_NEIGHBORS;
+    String maxNeighborsProperty = P2PSystemProperties.OVERLAY_MIN_NEIGHBORS;
     String collectorNodeProperty = P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID;
     String pinCollectorProperty = P2PSystemProperties.OVERLAY_PIN_COLLECTOR;
     String previousMaxNeighbors = System.getProperty(maxNeighborsProperty);
@@ -213,7 +213,7 @@ class InMemoryP2PNetworkTest {
   void vehicleOverlayPrefersNearestByPosition() {
     withSystemProperties(
         Map.of(
-            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "1",
+            P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "1",
             P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
             P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
         () -> {
@@ -338,7 +338,7 @@ class InMemoryP2PNetworkTest {
   void forwardedRequestMayOfferOutsideInitialSeedRadiusByDefault() {
     withSystemProperties(
         Map.of(
-            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "3",
+            P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "3",
             P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
             P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
         () -> {
@@ -378,7 +378,7 @@ class InMemoryP2PNetworkTest {
   void requestForwardingRespectsTtlAcrossSparseOverlay() {
     withSystemProperties(
         Map.of(
-            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "1",
+            P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "1",
             P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
             P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
         () -> {
@@ -437,7 +437,7 @@ class InMemoryP2PNetworkTest {
   void firstSeenRequestIsForwardedEvenWhenSeedCanOffer() {
     withSystemProperties(
         Map.of(
-            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "2",
+            P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "2",
             P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
             P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
         () -> {
@@ -549,7 +549,7 @@ class InMemoryP2PNetworkTest {
   void kHopForwardingUsesReciprocalOverlayLinksForVehicles() {
     withSystemProperties(
         Map.of(
-            P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "1",
+            P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "1",
             P2PSystemProperties.OVERLAY_SHORTCUTS, "0",
             P2PSystemProperties.OVERLAY_PIN_COLLECTOR, "false"),
         () -> {

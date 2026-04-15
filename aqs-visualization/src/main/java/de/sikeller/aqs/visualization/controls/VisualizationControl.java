@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class VisualizationControl extends AbstractControl {
   private final VisualizationProperties properties;
+  private JCheckBox showP2PRqsRangeCheckBox;
 
   public VisualizationControl(VisualizationProperties properties) {
     this.properties = properties;
@@ -105,13 +106,14 @@ public class VisualizationControl extends AbstractControl {
             properties::setShowTime));
 
 
-    controls.add(
+    showP2PRqsRangeCheckBox =
         checkBox(
             "Show RQS range overlay",
             "showP2PRqsRange",
             "Display the RQS range overlay in the live simulation view.",
             properties.isShowRqsRecognitionRange(),
-            properties::setShowRqsRecognitionRange));
+            properties::setShowRqsRecognitionRange);
+    controls.add(showP2PRqsRangeCheckBox);
 
     controls.add(
         checkBox(
@@ -130,5 +132,17 @@ public class VisualizationControl extends AbstractControl {
             properties::setShowClientKnowledgeColors));
 
     return controls;
+  }
+
+  public void setP2PModeUiState(boolean p2pMode) {
+    if (showP2PRqsRangeCheckBox == null) {
+      return;
+    }
+    showP2PRqsRangeCheckBox.setVisible(p2pMode);
+    showP2PRqsRangeCheckBox.setEnabled(p2pMode);
+    if (!p2pMode) {
+      showP2PRqsRangeCheckBox.setSelected(false);
+      properties.setShowRqsRecognitionRange(false);
+    }
   }
 }
