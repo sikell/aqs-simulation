@@ -7,13 +7,15 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
@@ -22,11 +24,16 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractP2PNodeService implements P2PNodeService {
   private static final String COLLECTOR_NODE_ID_PREFIX = "sim-collector-";
   private static final long DEFAULT_POSITION_TTL_TICKS = 200L;
+  private static final int DEFAULT_MAX_INBOX_MESSAGES = 10_000;
+  private static final String MAX_INBOX_MESSAGES_PROPERTY = "p2pMaxInboxMessages";
   private static final ConcurrentMap<String, VehiclePosition> vehiclePositions = new ConcurrentHashMap<>();
+  private static final AtomicLong vehiclePositionRevision = new AtomicLong();
 
   private final NodeDescriptor descriptor;
   private final P2PNetwork network;
-  private final List<P2PMessage> inbox = new CopyOnWriteArrayList<>();
+  private final ConcurrentLinkedQueue<P2PMessage> inbox = new ConcurrentLinkedQueue<>();
+  private final AtomicInteger inboxSize = new AtomicInteger();
+  private final ConcurrentMap<String, OverlayCacheEntry> overlaySelectionCache = new ConcurrentHashMap<>();
   private final AtomicLong messagesSent = new AtomicLong();
   private final AtomicLong messagesReceived = new AtomicLong();
   private volatile ScheduledExecutorService statusScheduler;
@@ -72,7 +79,11 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     }
     if (descriptor.role() == NodeRole.VEHICLE) {
       vehiclePositions.remove(descriptor.id());
+      vehiclePositionRevision.incrementAndGet();
     }
+    inbox.clear();
+    inboxSize.set(0);
+    overlaySelectionCache.clear();
     log.info("Node {} left network", descriptor.id());
   }
 
@@ -82,6 +93,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     }
     VehiclePosition position = new VehiclePosition(x, y, simulationTick);
     vehiclePositions.put(descriptor.id(), position);
+    vehiclePositionRevision.incrementAndGet();
     publishVehiclePosition(position);
   }
 
@@ -153,6 +165,19 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return new ArrayList<>(inbox);
   }
 
+  /**
+   * Returns and clears the currently buffered inbox messages in arrival order.
+   */
+  public List<P2PMessage> drainInbox() {
+    List<P2PMessage> drained = new ArrayList<>();
+    P2PMessage next;
+    while ((next = inbox.poll()) != null) {
+      drained.add(next);
+      inboxSize.decrementAndGet();
+    }
+    return drained;
+  }
+
   public Set<String> overlayNeighborIdsSnapshot() {
     Set<String> ids = new HashSet<>();
     overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE).peers().forEach(peer -> ids.add(peer.id()));
@@ -161,6 +186,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   protected void handleIncoming(P2PMessage message) {
     inbox.add(message);
+    inboxSize.incrementAndGet();
+    trimInboxIfNeeded();
     messagesReceived.incrementAndGet();
 
     if (P2PTopics.VEHICLE_POSITION.equals(message.topic())) {
@@ -229,6 +256,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     int minNeighbors = resolveOverlayMinNeighbors();
     int shortcuts = Math.max(0, Integer.getInteger(P2PSystemProperties.OVERLAY_SHORTCUTS, 1));
     double maxDistance = resolveOverlayMaxDistance();
+    boolean pinCollector = shouldPinCollectorPeers();
+    String configuredCollectorNodeId = System.getProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, "");
 
     List<NodeDescriptor> routingPeers = resolveRoutingPeers(peers, topic);
     boolean vehicleRelevant =
@@ -240,15 +269,69 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       shortcuts = 0;
     }
 
+    long stateFingerprint =
+        overlayStateFingerprint(
+            peers,
+            topic,
+            minNeighbors,
+            shortcuts,
+            maxDistance,
+            pinCollector,
+            configuredCollectorNodeId,
+            vehicleRelevant);
+    OverlayCacheEntry cached = overlaySelectionCache.get(topic);
+    if (cached != null && cached.fingerprint() == stateFingerprint) {
+      return cached.selection();
+    }
+
     OverlaySelection smallWorld =
         distanceBoundOverlayPeers(routingPeers, minNeighbors, shortcuts, vehicleRelevant, maxDistance);
     List<NodeDescriptor> selected = smallWorld.peers();
-    if (!shouldPinCollectorPeers()) {
-      return new OverlaySelection(selected, smallWorld.shortcutPeerIds());
+    OverlaySelection result;
+    if (!pinCollector) {
+      result = new OverlaySelection(selected, smallWorld.shortcutPeerIds());
+    } else {
+      result =
+          new OverlaySelection(
+              includeCollectorPeers(selected, peers),
+              smallWorld.shortcutPeerIds());
     }
-    return new OverlaySelection(
-        includeCollectorPeers(selected, peers),
-        smallWorld.shortcutPeerIds());
+    overlaySelectionCache.put(topic, new OverlayCacheEntry(stateFingerprint, result));
+    return result;
+  }
+
+  private long overlayStateFingerprint(
+      List<NodeDescriptor> peers,
+      String topic,
+      int minNeighbors,
+      int shortcuts,
+      double maxDistance,
+      boolean pinCollector,
+      String collectorNodeId,
+      boolean vehicleRelevant) {
+    long sumHash = 0L;
+    long xorHash = 0L;
+    for (NodeDescriptor peer : peers) {
+      if (peer == null) {
+        continue;
+      }
+      int peerHash = Objects.hash(peer.id(), peer.role());
+      sumHash += peerHash;
+      xorHash ^= peerHash;
+    }
+
+    int configHash =
+        Objects.hash(
+            descriptor.id(),
+            descriptor.role(),
+            topic,
+            minNeighbors,
+            shortcuts,
+            maxDistance,
+            pinCollector,
+            collectorNodeId);
+    long positionRevision = vehicleRelevant ? vehiclePositionRevision.get() : 0L;
+    return sumHash ^ xorHash ^ (((long) peers.size()) << 32) ^ configHash ^ positionRevision;
   }
 
   private int resolveOverlayMinNeighbors() {
@@ -324,6 +407,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return;
     }
     vehiclePositions.put(message.senderId(), new VehiclePosition(x, y, tick));
+    vehiclePositionRevision.incrementAndGet();
   }
 
   private Integer parseInteger(String value) {
@@ -517,6 +601,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   private record OverlaySelection(List<NodeDescriptor> peers, Set<String> shortcutPeerIds) {}
 
+  private record OverlayCacheEntry(long fingerprint, OverlaySelection selection) {}
+
   private record VehiclePosition(int x, int y, long simulationTick) {}
 
 
@@ -527,9 +613,21 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
         descriptor.role(),
         running,
         network.peers().size(),
-        inbox.size(),
+        inboxSize.get(),
         messagesSent.get(),
         messagesReceived.get());
+  }
+
+  private void trimInboxIfNeeded() {
+    int maxInboxMessages =
+        Math.max(1, Integer.getInteger(MAX_INBOX_MESSAGES_PROPERTY, DEFAULT_MAX_INBOX_MESSAGES));
+    while (inboxSize.get() > maxInboxMessages) {
+      P2PMessage dropped = inbox.poll();
+      if (dropped == null) {
+        break;
+      }
+      inboxSize.decrementAndGet();
+    }
   }
 
   protected void logStatus() {

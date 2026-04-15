@@ -505,60 +505,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
   }
 
-  @Override
-  protected Map<String, int[]> vehiclePositionSnapshot() {
-    Map<String, PositionAtTick> latestByNodeId = new HashMap<>();
-    for (P2PMessage message : inboxSnapshot()) {
-      if (!P2PTopics.VEHICLE_POSITION.equals(message.topic())) {
-        continue;
-      }
-      String senderId = message.senderId();
-      if (senderId == null || senderId.isBlank()) {
-        continue;
-      }
-      Map<String, String> payload = KeyValuePayload.parse(message.payload());
-      Integer x = parseCoordinate(payload.get(P2PPayloadKeys.POSITION_X));
-      Integer y = parseCoordinate(payload.get(P2PPayloadKeys.POSITION_Y));
-      Long tick = parseLongOrNull(payload.get(P2PPayloadKeys.POSITION_TICK));
-      if (x == null || y == null || tick == null) {
-        continue;
-      }
-      PositionAtTick current = latestByNodeId.get(senderId);
-      if (current == null || tick >= current.tick) {
-        latestByNodeId.put(senderId, new PositionAtTick(x, y, tick));
-      }
-    }
-    if (simulationX != null && simulationY != null) {
-      latestByNodeId.put(descriptor().id(), new PositionAtTick(simulationX, simulationY, currentSimulationTick));
-    }
-
-    Map<String, int[]> snapshot = new HashMap<>();
-    latestByNodeId.forEach((nodeId, position) -> snapshot.put(nodeId, new int[] {position.x, position.y}));
-    return snapshot;
-  }
-
-  private Long parseLongOrNull(String value) {
-    if (value == null || value.isBlank()) {
-      return null;
-    }
-    try {
-      return Long.parseLong(value.trim());
-    } catch (NumberFormatException ex) {
-      return null;
-    }
-  }
-
-  private static final class PositionAtTick {
-    private final int x;
-    private final int y;
-    private final long tick;
-
-    private PositionAtTick(int x, int y, long tick) {
-      this.x = x;
-      this.y = y;
-      this.tick = tick;
-    }
-  }
 
 
   private void handleAccept(P2PMessage message) {

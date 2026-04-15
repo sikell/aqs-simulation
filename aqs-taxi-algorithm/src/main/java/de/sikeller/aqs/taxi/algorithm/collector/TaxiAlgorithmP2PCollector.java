@@ -62,7 +62,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private P2PNetwork network;
   private ClientP2PService clientNode;
   private final Map<String, VehicleP2PService> localVehicleNodesByTaxiName = new HashMap<>();
-  private int processedInboxMessages = 0;
   private long stepCounter = 0;
   private final TaxiCollectorRuntimeState runtimeState = new TaxiCollectorRuntimeState();
   private final Map<String, String> vehicleNodeToTaxiName = new HashMap<>();
@@ -175,7 +174,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   @Override
   public void init(World world) {
-    processedInboxMessages = 0;
     stepCounter = 0;
     runtimeState.clear();
     topologyViewsByNodeId.clear();
@@ -227,13 +225,12 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   private void processInbox(World world, Collection<Client> waitingClients) {
-    var inbox = clientNode.inboxSnapshot();
-    int newMessages = inbox.size() - processedInboxMessages;
-    if (newMessages <= 0) {
+    List<P2PMessage> delta = clientNode.drainInbox();
+    if (delta.isEmpty()) {
       return;
     }
 
-    List<P2PMessage> delta = inbox.subList(processedInboxMessages, inbox.size());
+    int newMessages = delta.size();
     long newOffers = delta.stream().filter(m -> P2PTopics.RIDE_OFFER.equals(m.topic())).count();
     handleIncoming(delta);
     log.info(
@@ -243,8 +240,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         waitingClients.size(),
         newMessages,
         newOffers,
-        inbox.size());
-    processedInboxMessages = inbox.size();
+        newMessages);
   }
 
   private void logPeriodicRuntimeStatus(World world, Collection<Client> waitingClients) {
@@ -735,7 +731,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     runtimeState.clear();
     vehicleNodeToTaxiName.clear();
     taxiNameToVehicleNodeId.clear();
-    processedInboxMessages = 0;
     stepCounter = 0;
     topologyViewsByNodeId.clear();
     lastTopologyScanAtStep = Long.MIN_VALUE;
