@@ -8,14 +8,14 @@ Basis-Modul fuer verteilte Ausfuehrung in der Taxi-Simulation.
 - In-Memory Netzwerk (`InMemoryP2PNetwork`) als lokale Referenz-Implementierung
 - LAN Netzwerk (`LanP2PNetwork`) mit UDP-Multicast Auto-Discovery und TCP-Messaging
 - Startbare Services fuer `CLIENT` und `VEHICLE`
-- Startbare Bootstrap-Runner (`VehicleNodeMain`, `ClientNodeMain`) fuer echte Netzwerk-Demos
+- Startbarer Bootstrap-Runner (`VehicleNodeMain`) fuer echte Netzwerk-Demos
 
 ## Ziel
 
 Dieses Modul ist die Startbasis fuer echte Netzwerktranporte (z. B. gRPC, QUIC, Gossip, DHT).
 Die In-Memory Variante dient nur als schneller Integrations- und Logik-Test.
 
-## Schnellstart (2 Prozesse)
+## Schnellstart (Vehicle Node)
 
 Vehicle Node starten:
 
@@ -32,18 +32,6 @@ Optional (Overlay-Tuning fuer Standalone-Nodes):
 Hinweis: Wenn `--tcpPort` fehlt, wird fuer IDs wie `vehicle-2` automatisch ein Port
 aus der ID abgeleitet (`46000 + 2 => 46002`). Fuer parallele Starts sind dennoch
 explizite, eindeutige Ports empfehlenswert.
-
-Client Node starten:
-
-`de.sikeller.aqs.p2p.bootstrap.ClientNodeMain`
-
-Parameter-Beispiel:
-
-`--id=client-1 --tcpPort=46002 --discoveryPort=45892 --multicastGroup=239.255.42.99`
-
-Optional fuer dezentrale Vehicle-Entscheidung mit Hop-Weiterleitung:
-
-`--requestHops=2`
 
 ## Schnellstart mit Simulation (empfohlen)
 
@@ -74,7 +62,7 @@ Zusatz (UI-steuerbar im Algorithmus-Parameterbereich des `TaxiAlgorithmP2PCollec
 - `p2pRequestForwardHops`: k-Hop-TTL fuer Request-Flooding
 
 Hinweis: Diese UI-Parameter setzen JVM-Properties im Simulationsprozess.
-Extern gestartete Nodes (`VehicleNodeMain`/`ClientNodeMain` in separaten Prozessen)
+Extern gestartete Vehicle-Nodes (`VehicleNodeMain` in separaten Prozessen)
 muessen dieselben Werte separat per `-Daqs.p2p.overlay.*` bekommen.
 
 Zusatz: Vehicle-Nodes tauschen Positionen ueber `vehicle.position` aus; das Overlay verbindet

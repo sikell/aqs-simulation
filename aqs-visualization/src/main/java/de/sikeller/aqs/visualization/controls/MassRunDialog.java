@@ -27,13 +27,14 @@ final class MassRunDialog extends JDialog {
   private final Map<String, JCheckBox> algorithmChecks = new LinkedHashMap<>();
   private final Map<String, JCheckBox> strategyChecks = new LinkedHashMap<>();
   private final JTextField kHopsField;
+  private final JTextField rqsRadiusField;
   private final JTextField overlayMinNeighborsField;
   private final JTextField overlayShortcutsField;
   private final JTextField runsField;
   private final JTextField baseSeedField;
   private final JTextField outputDirField;
   private final JTextField taxiCountsField;
-  private final JTextField clientCountField;
+  private final JTextField clientCountsField;
   private final JTextField clientSpawnWindowField;
   private final JTextField clientSpeedField;
   private final JTextField taxiSeatCountsField;
@@ -57,14 +58,16 @@ final class MassRunDialog extends JDialog {
     JPanel runPanel = new JPanel(new GridLayout(0, 2, 8, 8));
     runPanel.setBorder(BorderFactory.createTitledBorder("Run Setup"));
     kHopsField = new JTextField(defaults.kHopsCsv());
-    overlayMinNeighborsField = new JTextField(String.valueOf(defaults.overlayMinNeighbors()));
-    overlayShortcutsField = new JTextField(String.valueOf(defaults.overlayShortcuts()));
+    rqsRadiusField = new JTextField(defaults.rqsRadiusCsv());
+    overlayMinNeighborsField = new JTextField(defaults.overlayMinNeighborsCsv());
+    overlayShortcutsField = new JTextField(defaults.overlayShortcutsCsv());
     runsField = new JTextField(String.valueOf(defaults.runs()));
     baseSeedField = new JTextField(String.valueOf(defaults.baseSeed()));
     outputDirField = new JTextField(defaults.outputDir());
     addRow(runPanel, "k-Hops (CSV)", kHopsField);
-    addRow(runPanel, "Overlay min neighbors", overlayMinNeighborsField);
-    addRow(runPanel, "Overlay shortcuts", overlayShortcutsField);
+    addRow(runPanel, "RQS radius (CSV)", rqsRadiusField);
+    addRow(runPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
+    addRow(runPanel, "Overlay shortcuts (CSV)", overlayShortcutsField);
     addRow(runPanel, "Runs", runsField);
     addRow(runPanel, "Base seed", baseSeedField);
     addRow(runPanel, "Output dir", outputDirField);
@@ -72,14 +75,14 @@ final class MassRunDialog extends JDialog {
     JPanel worldPanel = new JPanel(new GridLayout(0, 2, 8, 8));
     worldPanel.setBorder(BorderFactory.createTitledBorder("World Parameters"));
     taxiCountsField = new JTextField(defaults.taxiCountsCsv());
-    clientCountField = new JTextField(String.valueOf(defaults.clientCount()));
+    clientCountsField = new JTextField(defaults.clientCountsCsv());
     clientSpawnWindowField = new JTextField(String.valueOf(defaults.clientSpawnWindow()));
     clientSpeedField = new JTextField(String.valueOf(defaults.clientSpeed()));
     taxiSeatCountsField = new JTextField(defaults.taxiSeatCountsCsv());
     taxiSpeedField = new JTextField(String.valueOf(defaults.taxiSpeed()));
     simulationSpeedField = new JTextField(String.valueOf(defaults.simulationSpeed()));
     addRow(worldPanel, "Taxi counts (CSV)", taxiCountsField);
-    addRow(worldPanel, "Client count", clientCountField);
+    addRow(worldPanel, "Client counts (CSV, pairwise with taxi counts)", clientCountsField);
     addRow(worldPanel, "Client spawn window", clientSpawnWindowField);
     addRow(worldPanel, "Client speed", clientSpeedField);
     addRow(worldPanel, "Taxi seat counts (CSV)", taxiSeatCountsField);
@@ -157,13 +160,16 @@ final class MassRunDialog extends JDialog {
       List<String> algorithms = selectedAlgorithms();
       List<String> p2pStrategies = selectedStrategies();
       List<Integer> kHops = parseCsvInts(kHopsField.getText(), 0, "k-hop");
-      int overlayMinNeighbors = parseInt(overlayMinNeighborsField.getText(), 1);
-      int overlayShortcuts = parseInt(overlayShortcutsField.getText(), 0);
+      List<Integer> rqsRadiusValues = parseCsvInts(rqsRadiusField.getText(), 1, "RQS radius");
+      List<Integer> overlayMinNeighborsValues =
+          parseCsvInts(overlayMinNeighborsField.getText(), 1, "overlay min neighbors");
+      List<Integer> overlayShortcutsValues =
+          parseCsvInts(overlayShortcutsField.getText(), 0, "overlay shortcuts");
       int runs = parseInt(runsField.getText(), 1);
       int baseSeed = Integer.parseInt(baseSeedField.getText().trim());
       String outputDir = outputDirField.getText().trim();
-      List<Integer> taxiCounts = parseCsvInts(taxiCountsField.getText(), 1, "taxi count");
-      int clientCount = parseInt(clientCountField.getText(), 1);
+      List<Integer> taxiCounts = parseCsvIntList(taxiCountsField.getText(), 1, "taxi count");
+      List<Integer> clientCounts = parseCsvIntList(clientCountsField.getText(), 1, "client count");
       int clientSpawnWindow = parseInt(clientSpawnWindowField.getText(), 0);
       int clientSpeed = parseInt(clientSpeedField.getText(), 0);
       List<Integer> taxiSeatCounts = parseCsvInts(taxiSeatCountsField.getText(), 1, "taxi seat count");
@@ -173,19 +179,24 @@ final class MassRunDialog extends JDialog {
       if (outputDir.isBlank()) {
         throw new IllegalArgumentException("Output dir must not be blank");
       }
+      if (taxiCounts.size() != clientCounts.size()) {
+        throw new IllegalArgumentException(
+            "Taxi counts and client counts must have the same number of entries for pairwise runs");
+      }
 
       result =
           new MassRunConfig(
               algorithms,
               kHops,
+              rqsRadiusValues,
               p2pStrategies,
-              overlayMinNeighbors,
-              overlayShortcuts,
+              overlayMinNeighborsValues,
+              overlayShortcutsValues,
               runs,
               baseSeed,
               outputDir,
               taxiCounts,
-              clientCount,
+              clientCounts,
               clientSpawnWindow,
               clientSpeed,
               taxiSeatCounts,
@@ -235,13 +246,47 @@ final class MassRunDialog extends JDialog {
       if (trimmed.isBlank()) {
         continue;
       }
-      int value = Integer.parseInt(trimmed);
+      int value = parseIntToken(trimmed, label);
       values.add(Math.max(min, value));
     }
     if (values.isEmpty()) {
       throw new IllegalArgumentException("At least one " + label + " value is required");
     }
     return new ArrayList<>(values);
+  }
+
+  private static List<Integer> parseCsvIntList(String text, int min, String label) {
+    List<Integer> values = new ArrayList<>();
+    for (String part : text.split(",")) {
+      String trimmed = part.trim();
+      if (trimmed.isBlank()) {
+        continue;
+      }
+      int value = parseIntToken(trimmed, label);
+      values.add(Math.max(min, value));
+    }
+    if (values.isEmpty()) {
+      throw new IllegalArgumentException("At least one " + label + " value is required");
+    }
+    return values;
+  }
+
+  private static int parseIntToken(String token, String label) {
+    if (token == null) {
+      throw new IllegalArgumentException("Invalid " + label + " value: null");
+    }
+    String normalized = token.trim();
+    if (normalized.equalsIgnoreCase("INF")
+        || normalized.equalsIgnoreCase("MAX")
+        || normalized.equalsIgnoreCase("Integer.MAX_VALUE")) {
+      return Integer.MAX_VALUE;
+    }
+    try {
+      return Integer.parseInt(normalized);
+    } catch (NumberFormatException ex) {
+      throw new IllegalArgumentException(
+          "Invalid " + label + " value: " + token + " (expected integer or INF/MAX)", ex);
+    }
   }
 
   private static Set<String> parseCsvStringsOrEmpty(String text) {
@@ -261,14 +306,15 @@ final class MassRunDialog extends JDialog {
   record Defaults(
       String algorithmsCsv,
       String kHopsCsv,
+      String rqsRadiusCsv,
       String p2pStrategiesCsv,
-      int overlayMinNeighbors,
-      int overlayShortcuts,
+      String overlayMinNeighborsCsv,
+      String overlayShortcutsCsv,
       int runs,
       int baseSeed,
       String outputDir,
       String taxiCountsCsv,
-      int clientCount,
+      String clientCountsCsv,
       int clientSpawnWindow,
       int clientSpeed,
       String taxiSeatCountsCsv,
@@ -278,14 +324,15 @@ final class MassRunDialog extends JDialog {
   record MassRunConfig(
       List<String> algorithms,
       List<Integer> kHops,
+      List<Integer> rqsRadiusValues,
       List<String> p2pStrategies,
-      int overlayMinNeighbors,
-      int overlayShortcuts,
+      List<Integer> overlayMinNeighborsValues,
+      List<Integer> overlayShortcutsValues,
       int runs,
       int baseSeed,
       String outputDir,
       List<Integer> taxiCounts,
-      int clientCount,
+      List<Integer> clientCounts,
       int clientSpawnWindow,
       int clientSpeed,
       List<Integer> taxiSeatCounts,
