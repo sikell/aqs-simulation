@@ -27,6 +27,7 @@ final class MassRunCsvWriter {
       int taxiSeatCount,
       String p2pStrategy,
       int p2pOverlayMinNeighbors,
+      int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
       int runIndex,
       int worldSeed,
@@ -43,7 +44,7 @@ final class MassRunCsvWriter {
       double sum = parseDouble(row[4]);
       int count = (int) Math.round(parseDouble(row[5]));
       rows.add(
-          new RunMetricRow(
+              new RunMetricRow(
               timestamp,
               algorithm,
               kHops,
@@ -52,8 +53,9 @@ final class MassRunCsvWriter {
               clientCount,
               taxiSeatCount,
               p2pStrategy,
-              p2pOverlayMinNeighbors,
-              p2pOverlayShortcuts,
+               p2pOverlayMinNeighbors,
+               p2pOverlayMaxNeighbors,
+               p2pOverlayShortcuts,
               runIndex,
               worldSeed,
               metric,
@@ -100,6 +102,8 @@ final class MassRunCsvWriter {
               + "|"
               + row.p2pOverlayMinNeighbors()
               + "|"
+              + row.p2pOverlayMaxNeighbors()
+              + "|"
               + row.p2pOverlayShortcuts()
               + "|"
               + row.metric();
@@ -119,6 +123,7 @@ final class MassRunCsvWriter {
       int taxiSeatCount = group.get(0).taxiSeatCount();
       String p2pStrategy = group.get(0).p2pStrategy();
       int p2pOverlayMinNeighbors = group.get(0).p2pOverlayMinNeighbors();
+      int p2pOverlayMaxNeighbors = group.get(0).p2pOverlayMaxNeighbors();
       int p2pOverlayShortcuts = group.get(0).p2pOverlayShortcuts();
       String metric = group.get(0).metric();
 
@@ -132,8 +137,9 @@ final class MassRunCsvWriter {
               clientCount,
               taxiSeatCount,
               p2pStrategy,
-              p2pOverlayMinNeighbors,
-              p2pOverlayShortcuts,
+               p2pOverlayMinNeighbors,
+               p2pOverlayMaxNeighbors,
+               p2pOverlayShortcuts,
               metric,
               group.size(),
               avgOfAvg,
@@ -150,7 +156,7 @@ final class MassRunCsvWriter {
   private static void writeRunCsv(Path file, List<RunMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "timestamp,algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayShortcuts,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
+        "timestamp,algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
     for (RunMetricRow row : rows) {
       lines.add(
           csv(
@@ -162,8 +168,9 @@ final class MassRunCsvWriter {
               row.clientCount(),
               row.taxiSeatCount(),
               row.p2pStrategy(),
-              row.p2pOverlayMinNeighbors(),
-              row.p2pOverlayShortcuts(),
+               row.p2pOverlayMinNeighbors(),
+               row.p2pOverlayMaxNeighbors(),
+               row.p2pOverlayShortcuts(),
               row.runIndex(),
               row.worldSeed(),
               row.metric(),
@@ -180,7 +187,7 @@ final class MassRunCsvWriter {
   private static void writeAggregateCsv(Path file, List<AggregateMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayShortcuts,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
+        "algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
     for (AggregateMetricRow row : rows) {
       lines.add(
           csv(
@@ -191,8 +198,9 @@ final class MassRunCsvWriter {
               row.clientCount(),
               row.taxiSeatCount(),
               row.p2pStrategy(),
-              row.p2pOverlayMinNeighbors(),
-              row.p2pOverlayShortcuts(),
+               row.p2pOverlayMinNeighbors(),
+               row.p2pOverlayMaxNeighbors(),
+               row.p2pOverlayShortcuts(),
               row.metric(),
               row.runs(),
               row.avgOfAvg(),
@@ -284,6 +292,7 @@ final class MassRunCsvWriter {
       int taxiSeatCount,
       String p2pStrategy,
       int p2pOverlayMinNeighbors,
+      int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
       int runIndex,
       int worldSeed,
@@ -304,6 +313,7 @@ final class MassRunCsvWriter {
       int taxiSeatCount,
       String p2pStrategy,
       int p2pOverlayMinNeighbors,
+      int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
       String metric,
       int runs,

@@ -29,6 +29,7 @@ final class MassRunDialog extends JDialog {
   private final JTextField kHopsField;
   private final JTextField rqsRadiusField;
   private final JTextField overlayMinNeighborsField;
+  private final JTextField overlayMaxNeighborsField;
   private final JTextField overlayShortcutsField;
   private final JTextField runsField;
   private final JTextField baseSeedField;
@@ -60,6 +61,7 @@ final class MassRunDialog extends JDialog {
     kHopsField = new JTextField(defaults.kHopsCsv());
     rqsRadiusField = new JTextField(defaults.rqsRadiusCsv());
     overlayMinNeighborsField = new JTextField(defaults.overlayMinNeighborsCsv());
+    overlayMaxNeighborsField = new JTextField(defaults.overlayMaxNeighborsCsv());
     overlayShortcutsField = new JTextField(defaults.overlayShortcutsCsv());
     runsField = new JTextField(String.valueOf(defaults.runs()));
     baseSeedField = new JTextField(String.valueOf(defaults.baseSeed()));
@@ -67,6 +69,7 @@ final class MassRunDialog extends JDialog {
     addRow(runPanel, "k-Hops (CSV)", kHopsField);
     addRow(runPanel, "RQS radius (CSV)", rqsRadiusField);
     addRow(runPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
+    addRow(runPanel, "Overlay max neighbors (CSV)", overlayMaxNeighborsField);
     addRow(runPanel, "Overlay shortcuts (CSV)", overlayShortcutsField);
     addRow(runPanel, "Runs", runsField);
     addRow(runPanel, "Base seed", baseSeedField);
@@ -163,6 +166,8 @@ final class MassRunDialog extends JDialog {
       List<Integer> rqsRadiusValues = parseCsvInts(rqsRadiusField.getText(), 1, "RQS radius");
       List<Integer> overlayMinNeighborsValues =
           parseCsvInts(overlayMinNeighborsField.getText(), 1, "overlay min neighbors");
+      List<Integer> overlayMaxNeighborsValues =
+          parseCsvInts(overlayMaxNeighborsField.getText(), 1, "overlay max neighbors");
       List<Integer> overlayShortcutsValues =
           parseCsvInts(overlayShortcutsField.getText(), 0, "overlay shortcuts");
       int runs = parseInt(runsField.getText(), 1);
@@ -191,6 +196,7 @@ final class MassRunDialog extends JDialog {
               rqsRadiusValues,
               p2pStrategies,
               overlayMinNeighborsValues,
+              overlayMaxNeighborsValues,
               overlayShortcutsValues,
               runs,
               baseSeed,
@@ -309,6 +315,7 @@ final class MassRunDialog extends JDialog {
       String rqsRadiusCsv,
       String p2pStrategiesCsv,
       String overlayMinNeighborsCsv,
+      String overlayMaxNeighborsCsv,
       String overlayShortcutsCsv,
       int runs,
       int baseSeed,
@@ -327,6 +334,7 @@ final class MassRunDialog extends JDialog {
       List<Integer> rqsRadiusValues,
       List<String> p2pStrategies,
       List<Integer> overlayMinNeighborsValues,
+      List<Integer> overlayMaxNeighborsValues,
       List<Integer> overlayShortcutsValues,
       int runs,
       int baseSeed,

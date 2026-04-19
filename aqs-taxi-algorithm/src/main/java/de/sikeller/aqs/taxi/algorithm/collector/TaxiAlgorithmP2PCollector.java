@@ -84,6 +84,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String P2P_REQUEST_FORWARD_HOPS = "p2pRequestForwardHops";
   private static final String P2P_FIXED_SEARCH_RADIUS = "p2pFixedSearchRadius";
   private static final String P2P_OVERLAY_MIN_NEIGHBORS = "p2pOverlayMinNeighbors";
+  private static final String P2P_OVERLAY_MAX_NEIGHBORS = "p2pOverlayMaxNeighbors";
   private static final String P2P_OVERLAY_SHORTCUTS = "p2pOverlayShortcuts";
   private static final String P2P_OVERLAY_POSITION_TTL_TICKS = "p2pOverlayPositionTtlTicks";
   private static final String UNKNOWN_ROLE = "UNKNOWN";
@@ -98,6 +99,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String STATUS_TOPOLOGY_SCAN_ID = "topologyScanId";
   private static final String STATUS_OVERLAY_MODE = "overlayMode";
   private static final String STATUS_OVERLAY_MIN_NEIGHBORS = "overlayMinNeighbors";
+  private static final String STATUS_OVERLAY_MAX_NEIGHBORS = "overlayMaxNeighbors";
   private static final String STATUS_OVERLAY_MAX_DISTANCE = "overlayMaxDistance";
   private static final String STATUS_OVERLAY_SHORTCUTS = "overlayShortcuts";
   private static final String STATUS_RQS_FIXED_RADIUS = "rqsFixedRadius";
@@ -108,6 +110,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String STATUS_RUNTIME_MODE = "runtimeMode";
   private static final String STATUS_LOCAL_VEHICLE_NODES = "localVehicleNodes";
   private static final String STATUS_LAST_EVENT = "lastEvent";
+  private static final String MASS_RUN_DISABLE_TOPOLOGY_SCANS_PROPERTY =
+      "aqs.massRun.disableTopologyScans";
   private static final String VALUE_P2P = "P2P";
   private static final String VALUE_UNKNOWN = "-";
   private static final String VALUE_SMALL_WORLD = "SMALL_WORLD";
@@ -154,6 +158,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         new AlgorithmParameter(P2P_FIXED_SEARCH_RADIUS, 5000),
         new AlgorithmParameter(EMBEDDED_MODE_PROPERTY, 1),
         new AlgorithmParameter(P2P_OVERLAY_MIN_NEIGHBORS, 1),
+        new AlgorithmParameter(P2P_OVERLAY_MAX_NEIGHBORS, 100),
         new AlgorithmParameter(P2P_OVERLAY_SHORTCUTS, 1),
         new AlgorithmParameter(P2P_OVERLAY_POSITION_TTL_TICKS, 200));
   }
@@ -538,6 +543,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     String configuredMinNeighbors =
         System.getProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, DEFAULT_OVERLAY_MIN_NEIGHBORS);
     status.put(STATUS_OVERLAY_MIN_NEIGHBORS, configuredMinNeighbors);
+    status.put(STATUS_OVERLAY_MAX_NEIGHBORS, System.getProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "100"));
     status.put(
         STATUS_OVERLAY_SHORTCUTS,
         System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, DEFAULT_OVERLAY_SHORTCUTS));
@@ -655,6 +661,10 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   private void requestTopologyScanIfDue(boolean force) {
     if (clientNode == null) {
+      return;
+    }
+
+    if (Boolean.parseBoolean(System.getProperty(MASS_RUN_DISABLE_TOPOLOGY_SCANS_PROPERTY, "false"))) {
       return;
     }
 
@@ -832,11 +842,13 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         Math.max(
             1,
             config.getOrDefault(P2P_OVERLAY_MIN_NEIGHBORS, 1));
+    int maxNeighbors = Math.max(1, config.getOrDefault(P2P_OVERLAY_MAX_NEIGHBORS, 100));
     int shortcuts = Math.max(0, config.getOrDefault(P2P_OVERLAY_SHORTCUTS, 1));
     long positionTtlTicks = Math.max(1, config.getOrDefault(P2P_OVERLAY_POSITION_TTL_TICKS, 200));
     long maxDistance = resolveOverlayMaxDistance(config);
 
     System.setProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, String.valueOf(minNeighbors));
+    System.setProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, String.valueOf(maxNeighbors));
     System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, String.valueOf(shortcuts));
     System.setProperty(P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, String.valueOf(positionTtlTicks));
     System.setProperty(P2PSystemProperties.OVERLAY_MAX_DISTANCE, String.valueOf(maxDistance));

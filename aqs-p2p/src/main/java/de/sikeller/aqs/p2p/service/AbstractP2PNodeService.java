@@ -269,11 +269,13 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       shortcuts = 0;
     }
 
+    int maxNeighbors = resolveOverlayMaxNeighbors();
     long stateFingerprint =
         overlayStateFingerprint(
             peers,
             topic,
             minNeighbors,
+            maxNeighbors,
             shortcuts,
             maxDistance,
             pinCollector,
@@ -285,7 +287,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     }
 
     OverlaySelection smallWorld =
-        distanceBoundOverlayPeers(routingPeers, minNeighbors, shortcuts, vehicleRelevant, maxDistance);
+        distanceBoundOverlayPeers(routingPeers, minNeighbors, maxNeighbors, shortcuts, vehicleRelevant, maxDistance);
     List<NodeDescriptor> selected = smallWorld.peers();
     OverlaySelection result;
     if (!pinCollector) {
@@ -304,6 +306,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       List<NodeDescriptor> peers,
       String topic,
       int minNeighbors,
+      int maxNeighbors,
       int shortcuts,
       double maxDistance,
       boolean pinCollector,
@@ -326,6 +329,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
             descriptor.role(),
             topic,
             minNeighbors,
+            maxNeighbors,
             shortcuts,
             maxDistance,
             pinCollector,
@@ -344,6 +348,18 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       }
     }
     return 1;
+  }
+
+  private int resolveOverlayMaxNeighbors() {
+    String configured = System.getProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "").trim();
+    if (!configured.isBlank()) {
+      try {
+        return Math.max(1, Integer.parseInt(configured));
+      } catch (NumberFormatException ignored) {
+        // fall through to default
+      }
+    }
+    return Integer.MAX_VALUE;
   }
 
   private double resolveOverlayMaxDistance() {
@@ -446,6 +462,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   private OverlaySelection distanceBoundOverlayPeers(
       List<NodeDescriptor> peers,
       int minNeighbors,
+      int maxNeighbors,
       int shortcuts,
       boolean preferNearestVehicles,
       double maxDistance) {
@@ -464,13 +481,22 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       selected.addAll(inRange);
       inRange.forEach(peer -> selectedIds.add(peer.id()));
 
+      // Enforce cap: if maxNeighbors is smaller than minNeighbors, treat cap as minNeighbors
+      int cap = Math.max(minNeighbors, maxNeighbors);
+      if (selected.size() > cap) {
+        selected = new ArrayList<>(selected.subList(0, cap));
+        selectedIds.clear();
+        selected.forEach(peer -> selectedIds.add(peer.id()));
+      }
+
       if (selected.size() < minNeighbors) {
         List<NodeDescriptor> nearestFallback = nearestVehiclePeers(peers, minNeighbors - selected.size(), selectedIds);
         selected.addAll(nearestFallback);
         nearestFallback.forEach(peer -> selectedIds.add(peer.id()));
       }
     } else {
-      for (int offset = 0; offset < sortedPeers.size() && selected.size() < minNeighbors; offset++) {
+      int cap = Math.max(minNeighbors, maxNeighbors);
+      for (int offset = 0; offset < sortedPeers.size() && selected.size() < cap; offset++) {
         NodeDescriptor peer = sortedPeers.get((startIndex + offset) % sortedPeers.size());
         if (selectedIds.add(peer.id())) {
           selected.add(peer);
