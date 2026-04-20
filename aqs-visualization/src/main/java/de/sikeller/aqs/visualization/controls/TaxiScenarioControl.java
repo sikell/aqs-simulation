@@ -89,6 +89,8 @@ public class TaxiScenarioControl extends AbstractControl {
   private JLabel p2pModeWarningLabel;
   private VisualizationProperties visualizationProperties;
   private Timer p2pStatusTimer;
+  private JSpinner p2pPositionRevisionThrottleSpinner;
+  private JSpinner p2pPositionRevisionMinMoveSpinner;
   private volatile boolean massRunInProgress;
   private boolean modeSwitchInProgress;
   private Consumer<Boolean> p2pModeUiListener = ignored -> {};
@@ -230,7 +232,7 @@ public class TaxiScenarioControl extends AbstractControl {
   }
 
   private JPanel setupP2PStatusPanel() {
-    JPanel panel = new JPanel(new GridLayout(13, 2, GAP, GAP));
+    JPanel panel = new JPanel(new GridLayout(15, 2, GAP, GAP));
     panel.setBorder(new TitledBorder("P2P Network Status"));
 
     panel.add(label("Mode", "p2pModeLabel"));
@@ -284,6 +286,24 @@ public class TaxiScenarioControl extends AbstractControl {
     panel.add(label("Last event", "p2pLastEventLabel"));
     p2pLastEventValue = new JLabel("-");
     panel.add(p2pLastEventValue);
+    // Position revision controls (throttle ticks and min move meters)
+    panel.add(label("Position revision throttle [ticks]", "p2pPosRevThrottleLabel"));
+    int defaultThrottle = Integer.parseInt(System.getProperty("aqs.p2p.overlay.positionRevisionThrottleTicks", "5"));
+    SpinnerModel throttleModel = new SpinnerNumberModel(defaultThrottle, 0, Integer.MAX_VALUE, 1);
+    p2pPositionRevisionThrottleSpinner = new JSpinner(throttleModel);
+    configureIntegerSpinner(p2pPositionRevisionThrottleSpinner);
+    p2pPositionRevisionThrottleSpinner.setName("p2pPositionRevisionThrottleTicks");
+    p2pPositionRevisionThrottleSpinner.setToolTipText("Throttle ticks before bumping vehicle position revision");
+    panel.add(p2pPositionRevisionThrottleSpinner);
+
+    panel.add(label("Position revision min move [m]", "p2pPosRevMinMoveLabel"));
+    int defaultMinMove = Integer.parseInt(System.getProperty("aqs.p2p.overlay.positionRevisionMinMoveMeters", "50"));
+    SpinnerModel minMoveModel = new SpinnerNumberModel(defaultMinMove, 0, Integer.MAX_VALUE, 1);
+    p2pPositionRevisionMinMoveSpinner = new JSpinner(minMoveModel);
+    configureIntegerSpinner(p2pPositionRevisionMinMoveSpinner);
+    p2pPositionRevisionMinMoveSpinner.setName("p2pPositionRevisionMinMoveMeters");
+    p2pPositionRevisionMinMoveSpinner.setToolTipText("Minimum move in meters to bump position revision");
+    panel.add(p2pPositionRevisionMinMoveSpinner);
 
     return panel;
   }
@@ -1631,6 +1651,18 @@ public class TaxiScenarioControl extends AbstractControl {
         allParameterMap.put("p2pEmbeddedSimulation", embeddedValue);
         algorithmParameterMap.put("p2pEmbeddedSimulation", embeddedValue);
         applySelectedP2PVehicleStrategy();
+      }
+
+      // Apply UI-controlled P2P system properties for position revision throttling
+      if (p2pPositionRevisionThrottleSpinner != null) {
+        Object val = p2pPositionRevisionThrottleSpinner.getValue();
+        System.setProperty(
+            "aqs.p2p.overlay.positionRevisionThrottleTicks", String.valueOf(((Number) val).longValue()));
+      }
+      if (p2pPositionRevisionMinMoveSpinner != null) {
+        Object val = p2pPositionRevisionMinMoveSpinner.getValue();
+        System.setProperty(
+            "aqs.p2p.overlay.positionRevisionMinMoveMeters", String.valueOf(((Number) val).intValue()));
       }
 
       inputParameterMap.putAll(allParameterMap);

@@ -13,6 +13,10 @@ public final class P2PSystemProperties {
   public static final String OVERLAY_COLLECTOR_NODE_ID = "aqs.p2p.overlay.collectorNodeId";
   public static final String OVERLAY_PIN_COLLECTOR = "aqs.p2p.overlay.pinCollector";
   public static final String OVERLAY_POSITION_TTL_TICKS = "aqs.p2p.overlay.positionTtlTicks";
+  // Throttle position revision bumps to avoid cache thrashing (ticks)
+  public static final String OVERLAY_POSITION_REVISION_THROTTLE_TICKS = "aqs.p2p.overlay.positionRevisionThrottleTicks";
+  // Minimum move (meters) required to bump position revision
+  public static final String OVERLAY_POSITION_REVISION_MIN_MOVE_METERS = "aqs.p2p.overlay.positionRevisionMinMoveMeters";
 
   public static final String VEHICLE_OPEN_REQUEST_STRATEGY = "aqs.p2p.vehicle.openRequestStrategy";
   public static final String VEHICLE_COMMIT_LEASE_TICKS = "aqs.p2p.vehicle.commitLeaseTicks";

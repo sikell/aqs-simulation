@@ -21,7 +21,7 @@ public class GreedyVehicleRequestSelectionStrategy implements VehicleRequestSele
     if (candidates == null || candidates.isEmpty()) {
       return Optional.empty();
     }
-    return candidates.stream().sorted(ORDER).findFirst();
+    return candidates.stream().min(ORDER);
   }
 }
 

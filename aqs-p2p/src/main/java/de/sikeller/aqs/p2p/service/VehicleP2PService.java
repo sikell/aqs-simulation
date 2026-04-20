@@ -2,16 +2,15 @@ package de.sikeller.aqs.p2p.service;
 
 import de.sikeller.aqs.p2p.api.NodeDescriptor;
 import de.sikeller.aqs.p2p.api.NodeRole;
-import de.sikeller.aqs.p2p.api.P2PPayloadKeys;
 import de.sikeller.aqs.p2p.api.P2PMessage;
 import de.sikeller.aqs.p2p.api.P2PNetwork;
+import de.sikeller.aqs.p2p.api.P2PPayloadKeys;
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.api.P2PTopics;
 import de.sikeller.aqs.p2p.service.strategy.NearestVehicleRequestSelectionStrategy;
 import de.sikeller.aqs.p2p.service.strategy.VehicleRequestCandidate;
 import de.sikeller.aqs.p2p.service.strategy.VehicleRequestSelectionStrategies;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -20,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -29,20 +29,24 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final String TRIGGER_INCOMING = "incoming";
   private static final long DEFAULT_VEHICLE_COMMIT_LEASE_TICKS = 20L;
   private static final double DEFAULT_ASSUMED_SPEED_MPS = 12.0;
-  private static final long DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS = 1L;
-  private static final int DEFAULT_VEHICLE_REOFFER_MIN_ETA_IMPROVEMENT_SECONDS = 5;
+  private static final long DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS = 3L;
+  private static final int DEFAULT_VEHICLE_REOFFER_MIN_ETA_IMPROVEMENT_SECONDS = 10;
   private static final int DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M = 200;
-  private static final long DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 120L;
+  private static final long DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 600L;
+  private static final long DEFAULT_CLEANUP_INTERVAL_TICKS = 10L;
 
   private final NodeDescriptor nodeDescriptor;
   private final ConcurrentMap<String, String> committedByRequest = new ConcurrentHashMap<>();
   private final Set<String> seenRideRequests = ConcurrentHashMap.newKeySet();
   private final ConcurrentMap<String, OpenRideRequest> openRideRequests = new ConcurrentHashMap<>();
+  // cache for previously computed forwarded payload strings to avoid repeated parsing/serialization
+  private final ConcurrentMap<String, String> forwardedPayloadCache = new ConcurrentHashMap<>();
   private volatile long busyUntilTick;
   private volatile long currentSimulationTick;
   private volatile boolean externallyAvailable = true;
   private volatile Integer simulationX;
   private volatile Integer simulationY;
+  private volatile long lastCleanupTick = 0L;
 
   public VehicleP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.VEHICLE), network);
@@ -59,7 +63,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       log.warn("Client node {} not a peer.", clientNodeId);
       return;
     }
-    sendToMessage(clientNodeId, P2PTopics.RIDE_OFFER, offerPayload, requestId, requestId);
+    sendToMessage(clientNodeId, P2PTopics.RIDE_OFFER, offerPayload, requestId, requestId); // O(1) sendTo -> network.sendTo (constant network I/O scheduling)
   }
 
   public synchronized void setSimulationState(boolean available, int positionX, int positionY) {
@@ -74,6 +78,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     simulationX = positionX;
     simulationY = positionY;
     updateVehiclePositionSnapshot(positionX, positionY, currentSimulationTick);
+    // updateVehiclePositionSnapshot -> vehiclePositions.put + publishVehiclePosition (O(1) map update + O(n_peers) publish overlay selection)
 
     if (becameAvailable) {
       retriggerOpenRequests(TRIGGER_AVAILABILITY);
@@ -86,11 +91,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
   @Override
   protected void onMessage(P2PMessage message) {
-    log.info(
-        "Vehicle node {} received: {} -> {}",
-        descriptor().id(),
-        message.topic(),
-        message.payload());
+    log.debug("Vehicle node {} received: {} -> <payload/>", descriptor().id(), message.topic());
 
     if (P2PTopics.RIDE_REQUEST.equals(message.topic())) {
       handleRideRequest(message);
@@ -107,8 +108,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (requestId == null || requestId.isBlank()) {
       return;
     }
+    if (!seenRideRequests.add(requestId)) {
+      log.debug("Ignoring duplicate ride request {} from {}", requestId, message.senderId());
+      return;
+    }
 
-    cleanupStaleOpenRequests();
+    cleanupStaleOpenRequestsIfNeeded();
     Map<String, String> requestPayload = KeyValuePayload.parse(message.payload());
     String originNodeId = requestPayload.getOrDefault(P2PPayloadKeys.ORIGIN_NODE, message.senderId());
 
@@ -118,15 +123,13 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           if (existing == null) {
             return new OpenRideRequest(id, originNodeId, requestPayload, currentSimulationTick);
           }
+          // avoid unnecessary copies: reuse parsed payload map reference
           existing.originNodeId = originNodeId;
-          existing.payload = new HashMap<>(requestPayload);
+          existing.payload = requestPayload;
           return existing;
         });
     offerForRequestIfPossible(requestId);
 
-    if (!seenRideRequests.add(requestId)) {
-      return;
-    }
     // Forward first-seen requests regardless of local offer to improve decentralized visibility.
     forwardRideRequest(message, requestPayload);
   }
@@ -139,15 +142,15 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    int etaSeconds = estimateEtaSeconds(openRequest.payload);
-    if (!shouldReoffer(openRequest, etaSeconds, currentSimulationTick)) {
+    int etaSeconds = estimateEtaSeconds(openRequest.payload); // O(1) simple arithmetic + parse
+    if (!shouldReoffer(openRequest, etaSeconds, currentSimulationTick)) { // O(1)
       return;
     }
-    if (!isBestKnownVehicleForRequest(openRequest, etaSeconds)) {
+    if (!isBestKnownVehicleForRequest(openRequest, etaSeconds)) { // Worst-case O(n_peers) (snapshot + iterate peers). Early-exit may reduce work
       return;
     }
 
-    sendOffer(
+    sendOffer( // O(1) enqueue/send (wraps sendToMessage)
         openRequest.originNodeId,
         openRequest.requestId,
         buildOfferPayload(openRequest.requestId, etaSeconds));
@@ -171,18 +174,18 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return true;
     }
 
-    Integer reqX = parseCoordinate(openRequest.payload.get(P2PPayloadKeys.REQUEST_X));
-    Integer reqY = parseCoordinate(openRequest.payload.get(P2PPayloadKeys.REQUEST_Y));
+    Integer reqX = parseCoordinate(openRequest.payload.get(P2PPayloadKeys.REQUEST_X)); // O(1)
+    Integer reqY = parseCoordinate(openRequest.payload.get(P2PPayloadKeys.REQUEST_Y)); // O(1)
     if (reqX == null || reqY == null) {
       return true;
     }
 
-    Set<String> overlayNeighbors = overlayNeighborIdsSnapshot();
-    Map<String, int[]> knownVehiclePositions = vehiclePositionSnapshot();
+    Set<String> overlayNeighbors = overlayNeighborIdsSnapshot(); // Worst-case O(n_peers) (overlaySelection + list copy)
+    Map<String, int[]> knownVehiclePositions = vehiclePositionSnapshot(); // Worst-case O(n_vehicles) (iterate vehiclePositions map)
     String bestNodeId = descriptor().id();
     int bestEtaSeconds = selfEtaSeconds;
 
-    for (NodeDescriptor peer : network().peers()) {
+    for (NodeDescriptor peer : network().peers()) { // Worst-case O(n_peers)
       if (peer.role() != NodeRole.VEHICLE || peer.id().equals(descriptor().id())) {
         continue;
       }
@@ -190,12 +193,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         continue;
       }
 
-      int[] peerPosition = knownVehiclePositions.get(peer.id());
+      int[] peerPosition = knownVehiclePositions.get(peer.id()); // O(1) map lookup
       if (peerPosition == null || peerPosition.length < 2) {
         continue;
       }
 
-      int peerEtaSeconds = estimateEtaSecondsFromPosition(peerPosition[0], peerPosition[1], reqX, reqY);
+      int peerEtaSeconds = estimateEtaSecondsFromPosition(peerPosition[0], peerPosition[1], reqX, reqY); // O(1) math
       if (peerEtaSeconds < bestEtaSeconds
           || (peerEtaSeconds == bestEtaSeconds && peer.id().compareTo(bestNodeId) < 0)) {
         bestEtaSeconds = peerEtaSeconds;
@@ -217,8 +220,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (openRideRequests.isEmpty()) {
       return;
     }
-    cleanupStaleOpenRequests();
-    offerForSelectedOpenRequest(trigger);
+    cleanupStaleOpenRequests(); // Worst-case O(n_openRequests)
+    offerForSelectedOpenRequest(trigger); // Worst-case O(m log m + n_neighbors)
   }
 
   private void offerForSelectedOpenRequest(String trigger) {
@@ -229,47 +232,47 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    OpenRideRequest selected = selectOpenRequest();
+    OpenRideRequest selected = selectOpenRequest(); // Worst-case O(m log m) (strategy.select may sort); m = eligibleRequests
     if (selected == null) {
       return;
     }
-    offerForOpenRequest(selected, trigger);
+    offerForOpenRequest(selected, trigger); // Worst-case O(n_neighbors)
   }
 
   private void offerForRequestIfPossible(String requestId) {
-    OpenRideRequest request = openRideRequests.get(requestId);
+    OpenRideRequest request = openRideRequests.get(requestId); // O(1)
     if (request == null) {
       return;
     }
     if (!isVehicleAvailable()) {
       return;
     }
-    offerForOpenRequest(request, TRIGGER_INCOMING);
+    offerForOpenRequest(request, TRIGGER_INCOMING); // Worst-case O(n_neighbors)
   }
 
   private OpenRideRequest selectOpenRequest() {
     long nowTick = currentSimulationTick;
     Set<OpenRideRequest> eligibleRequests =
-        openRideRequests.values().stream()
+        openRideRequests.values().stream() // Worst-case O(n_openRequests) scan
         .filter(request -> !committedByRequest.containsKey(request.requestId))
         .filter(
             request -> {
               if (!shouldOffer(request.payload)) {
                 return false;
               }
-              int etaSeconds = estimateEtaSeconds(request.payload);
-              return shouldReoffer(request, etaSeconds, nowTick);
+              int etaSeconds = estimateEtaSeconds(request.payload); // O(1)
+              return shouldReoffer(request, etaSeconds, nowTick); // O(1)
             })
-        .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+        .collect(Collectors.toCollection(LinkedHashSet::new));
     if (eligibleRequests.isEmpty()) {
       return null;
     }
 
-    String strategyKey = System.getProperty(P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY, NearestVehicleRequestSelectionStrategy.KEY);
-    var strategy = VehicleRequestSelectionStrategies.resolve(strategyKey);
+    String strategyKey = System.getProperty(P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY, NearestVehicleRequestSelectionStrategy.KEY); // O(1)
+    var strategy = VehicleRequestSelectionStrategies.resolve(strategyKey); // O(1) map lookup
 
     Optional<VehicleRequestCandidate> selectedCandidate =
-        strategy.select(eligibleRequests.stream().map(this::toCandidate).toList());
+        strategy.select(eligibleRequests.stream().map(this::toCandidate).toList()); // Worst-case O(m log m) (sorting) or O(m) if linear
     if (selectedCandidate.isEmpty()) {
       return null;
     }
@@ -286,7 +289,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         request.requestId,
         request.firstSeenAtTick,
         requestDistanceToVehicle(request),
-        request.payload == null ? Map.of() : Map.copyOf(request.payload));
+        request.payload == null ? Map.of() : request.payload);
   }
 
   private double requestDistanceToVehicle(OpenRideRequest request) {
@@ -303,12 +306,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return true;
     }
 
-    long minIntervalTicks = Math.max(0L, resolveReofferMinIntervalTicks());
+    long minIntervalTicks = Math.max(0L, resolveReofferMinIntervalTicks()); // O(1)
     if (nowTick - openRequest.lastOfferAtTick < minIntervalTicks) {
       return false;
     }
 
-    int minImprovementSeconds = Math.max(0, resolveReofferMinEtaImprovementSeconds());
+    int minImprovementSeconds = Math.max(0, resolveReofferMinEtaImprovementSeconds()); // O(1)
     return etaSeconds + minImprovementSeconds <= openRequest.lastOfferedEtaSeconds;
   }
 
@@ -316,8 +319,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (simulationX == null || simulationY == null) {
       return true;
     }
-    int minMoveDistance = Math.max(1, resolveReofferMoveDistanceMeters());
-    return P2PGeoUtils.distance(simulationX, simulationY, positionX, positionY) >= minMoveDistance;
+    int minMoveDistance = Math.max(1, resolveReofferMoveDistanceMeters()); // O(1)
+    return P2PGeoUtils.distance(simulationX, simulationY, positionX, positionY) >= minMoveDistance; // O(1)
   }
 
   private void cleanupStaleOpenRequests() {
@@ -326,13 +329,21 @@ public class VehicleP2PService extends AbstractP2PNodeService {
             1L,
             Long.getLong(
                 P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
-                DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
+                DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS)); // O(1)
     long nowTick = currentSimulationTick;
-    openRideRequests.entrySet().removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks);
+    openRideRequests.entrySet().removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks); // O(n_openRequests)
+  }
+
+  private void cleanupStaleOpenRequestsIfNeeded() {
+    long now = currentSimulationTick;
+    if (now - lastCleanupTick >= DEFAULT_CLEANUP_INTERVAL_TICKS) {
+      lastCleanupTick = now;
+      cleanupStaleOpenRequests();
+    }
   }
 
   private boolean isVehicleAvailable() {
-    return externallyAvailable && currentSimulationTick >= busyUntilTick;
+    return externallyAvailable && currentSimulationTick >= busyUntilTick; // O(1)
   }
 
   private boolean shouldOffer(Map<String, String> requestPayload) {
@@ -350,14 +361,14 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
 
 
-    Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X));
-    Integer reqY = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_Y));
-    Integer searchRadius = parseNonNegativeIntOrNull(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS));
+    Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X)); // O(1)
+    Integer reqY = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_Y)); // O(1)
+    Integer searchRadius = parseNonNegativeIntOrNull(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS)); // O(1)
     if (reqX == null || reqY == null || searchRadius == null || simulationX == null || simulationY == null) {
       return true;
     }
 
-    boolean inRange = P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY) <= searchRadius;
+    boolean inRange = P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY) <= searchRadius; // O(1)
     if (!inRange) {
       log.debug(
           "Vehicle {} skips offer for out-of-range request (requestId? unknown req=({}, {}) radius={} vehicle=({}, {}))",
@@ -376,17 +387,17 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     payload.put(P2PPayloadKeys.REQUEST_ID, requestId);
     payload.put(P2PPayloadKeys.VEHICLE, descriptor().id());
     payload.put(P2PPayloadKeys.ETA_SECONDS, String.valueOf(etaSeconds));
-    return KeyValuePayload.write(payload);
+    return KeyValuePayload.write(payload); // O(k)
   }
 
   private int estimateEtaSeconds(Map<String, String> requestPayload) {
-    Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X));
-    Integer reqY = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_Y));
+    Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X)); // O(1)
+    Integer reqY = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_Y)); // O(1)
     if (reqX == null || reqY == null || simulationX == null || simulationY == null) {
       return 120;
     }
 
-    return estimateEtaSecondsFromPosition(simulationX, simulationY, reqX, reqY);
+    return estimateEtaSecondsFromPosition(simulationX, simulationY, reqX, reqY); // O(1)
   }
 
   private int estimateEtaSecondsFromPosition(int startX, int startY, int reqX, int reqY) {
@@ -394,11 +405,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         Math.max(
             0.1,
             parseDouble(System.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS)));
-    return P2PGeoUtils.etaSeconds(startX, startY, reqX, reqY, speedMps);
+    return P2PGeoUtils.etaSeconds(startX, startY, reqX, reqY, speedMps); // O(1)
   }
 
   private void forwardRideRequest(P2PMessage message, Map<String, String> requestPayload) {
-    int incomingHops = parseNonNegativeInt(requestPayload.get(P2PPayloadKeys.HOPS_REMAINING));
+    int incomingHops = parseNonNegativeInt(requestPayload.get(P2PPayloadKeys.HOPS_REMAINING)); // O(1)
     if (incomingHops <= 0) {
       log.info(
           "Vehicle {} not forwarding requestId={} (remainingHops={} reason=ttl-exhausted)",
@@ -409,28 +420,35 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
 
     int nextHops = incomingHops - 1;
-    Set<String> overlayNeighbors = overlayNeighborIdsSnapshot();
+    Set<String> overlayNeighbors = overlayNeighborIdsSnapshot(); // O(n_peers)
     long targetCount =
         network().peers().stream()
             .filter(node -> node.role() == NodeRole.VEHICLE)
             .filter(node -> !node.id().equals(descriptor().id()))
             .filter(node -> !node.id().equals(message.senderId()))
             .filter(node -> overlayNeighbors.contains(node.id()))
-            .count();
+            .count(); // O(n_peers)
 
-    Map<String, String> forwardedPayload = new LinkedHashMap<>(requestPayload);
-    forwardedPayload.put(P2PPayloadKeys.HOPS_REMAINING, String.valueOf(nextHops));
-    forwardedPayload.put(P2PPayloadKeys.FORWARDED_BY, descriptor().id());
+    // avoid repeated parse/serialize for identical forwarded payloads across peers
+    String cacheKey = message.requestId() + ":" + nextHops;
+    String forwardedPayloadStr =
+        forwardedPayloadCache.computeIfAbsent(
+            cacheKey,
+            k -> {
+              Map<String, String> m = new LinkedHashMap<>(requestPayload);
+              m.put(P2PPayloadKeys.HOPS_REMAINING, String.valueOf(nextHops));
+              m.put(P2PPayloadKeys.FORWARDED_BY, descriptor().id());
+              return KeyValuePayload.write(m);
+            });
 
-    publishMessage(
+    publishMessage( // O(n_peers) due to overlay selection + broadcast
         P2PTopics.RIDE_REQUEST,
-        KeyValuePayload.write(forwardedPayload),
+        forwardedPayloadStr,
         message.requestId(),
         message.correlationId(),
-        node ->
-            node.role() == NodeRole.VEHICLE
-                && !node.id().equals(descriptor().id())
-                && !node.id().equals(message.senderId()));
+        node -> node.role() == NodeRole.VEHICLE
+            && !node.id().equals(descriptor().id())
+            && !node.id().equals(message.senderId()));
 
     log.info(
         "Vehicle {} forwarded requestId={} to vehicle peers (incomingHops={} nextHops={} targets={})",
@@ -566,9 +584,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   }
 
   public Set<String> knownClientIdsSnapshot() {
-    cleanupStaleOpenRequests();
+    cleanupStaleOpenRequests(); // O(n_openRequests)
     Set<String> knownClientIds = new HashSet<>();
-    for (OpenRideRequest request : openRideRequests.values()) {
+    for (OpenRideRequest request : openRideRequests.values()) { // O(n_openRequests)
       if (request == null || request.payload == null) {
         continue;
       }
@@ -595,7 +613,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         long firstSeenAtTick) {
       this.requestId = requestId;
       this.originNodeId = originNodeId;
-      this.payload = new HashMap<>(payload);
+      this.payload = payload;
       this.firstSeenAtTick = firstSeenAtTick;
     }
   }
