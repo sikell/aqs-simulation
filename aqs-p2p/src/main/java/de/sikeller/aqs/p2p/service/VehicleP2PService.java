@@ -138,7 +138,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (openRequest == null || committedByRequest.containsKey(openRequest.requestId)) {
       return;
     }
-    if (!isVehicleAvailable() || !shouldOffer(openRequest.payload)) {
+    if (isVehicleBusy() || !shouldOffer(openRequest.payload)) {
       return;
     }
 
@@ -228,7 +228,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (openRideRequests.isEmpty()) {
       return;
     }
-    if (!isVehicleAvailable()) {
+    if (isVehicleBusy()) {
       return;
     }
 
@@ -244,7 +244,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (request == null) {
       return;
     }
-    if (!isVehicleAvailable()) {
+    if (isVehicleBusy()) {
       return;
     }
     offerForOpenRequest(request, TRIGGER_INCOMING); // Worst-case O(n_neighbors)
@@ -342,8 +342,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
   }
 
-  private boolean isVehicleAvailable() {
-    return externallyAvailable && currentSimulationTick >= busyUntilTick; // O(1)
+  private boolean isVehicleBusy() {
+    return !externallyAvailable || currentSimulationTick < busyUntilTick;
   }
 
   private boolean shouldOffer(Map<String, String> requestPayload) {
@@ -535,7 +535,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    if (!isVehicleAvailable()) {
+    if (isVehicleBusy()) {
       log.info(
           "Ignoring accept while vehicle is already busy requestId={} sender={} busyUntilTick={} nowTick={}",
           requestId,

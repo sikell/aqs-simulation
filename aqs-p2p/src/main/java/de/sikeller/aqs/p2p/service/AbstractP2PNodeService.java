@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
- 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -285,9 +284,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
             && (P2PTopics.RIDE_REQUEST.equals(topic)
                 || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic)
                 || P2PTopics.VEHICLE_POSITION.equals(topic));
-    if (vehicleRelevant && !routingPeers.isEmpty()) {
-      shortcuts = 0;
-    }
 
     int maxNeighbors = resolveOverlayMaxNeighbors();
 

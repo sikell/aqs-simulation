@@ -924,26 +924,21 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     runtimeState.clear();
   }
 
-  private static class TopologyPeerView {
-    private final String nodeId;
-    private final String role;
-    private final Set<String> neighborIds;
-    private final Set<String> shortcutNeighborIds;
-
-    private TopologyPeerView(
-        String nodeId,
-        String role,
-        Set<String> neighborIds,
-        Set<String> shortcutNeighborIds) {
-      this.nodeId = nodeId;
-      this.role = role;
-      this.neighborIds = neighborIds == null ? Set.of() : Set.copyOf(neighborIds);
-      this.shortcutNeighborIds =
-          shortcutNeighborIds == null
-              ? Set.of()
-              : shortcutNeighborIds.stream().filter(this.neighborIds::contains).collect(Collectors.toSet());
+  private record TopologyPeerView(String nodeId, String role, Set<String> neighborIds, Set<String> shortcutNeighborIds) {
+      private TopologyPeerView(
+          String nodeId,
+          String role,
+          Set<String> neighborIds,
+          Set<String> shortcutNeighborIds) {
+        this.nodeId = nodeId;
+        this.role = role;
+        this.neighborIds = neighborIds == null ? Set.of() : Set.copyOf(neighborIds);
+        this.shortcutNeighborIds =
+            shortcutNeighborIds == null
+                ? Set.of()
+                : shortcutNeighborIds.stream().filter(this.neighborIds::contains).collect(Collectors.toSet());
+      }
     }
-  }
 }
 
 
