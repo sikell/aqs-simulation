@@ -1,20 +1,20 @@
 package de.sikeller.aqs.taxi.algorithm.collector;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Kapselt den laufzeitnahen Client/Request/Knowledge-Zustand des Collectors.
  */
 final class TaxiCollectorRuntimeState {
 
-  private final Map<String, PendingRequest> pendingByRequestId = new HashMap<>();
-  private final Map<String, PendingRequest> pendingByClientName = new HashMap<>();
-  private final Map<String, Set<String>> clientIdsByTaxiId = new HashMap<>();
-  private final Map<String, Set<String>> taxiIdsByClientId = new HashMap<>();
+  private final Map<String, PendingRequest> pendingByRequestId = new ConcurrentHashMap<>();
+  private final Map<String, PendingRequest> pendingByClientName = new ConcurrentHashMap<>();
+  private final Map<String, Set<String>> clientIdsByTaxiId = new ConcurrentHashMap<>();
+  private final Map<String, Set<String>> taxiIdsByClientId = new ConcurrentHashMap<>();
 
   void clear() {
     pendingByRequestId.clear();
@@ -79,9 +79,12 @@ final class TaxiCollectorRuntimeState {
       return;
     }
 
-    boolean added = clientIdsByTaxiId.computeIfAbsent(taxiId, ignored -> new HashSet<>()).add(clientName);
+    // Use concurrent set for taxi's client ids to avoid concurrent modification while iterating
+    Set<String> clients = clientIdsByTaxiId.computeIfAbsent(taxiId, ignored -> ConcurrentHashMap.newKeySet());
+    boolean added = clients.add(clientName);
     if (added) {
-      taxiIdsByClientId.computeIfAbsent(clientName, ignored -> new HashSet<>()).add(taxiId);
+      Set<String> taxis = taxiIdsByClientId.computeIfAbsent(clientName, ignored -> ConcurrentHashMap.newKeySet());
+      taxis.add(taxiId);
     }
   }
 
@@ -119,7 +122,7 @@ final class TaxiCollectorRuntimeState {
       }
       clientIds.remove(clientName);
       if (clientIds.isEmpty()) {
-        clientIdsByTaxiId.remove(taxiId);
+        clientIdsByTaxiId.remove(taxiId, clientIds);
       }
     }
   }
