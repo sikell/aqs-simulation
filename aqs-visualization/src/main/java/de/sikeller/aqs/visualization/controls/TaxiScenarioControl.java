@@ -59,9 +59,9 @@ public class TaxiScenarioControl extends AbstractControl {
   private final SimulationControl simulation;
   private Map<String, Integer> inputParameterMap;
   private Map<String, Integer> algorithmParameterMap;
-  private Map<String, Integer> allParameterMap = new HashMap<>();
+  private final Map<String, Integer> allParameterMap = new HashMap<>();
   private HashMap<String, Component> componentMap;
-  private BatchProcessingProperties batchProperties = new BatchProcessingProperties();
+  private final BatchProcessingProperties batchProperties = new BatchProcessingProperties();
   private JPanel buttons;
   private JPanel worldInputs;
   private JPanel algorithmInputs;
@@ -91,6 +91,9 @@ public class TaxiScenarioControl extends AbstractControl {
   private Timer p2pStatusTimer;
   private JSpinner p2pPositionRevisionThrottleSpinner;
   private JSpinner p2pPositionRevisionMinMoveSpinner;
+  private JComboBox<String> p2pShortcutStrategyBox;
+  private JSpinner p2pShortcutKleinbergRSpinner;
+  private JSpinner p2pShortcutNodeProbabilitySpinner;
   private volatile boolean massRunInProgress;
   private boolean modeSwitchInProgress;
   private Consumer<Boolean> p2pModeUiListener = ignored -> {};
@@ -304,6 +307,7 @@ public class TaxiScenarioControl extends AbstractControl {
     p2pPositionRevisionMinMoveSpinner.setName("p2pPositionRevisionMinMoveMeters");
     p2pPositionRevisionMinMoveSpinner.setToolTipText("Minimum move in meters to bump position revision");
     panel.add(p2pPositionRevisionMinMoveSpinner);
+
 
     return panel;
   }
@@ -1507,6 +1511,77 @@ public class TaxiScenarioControl extends AbstractControl {
       p2pVehicleStrategyBox.setEnabled(isP2PModeSelected());
       algorithmInputs.add(p2pVehicleStrategyBox);
       rowCount++;
+      // Place overlay shortcut controls into the algorithm inputs (per-user request)
+      JLabel overlayStrategyLabel = new JLabel("Overlay shortcut strategy");
+      overlayStrategyLabel.setName("p2pOverlayShortcutStrategyLabel");
+      algorithmInputs.add(overlayStrategyLabel);
+      JComboBox<String> shortcutStrategyBox = new JComboBox<>();
+      shortcutStrategyBox.setName("p2pOverlayShortcutStrategy");
+      shortcutStrategyBox.addItem("kleinberg");
+      shortcutStrategyBox.addItem("ring");
+      String configuredStrategy = System.getProperty("p2p.overlay.shortcut.strategy", "kleinberg").trim().toLowerCase(Locale.ROOT);
+      shortcutStrategyBox.setSelectedItem(configuredStrategy);
+      shortcutStrategyBox.setToolTipText("Shortcut selection strategy for overlay peers (kleinberg|ring)");
+      algorithmInputs.add(shortcutStrategyBox);
+      p2pShortcutStrategyBox = shortcutStrategyBox;
+      rowCount++;
+
+      JLabel rLabel = new JLabel("Kleinberg exponent r");
+      rLabel.setName("p2pOverlayKleinbergRLabel");
+      algorithmInputs.add(rLabel);
+      double defaultR = 2.0;
+      try {
+        defaultR = Math.max(0.0, Double.parseDouble(System.getProperty("p2p.overlay.shortcut.kleinberg.r", "2.0")));
+      } catch (NumberFormatException ignored) {
+      }
+      SpinnerNumberModel rModel = new SpinnerNumberModel(defaultR, 0.0, 10.0, 0.1);
+      JSpinner rSpinner = new JSpinner(rModel);
+      JSpinner.NumberEditor rEditor = new JSpinner.NumberEditor(rSpinner, "0.0");
+      rSpinner.setEditor(rEditor);
+      rSpinner.setName("p2pOverlayKleinbergR");
+      rSpinner.setToolTipText("Kleinberg exponent r (only used when strategy=kleinberg)");
+      algorithmInputs.add(rSpinner);
+      p2pShortcutKleinbergRSpinner = rSpinner;
+      rowCount++;
+
+      // Wire listeners to update system properties and enable/disable r spinner
+      shortcutStrategyBox.addActionListener(e -> {
+        Object sel = shortcutStrategyBox.getSelectedItem();
+        boolean klein = sel != null && "kleinberg".equalsIgnoreCase(sel.toString());
+        p2pShortcutKleinbergRSpinner.setEnabled(klein);
+        System.setProperty("p2p.overlay.shortcut.strategy", Objects.toString(sel, "kleinberg"));
+        System.setProperty(
+            "p2p.overlay.shortcut.kleinberg.r", String.valueOf(((Number) p2pShortcutKleinbergRSpinner.getValue()).doubleValue()));
+      });
+      p2pShortcutKleinbergRSpinner.addChangeListener(e -> {
+        Object rval = p2pShortcutKleinbergRSpinner.getValue();
+        System.setProperty("p2p.overlay.shortcut.kleinberg.r", String.valueOf(((Number) rval).doubleValue()));
+      });
+      p2pShortcutKleinbergRSpinner.setEnabled("kleinberg".equalsIgnoreCase(configuredStrategy));
+
+      // Node probability spinner: fraction of nodes that will create Kleinberg shortcuts
+      JLabel nodeProbLabel = new JLabel("Shortcut node probability");
+      nodeProbLabel.setName("p2pOverlayShortcutNodeProbabilityLabel");
+      algorithmInputs.add(nodeProbLabel);
+      double defaultNodeProb = 1.0;
+      try {
+        defaultNodeProb = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty("p2p.overlay.shortcut.nodeProbability", "1.0"))));
+      } catch (NumberFormatException ignored) {
+      }
+      SpinnerNumberModel nodeProbModel = new SpinnerNumberModel(defaultNodeProb, 0.0, 1.0, 0.01);
+      JSpinner nodeProbSpinner = new JSpinner(nodeProbModel);
+      JSpinner.NumberEditor nodeProbEditor = new JSpinner.NumberEditor(nodeProbSpinner, "0.00");
+      nodeProbSpinner.setEditor(nodeProbEditor);
+      nodeProbSpinner.setName("p2pOverlayShortcutNodeProbability");
+      nodeProbSpinner.setToolTipText("Fraction of nodes that will create Kleinberg shortcuts (0.0-1.0)");
+      algorithmInputs.add(nodeProbSpinner);
+      p2pShortcutNodeProbabilitySpinner = nodeProbSpinner;
+      nodeProbSpinner.addChangeListener(e -> {
+        Object v = nodeProbSpinner.getValue();
+        double val = (v instanceof Number n) ? n.doubleValue() : Double.parseDouble(String.valueOf(v));
+        System.setProperty("p2p.overlay.shortcut.nodeProbability", String.valueOf(val));
+      });
+      rowCount++;
     }
 
     for (AlgorithmParameter parameter : parameters) {
@@ -1614,14 +1689,18 @@ public class TaxiScenarioControl extends AbstractControl {
           allParameterMap.put(textField.getName(), Integer.parseInt(textField.getText()));
         }
         if (component instanceof JSpinner spinner) {
-          allParameterMap.put(spinner.getName(), (int) spinner.getValue());
+          Object val = spinner.getValue();
+          int intVal = (val instanceof Number number) ? number.intValue() : Integer.parseInt(String.valueOf(val));
+          allParameterMap.put(spinner.getName(), intVal);
         }
       }
 
       for (Component component : algorithmInputs.getComponents()) {
         if (component instanceof JSpinner spinner) {
-          allParameterMap.put(spinner.getName(), (int) spinner.getValue());
-          algorithmParameterMap.put(spinner.getName(), (int) spinner.getValue());
+          Object val = spinner.getValue();
+          int intVal = (val instanceof Number number) ? number.intValue() : Integer.parseInt(String.valueOf(val));
+          allParameterMap.put(spinner.getName(), intVal);
+          algorithmParameterMap.put(spinner.getName(), intVal);
         }
         if (component instanceof JTextField textField && isP2PPortField(textField.getName())) {
           int port = parsePort(textField.getName(), textField.getText());
@@ -1664,8 +1743,26 @@ public class TaxiScenarioControl extends AbstractControl {
         System.setProperty(
             "aqs.p2p.overlay.positionRevisionMinMoveMeters", String.valueOf(((Number) val).intValue()));
       }
-
+      // Apply UI-controlled P2P overlay shortcut strategy and Kleinberg r
+      if (p2pShortcutStrategyBox != null) {
+        Object sel = p2pShortcutStrategyBox.getSelectedItem();
+        System.setProperty("p2p.overlay.shortcut.strategy", Objects.toString(sel, "kleinberg"));
+      }
+      if (p2pShortcutKleinbergRSpinner != null) {
+        Object rval = p2pShortcutKleinbergRSpinner.getValue();
+        System.setProperty(
+            "p2p.overlay.shortcut.kleinberg.r", String.valueOf(((Number) rval).doubleValue()));
+      }
+      if (p2pShortcutNodeProbabilitySpinner != null) {
+        Object nval = p2pShortcutNodeProbabilitySpinner.getValue();
+        double dval = (nval instanceof Number num) ? num.doubleValue() : Double.parseDouble(String.valueOf(nval));
+        System.setProperty("p2p.overlay.shortcut.nodeProbability", String.valueOf(Math.max(0.0, Math.min(1.0, dval))));
+      }
       inputParameterMap.putAll(allParameterMap);
+
+
+      Object ws = allParameterMap.getOrDefault("worldSeed", 0);
+      System.setProperty("worldSeed", String.valueOf(ws));
 
       startButton.setEnabled(true);
 
@@ -1815,6 +1912,9 @@ public class TaxiScenarioControl extends AbstractControl {
       if (comp instanceof JTextField textField && comp.getName() != null) {
         props.setProperty(textField.getName(), textField.getText());
       }
+      if (comp instanceof JComboBox<?> combo && comp.getName() != null) {
+        props.setProperty(combo.getName(), Objects.toString(combo.getSelectedItem(), ""));
+      }
     }
 
     // Batch Processing Parameters
@@ -1938,6 +2038,16 @@ public class TaxiScenarioControl extends AbstractControl {
               textField.setText(valueStr);
               valueSet = true;
               break;
+            }
+            if (compInAlgoPanel instanceof JComboBox<?> combo && effectiveName.equals(compInAlgoPanel.getName())) {
+              try {
+                combo.setSelectedItem(valueStr);
+                log.trace("Set ALGORITHM JComboBox '{}' to '{}'", name, valueStr);
+                valueSet = true;
+                break;
+              } catch (Exception ex) {
+                log.warn("Could not set '{}' to '{}' for ALGORITHM combo '{}'", valueStr, name, ex.getMessage());
+              }
             }
             if (compInAlgoPanel instanceof JSlider && effectiveName.equals(compInAlgoPanel.getName())) {
               try {

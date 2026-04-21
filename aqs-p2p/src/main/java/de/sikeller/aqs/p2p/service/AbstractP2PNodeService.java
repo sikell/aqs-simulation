@@ -2,13 +2,7 @@ package de.sikeller.aqs.p2p.service;
 
 import de.sikeller.aqs.p2p.api.*;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -28,6 +22,11 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   private static final String MAX_INBOX_MESSAGES_PROPERTY = "p2pMaxInboxMessages";
   private static final ConcurrentMap<String, VehiclePosition> vehiclePositions = new ConcurrentHashMap<>();
   private static final AtomicLong vehiclePositionRevision = new AtomicLong();
+  // Track maximum observed position tick to avoid scanning the full map each time
+  private static final AtomicLong vehiclePositionMaxTick = new AtomicLong();
+  // Cache expensive overlay selection results keyed by topic. The cache is keyed by
+  // a revision value composed from vehiclePositionRevision and a checksum of current peers.
+  private final ConcurrentMap<String, CachedOverlay> overlaySelectionCache = new ConcurrentHashMap<>();
 
   private final NodeDescriptor descriptor;
   private final P2PNetwork network;
@@ -93,7 +92,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     VehiclePosition prev = vehiclePositions.get(descriptor.id()); // O(1)
     vehiclePositions.put(descriptor.id(), position); // O(1)
     // Throttle revision bumps to avoid cache thrashing
-    maybeBumpVehiclePositionRevision(descriptor.id(), prev, position); // may increment vehiclePositionRevision O(1)
+    maybeBumpVehiclePositionRevision(prev, position); // may increment vehiclePositionRevision O(1)
+    // maintain max tick for quick access
+    vehiclePositionMaxTick.updateAndGet(cur -> Math.max(cur, simulationTick));
     publishVehiclePosition(position); // publish may be O(n_peers)
   }
 
@@ -101,7 +102,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     long nowTick = currentPositionTick();
     long ttlTicks = Math.max(1L, Long.getLong(P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, DEFAULT_POSITION_TTL_TICKS));
     Map<String, int[]> snapshot = new LinkedHashMap<>();
-    // FIXME: perf
     // vehiclePositions.forEach: Worst-case O(n_vehicles) to scan and build snapshot
     vehiclePositions.forEach(
         (nodeId, position) -> {
@@ -262,6 +262,14 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return new OverlaySelection(List.of(), Set.of());
     }
 
+    // Compute a cheap revision: combine vehicle position revision and a checksum of current peers.
+    long peersChecksum = computePeersChecksum(peers);
+    long currentRevision = vehiclePositionRevision.get() ^ peersChecksum;
+    CachedOverlay cached = overlaySelectionCache.get(topic);
+    if (cached != null && cached.revision() == currentRevision) {
+      return cached.selection();
+    }
+
     // Scan requests must reach all nodes so the collector can stitch a full topology snapshot.
     if (P2PTopics.TOPOLOGY_SCAN_REQUEST.equals(topic)) {
       return new OverlaySelection(peers, Set.of());
@@ -286,7 +294,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
                 || P2PTopics.VEHICLE_POSITION.equals(topic));
 
     int maxNeighbors = resolveOverlayMaxNeighbors();
-
     // distanceBoundOverlayPeers: can be O(n_peers log n_peers) due to sorting/filtering; may also call nearestVehiclePeers which sorts -> O(n log n)
     OverlaySelection smallWorld =
         distanceBoundOverlayPeers(routingPeers, minNeighbors, maxNeighbors, shortcuts, vehicleRelevant, maxDistance); // Worst-case O(n_peers log n_peers)
@@ -300,6 +307,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
               includeCollectorPeers(selected, peers),
               smallWorld.shortcutPeerIds());
     }
+
+    // Cache the result for subsequent quick lookups until peers or positions change.
+    overlaySelectionCache.put(topic, new CachedOverlay(result, currentRevision, System.nanoTime()));
 
     return result;
   }
@@ -392,7 +402,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     VehiclePosition prev = vehiclePositions.get(message.senderId()); // O(1)
     VehiclePosition next = new VehiclePosition(x, y, tick);
     vehiclePositions.put(message.senderId(), next); // O(1)
-    maybeBumpVehiclePositionRevision(message.senderId(), prev, next); // O(1) check + conditional increment
+    maybeBumpVehiclePositionRevision(prev, next); // O(1) check + conditional increment
+    // maintain max tick for quick access
+    vehiclePositionMaxTick.updateAndGet(cur -> Math.max(cur, tick));
   }
 
   private Integer parseInteger(String value) {
@@ -419,14 +431,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   // TODO: link with world ticks
   private long currentPositionTick() {
-    long maxTick = 0L;
-    // scan over vehiclePositions values: O(n_vehicles)
-    for (VehiclePosition position : vehiclePositions.values()) {
-      if (position != null) {
-        maxTick = Math.max(maxTick, position.simulationTick());
-      }
-    }
-    return maxTick;
+    // Use tracked max tick to avoid O(n) scans over the shared map. Falls back to 0 if none.
+    return vehiclePositionMaxTick.get();
   }
 
   private OverlaySelection distanceBoundOverlayPeers(
@@ -498,7 +504,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     if (descriptor.role() != NodeRole.VEHICLE || maxDistance < 0) {
       return List.of();
     }
-    VehiclePosition self = vehiclePositions.get(descriptor.id());
+    // Snapshot positions to avoid repeated concurrent map lookups during sorting
+    Map<String, VehiclePosition> positionsSnapshot = new HashMap<>(vehiclePositions);
+    VehiclePosition self = positionsSnapshot.get(descriptor.id());
     if (self == null) {
       return List.of();
     }
@@ -507,15 +515,12 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return sortedPeers.stream()
         .filter(peer -> peer.role() == NodeRole.VEHICLE)
         .filter(peer -> excludedPeerIds == null || !excludedPeerIds.contains(peer.id()))
-        .filter(
-            peer -> {
-              VehiclePosition other = vehiclePositions.get(peer.id());
-              return other != null && distance(self, other) <= maxDistance;
-            })
-        .sorted(
-            Comparator
-                .comparingDouble((NodeDescriptor peer) -> distance(self, vehiclePositions.get(peer.id())))
-                .thenComparing(NodeDescriptor::id))
+        .filter(peer -> {
+          VehiclePosition other = positionsSnapshot.get(peer.id());
+          return other != null && distance(self, other) <= maxDistance;
+        })
+        .sorted(Comparator.comparingDouble((NodeDescriptor peer) -> distance(self, positionsSnapshot.get(peer.id())))
+            .thenComparing(NodeDescriptor::id))
         .toList();
   }
 
@@ -548,22 +553,145 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       usedIds.addAll(excludedPeerIds);
     }
 
-    List<NodeDescriptor> shortcuts = new ArrayList<>();
-    for (int slot = 1; slot <= limit; slot++) {
-      int suggestedOffset = Math.max(1, (int) Math.round((double) slot * maxOffset / (limit + 1.0)));
-      for (int shift = 0; shift < maxOffset; shift++) {
-        int offset = ((suggestedOffset - 1 + shift) % maxOffset) + 1;
-        NodeDescriptor candidate = sortedPeers.get((startIndex + offset - 1) % maxOffset);
-        if (!usedIds.add(candidate.id())) {
-          continue;
-        }
-        shortcuts.add(candidate);
-        break;
+    // Select strategy: ring (evenly spaced) or kleinberg (probabilistic long-range links).
+    String strategy = System.getProperty("p2p.overlay.shortcut.strategy", "kleinberg").trim().toLowerCase();
+
+    // deterministic global seed used for stable selections
+    long globalSeed = Long.getLong("worldSeed", 0L);
+    // Global deterministic sampler: if a global fraction < 1.0 is requested, deterministically
+    // select a subset of nodes (based on their id + globalSeed) that are allowed to create
+    // shortcuts. This ensures a globally controlled number of nodes produce long-range links.
+    double nodeProbability = 1.0;
+    try {
+      nodeProbability = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty("p2p.overlay.shortcut.nodeProbability", "1.0"))));
+    } catch (NumberFormatException ignored) {
+    }
+    if (nodeProbability < 1.0) {
+      // build list of all node ids including self
+      List<String> allIds = new ArrayList<>();
+      allIds.add(descriptor.id());
+      for (NodeDescriptor nd : sortedPeers) {
+        if (nd != null && nd.id() != null) allIds.add(nd.id());
       }
-      if (shortcuts.size() >= limit) {
-        break;
+      int total = allIds.size();
+      int selectCount = (int) Math.round(nodeProbability * total);
+      if (selectCount <= 0) {
+        return List.of();
+      }
+      // rank ids by unsigned hash and pick top selectCount
+      allIds.sort(Comparator.naturalOrder());
+      allIds.sort((a, b) -> Long.compareUnsigned(Integer.toUnsignedLong(Objects.hash(b, globalSeed)), Integer.toUnsignedLong(Objects.hash(a, globalSeed))));
+      Set<String> selected = new HashSet<>();
+      for (int i = 0; i < Math.min(selectCount, allIds.size()); i++) {
+        selected.add(allIds.get(i));
+      }
+      if (!selected.contains(descriptor.id())) {
+        return List.of();
       }
     }
+
+    if (!"kleinberg".equals(strategy)) {
+      // ring selection: evenly spaced offsets on the ring
+      List<NodeDescriptor> shortcuts = new ArrayList<>();
+      for (int slot = 1; slot <= limit; slot++) {
+        int suggestedOffset = Math.max(1, (int) Math.round((double) slot * maxOffset / (limit + 1.0)));
+        for (int shift = 0; shift < maxOffset; shift++) {
+          int offset = ((suggestedOffset - 1 + shift) % maxOffset) + 1;
+          NodeDescriptor candidate = sortedPeers.get((startIndex + offset - 1) % maxOffset);
+          if (!usedIds.add(candidate.id())) {
+            continue;
+          }
+          shortcuts.add(candidate);
+          break;
+        }
+        if (shortcuts.size() >= limit) {
+          break;
+        }
+      }
+      return shortcuts;
+    }
+
+    // Kleinberg-like selection
+    // exponent r controls preference for near vs far long-range links (Kleinberg uses r = grid-dimension)
+    double r = 2.0;
+    try {
+      r = Math.max(0.0, Double.parseDouble(System.getProperty("p2p.overlay.shortcut.kleinberg.r", "2.0")));
+    } catch (NumberFormatException ignored) {
+    }
+    // deterministic seed: reuse existing simulation/world seed if available to keep reproducible per-node shortcuts
+    long seed = globalSeed ^ (long) Objects.hash(descriptor.id());
+    Random rnd = new Random(seed);
+
+    // (nodeProbability already applied globally above)
+
+    List<NodeDescriptor> shortcuts = new ArrayList<>();
+
+    // Build initial candidate list (indices)
+    List<Integer> candidateIndices = new ArrayList<>();
+    for (int idx = 0; idx < maxOffset; idx++) {
+      NodeDescriptor candidate = sortedPeers.get(idx);
+      if (candidate == null) continue;
+      String cid = candidate.id();
+      // Skip invalid ids, already-used ids and the local node itself
+      if (cid == null || cid.isBlank() || cid.equals(descriptor.id()) || usedIds.contains(cid)) continue;
+      candidateIndices.add(idx);
+    }
+
+    // snapshot positions for consistent distance calculations
+    Map<String, VehiclePosition> positionsSnapshot = new HashMap<>(vehiclePositions);
+    // Helper to compute distance between self and candidate: prefer geographic if available, else ring offset
+    VehiclePosition selfPos = positionsSnapshot.get(descriptor.id());
+
+    for (int slot = 0; slot < limit && !candidateIndices.isEmpty(); slot++) {
+      // compute weights proportional to d^{-r}
+      double totalWeight = 0.0;
+      double[] weights = new double[candidateIndices.size()];
+      for (int i = 0; i < candidateIndices.size(); i++) {
+        int idx = candidateIndices.get(i);
+        NodeDescriptor candidate = sortedPeers.get(idx);
+        double dist;
+        VehiclePosition other = positionsSnapshot.get(candidate.id());
+        if (selfPos != null && other != null) {
+          dist = P2PGeoUtils.distance(selfPos.x(), selfPos.y(), other.x(), other.y());
+        } else {
+          // fall back to ring offset distance (1..maxOffset)
+          int ringOffset = Math.abs(idx - startIndex);
+          ringOffset = Math.min(ringOffset, maxOffset - ringOffset);
+          dist = Math.max(1.0, ringOffset);
+        }
+        // weight: inverse power of distance; avoid infinite weight by clamping
+        double weight = Math.pow(Math.max(1e-6, dist), -r);
+        weights[i] = weight;
+        totalWeight += weight;
+      }
+
+      if (totalWeight <= 0.0) {
+        break;
+      }
+
+      // roulette wheel selection
+      double pick = rnd.nextDouble() * totalWeight;
+      double acc = 0.0;
+      int chosenIdx = -1;
+      for (int i = 0; i < weights.length; i++) {
+        acc += weights[i];
+        if (pick <= acc) {
+          chosenIdx = i;
+          break;
+        }
+      }
+      if (chosenIdx < 0) chosenIdx = weights.length - 1;
+
+      int selectedPeerIdx = candidateIndices.get(chosenIdx);
+      NodeDescriptor selected = sortedPeers.get(selectedPeerIdx);
+      if (selected != null && usedIds.add(selected.id())) {
+        shortcuts.add(selected);
+      }
+
+      // remove chosen index from candidateIndices
+      candidateIndices.remove(chosenIdx);
+    }
+
     return shortcuts;
   }
 
@@ -574,7 +702,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     if (descriptor.role() != NodeRole.VEHICLE || localSlots <= 0) {
       return List.of();
     }
-    VehiclePosition self = vehiclePositions.get(descriptor.id());
+    Map<String, VehiclePosition> positionsSnapshot = new HashMap<>(vehiclePositions);
+    VehiclePosition self = positionsSnapshot.get(descriptor.id());
     if (self == null) {
       return List.of();
     }
@@ -584,8 +713,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
         .filter(peer -> excludedPeerIds == null || !excludedPeerIds.contains(peer.id()))
         .sorted(
             Comparator
-                .comparing((NodeDescriptor peer) -> vehiclePositions.get(peer.id()) == null)
-                .thenComparingDouble(peer -> distance(self, vehiclePositions.get(peer.id())))
+                .comparing((NodeDescriptor peer) -> positionsSnapshot.get(peer.id()) == null)
+                .thenComparingDouble(peer -> distance(self, positionsSnapshot.get(peer.id())))
                 .thenComparing(NodeDescriptor::id))
         .limit(localSlots)
         .toList();
@@ -604,6 +733,19 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   private record VehiclePosition(int x, int y, long simulationTick) {}
 
+  private record CachedOverlay(OverlaySelection selection, long revision, long createdAtNs) {}
+
+  private long computePeersChecksum(List<NodeDescriptor> peers) {
+    long acc = 1469598103934665603L; // FNV offset basis-like
+    for (NodeDescriptor peer : peers) {
+      if (peer == null || peer.id() == null) continue;
+      long h = peer.id().hashCode();
+      acc ^= (h + 0x9e3779b97f4a7c15L + (acc << 6) + (acc >> 2));
+      acc *= 1099511628211L;
+    }
+    return acc;
+  }
+
 
 
   public NodeRuntimeStatus runtimeStatus() {
@@ -618,7 +760,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   }
 
   // Throttled bump: only increment vehiclePositionRevision when movement or tick delta exceeds thresholds
-  private void maybeBumpVehiclePositionRevision(String nodeId, VehiclePosition prev, VehiclePosition next) {
+  private void maybeBumpVehiclePositionRevision(VehiclePosition prev, VehiclePosition next) {
     if (prev == null || next == null) {
       vehiclePositionRevision.incrementAndGet(); // O(1)
       return;
@@ -626,11 +768,13 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     long throttleTicks =
         Math.max(1L, Long.getLong(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, 5L));
     int minMoveMeters = Math.max(0, Integer.getInteger(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, 50));
-    if (next.simulationTick() - prev.simulationTick() >= throttleTicks) {
+    long tickDelta = next.simulationTick() - prev.simulationTick();
+    double dist = P2PGeoUtils.distance(prev.x(), prev.y(), next.x(), next.y());
+
+    if (tickDelta >= throttleTicks) {
       vehiclePositionRevision.incrementAndGet();
       return;
     }
-    double dist = P2PGeoUtils.distance(prev.x(), prev.y(), next.x(), next.y());
     if (dist >= minMoveMeters) {
       vehiclePositionRevision.incrementAndGet();
     }
