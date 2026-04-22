@@ -176,6 +176,9 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   @Override
   public void init(World world) {
+    setParameters(this.parameters);
+    applyOverlayConfig(this.parameters);
+
     stepCounter = 0;
     runtimeState.clear();
     topologyViewsByNodeId.clear();
