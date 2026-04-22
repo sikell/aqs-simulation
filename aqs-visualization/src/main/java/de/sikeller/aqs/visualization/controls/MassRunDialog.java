@@ -287,12 +287,7 @@ final class MassRunDialog extends JDialog {
         || normalized.equalsIgnoreCase("Integer.MAX_VALUE")) {
       return Integer.MAX_VALUE;
     }
-    try {
-      return Integer.parseInt(normalized);
-    } catch (NumberFormatException ex) {
-      throw new IllegalArgumentException(
-          "Invalid " + label + " value: " + token + " (expected integer or INF/MAX)", ex);
-    }
+    return Integer.parseInt(normalized);
   }
 
   private static Set<String> parseCsvStringsOrEmpty(String text) {

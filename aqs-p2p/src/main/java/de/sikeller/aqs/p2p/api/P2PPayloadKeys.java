@@ -18,6 +18,7 @@ public final class P2PPayloadKeys {
   public static final String FORWARDED_BY = "forwardedBy";
   public static final String VEHICLE = "vehicle";
   public static final String ETA_SECONDS = "etaSeconds";
+  public static final String TAXI_NAME = "taxiName";
 
   public static final String ROLE = "role";
   public static final String NEIGHBORS = "neighbors";

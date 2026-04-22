@@ -18,6 +18,14 @@ public final class P2PSystemProperties {
   // Minimum move (meters) required to bump position revision
   public static final String OVERLAY_POSITION_REVISION_MIN_MOVE_METERS = "aqs.p2p.overlay.positionRevisionMinMoveMeters";
 
+  // Overlay shortcut / small-world tuning
+  public static final String OVERLAY_SHORTCUT_STRATEGY = "aqs.p2p.overlay.shortcut.strategy";
+  public static final String OVERLAY_SHORTCUT_KLEINBERG_R = "aqs.p2p.overlay.shortcut.kleinberg.r";
+  public static final String OVERLAY_SHORTCUT_NODE_PROBABILITY = "aqs.p2p.overlay.shortcut.nodeProbability";
+
+  // Inbox sizing
+  public static final String MAX_INBOX_MESSAGES = "aqs.p2p.maxInboxMessages";
+
   public static final String VEHICLE_OPEN_REQUEST_STRATEGY = "aqs.p2p.vehicle.openRequestStrategy";
   public static final String VEHICLE_COMMIT_LEASE_TICKS = "aqs.p2p.vehicle.commitLeaseTicks";
   public static final String VEHICLE_ASSUMED_SPEED_MPS = "aqs.p2p.vehicle.assumedSpeedMps";

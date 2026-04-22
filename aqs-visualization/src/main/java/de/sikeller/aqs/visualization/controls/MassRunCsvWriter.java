@@ -233,11 +233,7 @@ final class MassRunCsvWriter {
     if (text.isBlank()) {
       return 0d;
     }
-    try {
-      return Double.parseDouble(text);
-    } catch (NumberFormatException ex) {
-      return 0d;
-    }
+    return Double.parseDouble(text);
   }
 
   private static double average(List<RunMetricRow> rows, java.util.function.ToDoubleFunction<RunMetricRow> selector) {

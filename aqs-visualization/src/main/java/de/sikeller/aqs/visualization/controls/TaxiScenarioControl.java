@@ -8,6 +8,7 @@ import de.sikeller.aqs.model.P2PStatusProvider;
 import de.sikeller.aqs.model.ResultTable;
 import de.sikeller.aqs.model.SimulationControl;
 import de.sikeller.aqs.model.TaxiAlgorithm;
+import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.visualization.drawing.VisualizationProperties;
 import de.sikeller.aqs.visualization.drawing.VisualizationUtils;
 import java.awt.*;
@@ -40,7 +41,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String MODE_LOCAL = "LOCAL";
   private static final String MODE_P2P_SIMULATED = "P2P-SIMULATED";
   private static final String MODE_P2P_LAN = "P2P-LAN";
-  private static final String P2P_VEHICLE_STRATEGY_PROPERTY = "aqs.p2p.vehicle.openRequestStrategy";
+  private static final String P2P_VEHICLE_STRATEGY_PROPERTY = P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY;
   private static final String P2P_VEHICLE_STRATEGY_CONFIG_KEY = "p2pVehicleDecisionStrategy";
   private static final String P2P_STRATEGY_NEAREST = "nearest";
   private static final String P2P_STRATEGY_GREEDY = "greedy";
@@ -291,7 +292,7 @@ public class TaxiScenarioControl extends AbstractControl {
     panel.add(p2pLastEventValue);
     // Position revision controls (throttle ticks and min move meters)
     panel.add(label("Position revision throttle [ticks]", "p2pPosRevThrottleLabel"));
-    int defaultThrottle = Integer.parseInt(System.getProperty("aqs.p2p.overlay.positionRevisionThrottleTicks", "5"));
+    int defaultThrottle = Integer.parseInt(System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, "5"));
     SpinnerModel throttleModel = new SpinnerNumberModel(defaultThrottle, 0, Integer.MAX_VALUE, 1);
     p2pPositionRevisionThrottleSpinner = new JSpinner(throttleModel);
     configureIntegerSpinner(p2pPositionRevisionThrottleSpinner);
@@ -300,7 +301,7 @@ public class TaxiScenarioControl extends AbstractControl {
     panel.add(p2pPositionRevisionThrottleSpinner);
 
     panel.add(label("Position revision min move [m]", "p2pPosRevMinMoveLabel"));
-    int defaultMinMove = Integer.parseInt(System.getProperty("aqs.p2p.overlay.positionRevisionMinMoveMeters", "50"));
+    int defaultMinMove = Integer.parseInt(System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, "50"));
     SpinnerModel minMoveModel = new SpinnerNumberModel(defaultMinMove, 0, Integer.MAX_VALUE, 1);
     p2pPositionRevisionMinMoveSpinner = new JSpinner(minMoveModel);
     configureIntegerSpinner(p2pPositionRevisionMinMoveSpinner);
@@ -586,11 +587,7 @@ public class TaxiScenarioControl extends AbstractControl {
     if (value == null || value.isBlank()) {
       return defaultValue;
     }
-    try {
-      return Integer.parseInt(value.trim());
-    } catch (NumberFormatException ex) {
-      return defaultValue;
-    }
+    return Integer.parseInt(value.trim());
   }
 
   private int[] vehicleEdgeCounts(P2PNetworkSnapshot snapshot) {
@@ -819,7 +816,7 @@ public class TaxiScenarioControl extends AbstractControl {
 
   private MassRunDialog.Defaults defaultMassRunDialogValues() {
     List<String> availableAlgorithms = resolveAlgorithmSimpleNames();
-    int defaultKHops = readSpinnerValue("p2pRequestForwardHops", 2);
+    int defaultKHops = readSpinnerValue("p2pRequestForwardHops", 1);
     int defaultRqsRadius = readSpinnerValue("p2pFixedSearchRadius", 500);
     int taxiCount = readSpinnerValue("taxiCount", 5);
     int clientCount = readSpinnerValue("clientCount", 100);
@@ -828,7 +825,7 @@ public class TaxiScenarioControl extends AbstractControl {
     int taxiSeatCount = readSpinnerValue("taxiSeatCount", 2);
     int taxiSpeed = readSpinnerValue("taxiSpeed", 80);
     int simulationSpeed = 100;
-    int defaultOverlayMaxNeighbors = readSpinnerValue("p2pOverlayMaxNeighbors", 100);
+    int defaultOverlayMaxNeighbors = readSpinnerValue("p2pOverlayMaxNeighbors", 5);
     return new MassRunDialog.Defaults(
         resolveDefaultMassRunAlgorithmsCsv(availableAlgorithms),
         String.valueOf(defaultKHops),
@@ -1299,7 +1296,7 @@ public class TaxiScenarioControl extends AbstractControl {
     if (root == null) {
       return;
     }
-    java.util.List<Component> stack = new ArrayList<>();
+    List<Component> stack = new ArrayList<>();
     stack.add(root);
     while (!stack.isEmpty()) {
       Component comp = stack.remove(stack.size() - 1);
@@ -1519,7 +1516,7 @@ public class TaxiScenarioControl extends AbstractControl {
       shortcutStrategyBox.setName("p2pOverlayShortcutStrategy");
       shortcutStrategyBox.addItem("kleinberg");
       shortcutStrategyBox.addItem("ring");
-      String configuredStrategy = System.getProperty("p2p.overlay.shortcut.strategy", "kleinberg").trim().toLowerCase(Locale.ROOT);
+       String configuredStrategy = System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg").trim().toLowerCase(Locale.ROOT);
       shortcutStrategyBox.setSelectedItem(configuredStrategy);
       shortcutStrategyBox.setToolTipText("Shortcut selection strategy for overlay peers (kleinberg|ring)");
       algorithmInputs.add(shortcutStrategyBox);
@@ -1529,11 +1526,7 @@ public class TaxiScenarioControl extends AbstractControl {
       JLabel rLabel = new JLabel("Kleinberg exponent r");
       rLabel.setName("p2pOverlayKleinbergRLabel");
       algorithmInputs.add(rLabel);
-      double defaultR = 2.0;
-      try {
-        defaultR = Math.max(0.0, Double.parseDouble(System.getProperty("p2p.overlay.shortcut.kleinberg.r", "2.0")));
-      } catch (NumberFormatException ignored) {
-      }
+       double defaultR = Math.max(0.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0")));
       SpinnerNumberModel rModel = new SpinnerNumberModel(defaultR, 0.0, 10.0, 0.1);
       JSpinner rSpinner = new JSpinner(rModel);
       JSpinner.NumberEditor rEditor = new JSpinner.NumberEditor(rSpinner, "0.0");
@@ -1549,13 +1542,13 @@ public class TaxiScenarioControl extends AbstractControl {
         Object sel = shortcutStrategyBox.getSelectedItem();
         boolean klein = sel != null && "kleinberg".equalsIgnoreCase(sel.toString());
         p2pShortcutKleinbergRSpinner.setEnabled(klein);
-        System.setProperty("p2p.overlay.shortcut.strategy", Objects.toString(sel, "kleinberg"));
+        System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, Objects.toString(sel, "kleinberg"));
         System.setProperty(
-            "p2p.overlay.shortcut.kleinberg.r", String.valueOf(((Number) p2pShortcutKleinbergRSpinner.getValue()).doubleValue()));
+            P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) p2pShortcutKleinbergRSpinner.getValue()).doubleValue()));
       });
       p2pShortcutKleinbergRSpinner.addChangeListener(e -> {
         Object rval = p2pShortcutKleinbergRSpinner.getValue();
-        System.setProperty("p2p.overlay.shortcut.kleinberg.r", String.valueOf(((Number) rval).doubleValue()));
+        System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) rval).doubleValue()));
       });
       p2pShortcutKleinbergRSpinner.setEnabled("kleinberg".equalsIgnoreCase(configuredStrategy));
 
@@ -1563,11 +1556,7 @@ public class TaxiScenarioControl extends AbstractControl {
       JLabel nodeProbLabel = new JLabel("Shortcut node probability");
       nodeProbLabel.setName("p2pOverlayShortcutNodeProbabilityLabel");
       algorithmInputs.add(nodeProbLabel);
-      double defaultNodeProb = 1.0;
-      try {
-        defaultNodeProb = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty("p2p.overlay.shortcut.nodeProbability", "1.0"))));
-      } catch (NumberFormatException ignored) {
-      }
+       double defaultNodeProb = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "1.0"))));
       SpinnerNumberModel nodeProbModel = new SpinnerNumberModel(defaultNodeProb, 0.0, 1.0, 0.01);
       JSpinner nodeProbSpinner = new JSpinner(nodeProbModel);
       JSpinner.NumberEditor nodeProbEditor = new JSpinner.NumberEditor(nodeProbSpinner, "0.00");
@@ -1576,10 +1565,10 @@ public class TaxiScenarioControl extends AbstractControl {
       nodeProbSpinner.setToolTipText("Fraction of nodes that will create Kleinberg shortcuts (0.0-1.0)");
       algorithmInputs.add(nodeProbSpinner);
       p2pShortcutNodeProbabilitySpinner = nodeProbSpinner;
-      nodeProbSpinner.addChangeListener(e -> {
+        nodeProbSpinner.addChangeListener(e -> {
         Object v = nodeProbSpinner.getValue();
         double val = (v instanceof Number n) ? n.doubleValue() : Double.parseDouble(String.valueOf(v));
-        System.setProperty("p2p.overlay.shortcut.nodeProbability", String.valueOf(val));
+        System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, String.valueOf(val));
       });
       rowCount++;
     }
@@ -1735,29 +1724,27 @@ public class TaxiScenarioControl extends AbstractControl {
       // Apply UI-controlled P2P system properties for position revision throttling
       if (p2pPositionRevisionThrottleSpinner != null) {
         Object val = p2pPositionRevisionThrottleSpinner.getValue();
-        System.setProperty(
-            "aqs.p2p.overlay.positionRevisionThrottleTicks", String.valueOf(((Number) val).longValue()));
+        System.setProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, String.valueOf(((Number) val).longValue()));
       }
       if (p2pPositionRevisionMinMoveSpinner != null) {
         Object val = p2pPositionRevisionMinMoveSpinner.getValue();
-        System.setProperty(
-            "aqs.p2p.overlay.positionRevisionMinMoveMeters", String.valueOf(((Number) val).intValue()));
+        System.setProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, String.valueOf(((Number) val).intValue()));
       }
       // Apply UI-controlled P2P overlay shortcut strategy and Kleinberg r
-      if (p2pShortcutStrategyBox != null) {
-        Object sel = p2pShortcutStrategyBox.getSelectedItem();
-        System.setProperty("p2p.overlay.shortcut.strategy", Objects.toString(sel, "kleinberg"));
-      }
-      if (p2pShortcutKleinbergRSpinner != null) {
-        Object rval = p2pShortcutKleinbergRSpinner.getValue();
-        System.setProperty(
-            "p2p.overlay.shortcut.kleinberg.r", String.valueOf(((Number) rval).doubleValue()));
-      }
-      if (p2pShortcutNodeProbabilitySpinner != null) {
-        Object nval = p2pShortcutNodeProbabilitySpinner.getValue();
-        double dval = (nval instanceof Number num) ? num.doubleValue() : Double.parseDouble(String.valueOf(nval));
-        System.setProperty("p2p.overlay.shortcut.nodeProbability", String.valueOf(Math.max(0.0, Math.min(1.0, dval))));
-      }
+        if (p2pShortcutStrategyBox != null) {
+         Object sel = p2pShortcutStrategyBox.getSelectedItem();
+          System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, Objects.toString(sel, "kleinberg"));
+       }
+       if (p2pShortcutKleinbergRSpinner != null) {
+         Object rval = p2pShortcutKleinbergRSpinner.getValue();
+         System.setProperty(
+              P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) rval).doubleValue()));
+       }
+       if (p2pShortcutNodeProbabilitySpinner != null) {
+         Object nval = p2pShortcutNodeProbabilitySpinner.getValue();
+         double dval = (nval instanceof Number num) ? num.doubleValue() : Double.parseDouble(String.valueOf(nval));
+         System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, String.valueOf(Math.max(0.0, Math.min(1.0, dval))));
+       }
       inputParameterMap.putAll(allParameterMap);
 
 
@@ -1832,15 +1819,11 @@ public class TaxiScenarioControl extends AbstractControl {
   }
 
   private int parsePort(String fieldName, String value) {
-    try {
-      int port = Integer.parseInt(value == null ? "" : value.trim());
-      if (port < 1 || port > 65535) {
-        throw new IllegalArgumentException("Port out of range for " + fieldName + ": " + port);
-      }
-      return port;
-    } catch (NumberFormatException ex) {
-      throw new IllegalArgumentException("Invalid numeric value for " + fieldName + ": " + value);
+    int port = Integer.parseInt(value == null ? "" : value.trim());
+    if (port < 1 || port > 65535) {
+      throw new IllegalArgumentException("Port out of range for " + fieldName + ": " + port);
     }
+    return port;
   }
 
   private String displayLabelForParameter(String parameterName) {
@@ -2023,15 +2006,10 @@ public class TaxiScenarioControl extends AbstractControl {
         if (algorithmInputs != null) {
           for (Component compInAlgoPanel : algorithmInputs.getComponents()) {
             if (compInAlgoPanel instanceof JSpinner && effectiveName.equals(compInAlgoPanel.getName())) {
-              try {
-                ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
-                log.trace("Set ALGORITHM JSpinner '{}' to '{}'", name, valueStr);
-                valueSet = true;
-                break;
-              } catch (NumberFormatException nfe) {
-                log.warn(
-                    "Could not parse '{}' as integer for ALGORITHM spinner '{}'", valueStr, name);
-              }
+              ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
+              log.trace("Set ALGORITHM JSpinner '{}' to '{}'", name, valueStr);
+              valueSet = true;
+              break;
             }
             if (compInAlgoPanel instanceof JTextField textField
                 && effectiveName.equals(compInAlgoPanel.getName())) {
@@ -2050,15 +2028,10 @@ public class TaxiScenarioControl extends AbstractControl {
               }
             }
             if (compInAlgoPanel instanceof JSlider && effectiveName.equals(compInAlgoPanel.getName())) {
-              try {
-                ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
-                log.trace("Set ALGORITHM JSlider '{}' to '{}'", name, valueStr);
-                valueSet = true;
-                break;
-              } catch (NumberFormatException nfe) {
-                log.warn(
-                    "Could not parse '{}' as integer for ALGORITHM slider '{}'", valueStr, name);
-              }
+              ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
+              log.trace("Set ALGORITHM JSlider '{}' to '{}'", name, valueStr);
+              valueSet = true;
+              break;
             }
           }
         }
@@ -2067,22 +2040,14 @@ public class TaxiScenarioControl extends AbstractControl {
         if (!valueSet) {
           Component generalComp = getComponentByName(effectiveName);
           if (generalComp instanceof JSpinner) {
-            try {
-              ((JSpinner) generalComp).setValue(Integer.parseInt(valueStr));
-              log.trace("Set GENERAL JSpinner '{}' to '{}'", name, valueStr);
-              valueSet = true;
-            } catch (NumberFormatException nfe) {
-              log.warn("Could not parse '{}' as integer for GENERAL spinner '{}'", valueStr, name);
-            }
+            ((JSpinner) generalComp).setValue(Integer.parseInt(valueStr));
+            log.trace("Set GENERAL JSpinner '{}' to '{}'", name, valueStr);
+            valueSet = true;
           }
           if (generalComp instanceof JSlider) {
-            try {
-              ((JSlider) generalComp).setValue(Integer.parseInt(valueStr));
-              log.trace("Set GENERAL JSlider '{}' to '{}'", name, valueStr);
-              valueSet = true;
-            } catch (NumberFormatException nfe) {
-              log.warn("Could not parse '{}' as integer for GENERAL slider '{}'", valueStr, name);
-            }
+            ((JSlider) generalComp).setValue(Integer.parseInt(valueStr));
+            log.trace("Set GENERAL JSlider '{}' to '{}'", name, valueStr);
+            valueSet = true;
           }
         }
 

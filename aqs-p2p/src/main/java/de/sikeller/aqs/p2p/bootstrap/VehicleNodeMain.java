@@ -89,15 +89,11 @@ public class VehicleNodeMain {
   }
 
   private static int parsePort(String value) {
-    try {
-      int port = Integer.parseInt(value);
-      if (port < 1 || port > 65535) {
-        throw new IllegalArgumentException("--tcpPort must be in range 1..65535");
-      }
-      return port;
-    } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("--tcpPort must be numeric", e);
+    int port = Integer.parseInt(value.trim());
+    if (port < 1 || port > 65535) {
+      throw new IllegalArgumentException("--tcpPort must be in range 1..65535");
     }
+    return port;
   }
 
   private static void setIfPresent(String key, String value) {

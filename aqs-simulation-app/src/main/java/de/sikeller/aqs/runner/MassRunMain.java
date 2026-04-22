@@ -198,11 +198,7 @@ public final class MassRunMain {
     if (normalized.isEmpty()) {
       return 0d;
     }
-    try {
-      return Double.parseDouble(normalized);
-    } catch (NumberFormatException ex) {
-      return 0d;
-    }
+    return Double.parseDouble(normalized);
   }
 
   private static List<AggregatedMetricRow> aggregate(List<RunMetricRow> runRows) {

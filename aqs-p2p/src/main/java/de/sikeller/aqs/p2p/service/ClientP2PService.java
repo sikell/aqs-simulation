@@ -7,6 +7,7 @@ import de.sikeller.aqs.p2p.api.P2PMessage;
 import de.sikeller.aqs.p2p.api.P2PNetwork;
 import de.sikeller.aqs.p2p.api.P2PTopics;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -18,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 public class ClientP2PService extends AbstractP2PNodeService {
   private final NodeDescriptor nodeDescriptor;
   private final ConcurrentMap<String, String> acceptedVehicleByRequestId = new ConcurrentHashMap<>();
+  // Track requests that have been committed so further offers are ignored
+  private final Set<String> committedRequestIds = ConcurrentHashMap.newKeySet();
 
   public ClientP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.CLIENT), network);
@@ -85,12 +88,23 @@ public class ClientP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    String alreadyAccepted = acceptedVehicleByRequestId.putIfAbsent(requestId, vehicleNodeId);
-    if (alreadyAccepted != null) {
+    // If this request is already committed, ignore further accepts
+    if (committedRequestIds.contains(requestId)) {
+      log.debug("Client node {} ignoring acceptOffer for already committed requestId={}", descriptor().id(), requestId);
       return;
     }
 
-    sendToMessage(vehicleNodeId, P2PTopics.RIDE_ACCEPT, "", requestId, requestId);
+    // Ensure only one accept is sent for a given requestId. Do NOT call sendToMessage
+    // from inside computeIfAbsent's mapping function because that can cause a
+    // re-entrant modification of this map (sendToMessage may synchronously trigger
+    // onMessage which calls remove) and ConcurrentHashMap will throw
+    // IllegalStateException: Recursive update. Use putIfAbsent and send the message
+    // only when we successfully inserted the reservation.
+    String previous = acceptedVehicleByRequestId.putIfAbsent(requestId, vehicleNodeId);
+    if (previous == null) {
+      // We successfully reserved this requestId -> send accept to vehicle
+      sendToMessage(vehicleNodeId, P2PTopics.RIDE_ACCEPT, "", requestId, requestId);
+    }
   }
 
   public String requestTopologyScan() {
@@ -114,6 +128,11 @@ public class ClientP2PService extends AbstractP2PNodeService {
               message.requestId() == null ? "" : message.requestId());
       String vehicleNodeId = offer.getOrDefault("vehicle", message.senderId());
       if (!requestId.isBlank() && vehicleNodeId != null && !vehicleNodeId.isBlank()) {
+        // Ignore offers for requests already committed
+        if (committedRequestIds.contains(requestId)) {
+          log.debug("Client node {} ignoring offer for already committed requestId={} from={}", descriptor().id(), requestId, vehicleNodeId);
+          return;
+        }
         // First offer wins for each request; later offers are ignored.
         acceptOffer(vehicleNodeId, requestId);
       }
@@ -122,7 +141,30 @@ public class ClientP2PService extends AbstractP2PNodeService {
 
     if (P2PTopics.RIDE_COMMIT.equals(message.topic())) {
       if (message.requestId() != null && !message.requestId().isBlank()) {
-        acceptedVehicleByRequestId.remove(message.requestId());
+        String requestId = message.requestId();
+        // Parse vehicle from payload if present, otherwise fall back to senderId
+        String vehicleFromPayload = message.payload() == null || message.payload().isBlank()
+            ? message.senderId()
+            : KeyValuePayload.parse(message.payload()).getOrDefault(P2PPayloadKeys.VEHICLE, message.senderId());
+        String recorded = acceptedVehicleByRequestId.get(requestId);
+        if (recorded == null) {
+          // No prior accepted vehicle recorded: mark committed and remove any stale mapping
+          committedRequestIds.add(requestId);
+          acceptedVehicleByRequestId.remove(requestId);
+        } else if (recorded.equals(vehicleFromPayload)) {
+          // Commit from the vehicle we accepted -> clear reservation and mark committed
+          acceptedVehicleByRequestId.remove(requestId);
+          committedRequestIds.add(requestId);
+        } else {
+          // Commit from an unexpected vehicle -> ignore to avoid double-commit
+          log.info(
+              "Client node {} ignoring commit from unexpected vehicle={} for requestId={} (expected={})",
+              descriptor().id(),
+              vehicleFromPayload,
+              requestId,
+              recorded);
+          return;
+        }
       }
       log.info(
           "Client node {} commit received requestId={} correlationId={} payload={}",
