@@ -7,6 +7,7 @@ import de.sikeller.aqs.p2p.service.position.PositionManager;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -33,9 +34,12 @@ public final class DistancePeerSelector {
           .toList();
     }
 
+    // Pre-compute distances to avoid repeated map lookups inside the heap comparator
+    Map<String, Double> distCache = new HashMap<>();
+
     PriorityQueue<NodeDescriptor> heap = new PriorityQueue<>(limit, (a, b) -> {
-      double da = P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(a.id()).x(), positionsSnapshot.get(a.id()).y());
-      double db = P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(b.id()).x(), positionsSnapshot.get(b.id()).y());
+      double da = distCache.computeIfAbsent(a.id(), id -> P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(id).x(), positionsSnapshot.get(id).y()));
+      double db = distCache.computeIfAbsent(b.id(), id -> P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(id).x(), positionsSnapshot.get(id).y()));
       int cmp = Double.compare(db, da);
       if (cmp != 0) return cmp;
       return b.id().compareTo(a.id());
@@ -46,12 +50,12 @@ public final class DistancePeerSelector {
       if (excludedPeerIds != null && excludedPeerIds.contains(peer.id())) continue;
       Position other = positionsSnapshot.get(peer.id());
       if (other == null) continue;
-      double d = P2PGeoUtils.distance(selfPos.x(), selfPos.y(), other.x(), other.y());
+      double d = distCache.computeIfAbsent(peer.id(), id -> P2PGeoUtils.distance(selfPos.x(), selfPos.y(), other.x(), other.y()));
       if (d > maxDistance) continue;
       if (heap.size() < limit) heap.add(peer);
       else {
         NodeDescriptor worst = heap.peek();
-        double worstD = P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(worst.id()).x(), positionsSnapshot.get(worst.id()).y());
+        double worstD = distCache.computeIfAbsent(worst.id(), id -> P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(id).x(), positionsSnapshot.get(id).y()));
         if (d < worstD || (d == worstD && peer.id().compareTo(worst.id()) < 0)) {
           heap.poll();
           heap.add(peer);
@@ -60,7 +64,7 @@ public final class DistancePeerSelector {
     }
 
     List<NodeDescriptor> result = new ArrayList<>(heap);
-    result.sort(Comparator.comparingDouble((NodeDescriptor peer) -> P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(peer.id()).x(), positionsSnapshot.get(peer.id()).y()))
+    result.sort(Comparator.comparingDouble((NodeDescriptor peer) -> distCache.computeIfAbsent(peer.id(), id -> P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(id).x(), positionsSnapshot.get(id).y())))
         .thenComparing(NodeDescriptor::id));
     return result;
   }
@@ -74,9 +78,9 @@ public final class DistancePeerSelector {
     return sortedPeers.stream()
         .filter(peer -> peer.role() == NodeRole.VEHICLE)
         .filter(peer -> excludedPeerIds == null || !excludedPeerIds.contains(peer.id()))
+        .filter(peer -> positionsSnapshot.get(peer.id()) != null) // skip peers with unknown position
         .sorted(Comparator
-            .comparing((NodeDescriptor peer) -> positionsSnapshot.get(peer.id()) == null)
-            .thenComparingDouble(peer -> P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(peer.id()).x(), positionsSnapshot.get(peer.id()).y()))
+            .comparingDouble((NodeDescriptor peer) -> P2PGeoUtils.distance(selfPos.x(), selfPos.y(), positionsSnapshot.get(peer.id()).x(), positionsSnapshot.get(peer.id()).y()))
             .thenComparing(NodeDescriptor::id))
         .limit(localSlots)
         .toList();

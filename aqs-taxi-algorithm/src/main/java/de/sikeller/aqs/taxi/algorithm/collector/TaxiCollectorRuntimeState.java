@@ -1,5 +1,6 @@
 package de.sikeller.aqs.taxi.algorithm.collector;
 
+import de.sikeller.aqs.taxi.algorithm.collector.api.CollectorRuntimeStateView;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -9,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Kapselt den laufzeitnahen Client/Request/Knowledge-Zustand des Collectors.
  */
-final class TaxiCollectorRuntimeState {
+public final class TaxiCollectorRuntimeState implements CollectorRuntimeStateView {
 
   private final Map<String, PendingRequest> pendingByRequestId = new ConcurrentHashMap<>();
   private final Map<String, PendingRequest> pendingByClientName = new ConcurrentHashMap<>();
@@ -66,7 +67,7 @@ final class TaxiCollectorRuntimeState {
     removeKnowledgeForClient(clientName);
   }
 
-  Set<String> pendingClientNamesSnapshot() {
+  public Set<String> pendingClientNamesSnapshot() {
     return Set.copyOf(pendingByClientName.keySet());
   }
 
@@ -74,7 +75,7 @@ final class TaxiCollectorRuntimeState {
     return Set.copyOf(pendingByClientName.keySet());
   }
 
-  void registerTaxiKnowledge(String taxiId, String clientName) {
+   public void registerTaxiKnowledge(String taxiId, String clientName) {
     if (taxiId == null || taxiId.isBlank() || clientName == null || clientName.isBlank()) {
       return;
     }
@@ -88,7 +89,7 @@ final class TaxiCollectorRuntimeState {
     }
   }
 
-  Map<String, Set<String>> taxiKnowledgeSnapshot(Set<String> activeClientNames) {
+   public Map<String, Set<String>> taxiKnowledgeSnapshot(Set<String> activeClientNames) {
     if (activeClientNames == null || activeClientNames.isEmpty()) {
       return Map.of();
     }

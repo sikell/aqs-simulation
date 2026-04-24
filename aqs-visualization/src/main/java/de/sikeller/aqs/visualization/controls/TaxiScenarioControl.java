@@ -53,7 +53,9 @@ public class TaxiScenarioControl extends AbstractControl {
           "p2pFixedSearchRadius",
           "p2pRequestForwardHops",
           "p2pOverlayMinNeighbors",
+          "p2pOverlayMaxNeighbors",
           "p2pOverlayShortcuts",
+          "p2pOverlayMaxDistanceFactor",
           "p2pRequestRepublishTicks",
           "p2pTopologyScanTicks");
   private List<Class<?>> algorithmList;
@@ -1556,7 +1558,7 @@ public class TaxiScenarioControl extends AbstractControl {
       JLabel nodeProbLabel = new JLabel("Shortcut node probability");
       nodeProbLabel.setName("p2pOverlayShortcutNodeProbabilityLabel");
       algorithmInputs.add(nodeProbLabel);
-       double defaultNodeProb = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "1.0"))));
+       double defaultNodeProb = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "0.2"))));
       SpinnerNumberModel nodeProbModel = new SpinnerNumberModel(defaultNodeProb, 0.0, 1.0, 0.01);
       JSpinner nodeProbSpinner = new JSpinner(nodeProbModel);
       JSpinner.NumberEditor nodeProbEditor = new JSpinner.NumberEditor(nodeProbSpinner, "0.00");

@@ -15,9 +15,9 @@ public class SystemPropertyP2PConfig implements P2PConfig {
   @Override
   public int overlayMinNeighbors() {
     String configured = System.getProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "").trim();
-    if (configured.isBlank()) return 1;
-    int parsed = parseIntOrDefault(configured, 1);
-    return Math.max(1, parsed);
+    if (configured.isBlank()) return 0;
+    int parsed = parseIntOrDefault(configured, 0);
+    return Math.max(0, parsed);
   }
 
   @Override
@@ -39,6 +39,13 @@ public class SystemPropertyP2PConfig implements P2PConfig {
   @Override
   public String overlayShortcutStrategy() {
     return System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg").trim().toLowerCase();
+  }
+
+  @Override
+  public int overlayShortcuts() {
+    String configured = System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, "").trim();
+    if (configured.isBlank()) return 1;
+    return Math.max(0, parseIntOrDefault(configured, 1));
   }
 
   @Override

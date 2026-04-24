@@ -167,10 +167,19 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   public Set<String> overlayNeighborIdsSnapshot() {
     Set<String> ids = new HashSet<>();
-    // overlaySelection may perform expensive computation (overlay cache miss), worst-case O(n_peers log n_peers) or more
-    overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE).peers().forEach(peer -> ids.add(peer.id())); // Worst-case O(n_peers)
+    overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE).peers().forEach(peer -> ids.add(peer.id()));
     return ids;
   }
+
+  /** Returns a live snapshot of this node's overlay neighbors and which of them are shortcuts. */
+  public OverlayNeighborSnapshot overlayNeighborSnapshot() {
+    OverlaySelection sel = overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE);
+    Set<String> neighborIds = new HashSet<>();
+    sel.peers().forEach(peer -> neighborIds.add(peer.id()));
+    return new OverlayNeighborSnapshot(neighborIds, Set.copyOf(sel.shortcutPeerIds()));
+  }
+
+  public record OverlayNeighborSnapshot(Set<String> neighborIds, Set<String> shortcutIds) {}
 
   protected void handleIncoming(P2PMessage message) {
     inbox.add(message);
@@ -178,7 +187,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     messagesReceived.incrementAndGet();
 
     if (P2PTopics.VEHICLE_POSITION.equals(message.topic())) {
-      handleVehiclePosition(message); // TODO: might be optimizeable
+      handleVehiclePosition(message);
       return;
     }
 
@@ -218,6 +227,10 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
         request.requestId());
   }
 
+  // Force overlay cache expiry every N ticks so position changes are picked up even when
+  // positionRevision doesn't bump (e.g. slow-moving vehicles with high throttle/minMove settings).
+  private static final long OVERLAY_CACHE_TICK_BUCKET = 3L;
+
   private OverlaySelection overlaySelection(String topic) {
     List<NodeDescriptor> peers = network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
     if (peers.isEmpty()) {
@@ -225,7 +238,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     }
 
     long peersChecksum = computePeersChecksum(peers);
-    long currentRevision = positionManager.currentRevision() ^ peersChecksum;
+    long tickBucket = positionManager.currentMaxTick() / OVERLAY_CACHE_TICK_BUCKET;
+    long currentRevision = positionManager.currentRevision() ^ peersChecksum ^ tickBucket;
 
     // Fast-path: return cached value when revision matches
     CachedOverlay cached = overlaySelectionCache.get(topic);
@@ -241,10 +255,10 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       overlaySelectionCache.put(topic, updated);
       return updated.selection();
     } catch (Throwable ex) {
-      OverlaySelection fallback = new OverlaySelection(peers, Set.of());
-      CachedOverlay updated = new CachedOverlay(fallback, currentRevision, System.nanoTime());
-      overlaySelectionCache.put(topic, updated);
-      return updated.selection();
+      // Do NOT cache on exception – returning all peers as fallback would mask overlay bugs
+      // and produce a spurious fully-connected topology view. Log and return empty instead.
+      log.warn("[P2P-OVERLAY] overlay selection failed for topic={} self={}: {}", topic, descriptor.id(), ex.toString());
+      return new OverlaySelection(List.of(), Set.of());
     }
   }
 

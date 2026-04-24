@@ -6,6 +6,7 @@ public interface P2PConfig {
   int overlayMaxNeighbors();
   double overlayMaxDistance();
   String overlayShortcutStrategy();
+  int overlayShortcuts();
 
   long positionTtlTicks();
   long positionRevisionThrottleTicks();

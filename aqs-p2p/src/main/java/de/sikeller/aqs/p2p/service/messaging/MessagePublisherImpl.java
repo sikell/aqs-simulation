@@ -4,12 +4,15 @@ import de.sikeller.aqs.p2p.api.*;
 import de.sikeller.aqs.p2p.service.overlay.OverlaySelector;
 import java.util.Set;
 import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default MessagePublisher implementation that uses the provided P2PNetwork
  * and an OverlaySelector to compute target peers.
  */
 public class MessagePublisherImpl implements MessagePublisher {
+  private static final Logger log = LoggerFactory.getLogger(MessagePublisherImpl.class);
   private final NodeDescriptor descriptor;
   private final P2PNetwork network;
   private final OverlaySelector overlaySelector;
@@ -31,11 +34,6 @@ public class MessagePublisherImpl implements MessagePublisher {
         : P2PMessage.now(descriptor.id(), topic, payload, requestId, correlationId == null ? "" : correlationId);
     var peers = network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
     final Set<String> overlayIds = computeOverlayIds(topic, peers);
-    try {
-      // debug: log overlay ids and intended targets
-      var targets = peers.stream().filter(node -> targetFilter.test(node) && overlayIds.contains(node.id())).map(NodeDescriptor::id).toList();
-      System.out.println("[DEBUG] MessagePublisher.publish topic=" + topic + " overlayTargets=" + targets + " overlayIds=" + overlayIds);
-    } catch (Throwable ignored) {}
     if (overlayIds == null || overlayIds.isEmpty()) {
       // fallback: no overlay filtering -> broadcast to all peers matching targetFilter
       network.broadcast(msg, targetFilter);
@@ -47,7 +45,8 @@ public class MessagePublisherImpl implements MessagePublisher {
   private Set<String> computeOverlayIds(String topic, java.util.List<NodeDescriptor> peers) {
     try {
       return overlaySelector.overlayNeighborIds(topic, peers);
-    } catch (Exception ignored) {
+    } catch (Exception ex) {
+      log.warn("[P2P-OVERLAY] overlay id computation failed topic={}: {}", topic, ex.toString());
       return java.util.Collections.emptySet();
     }
   }
