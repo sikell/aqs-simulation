@@ -16,7 +16,7 @@ public interface OfferAggregator {
       String senderId,
       Map<String, String> payload);
 
-  java.util.Map<String, java.util.Set<String>> taxiKnowledgeSnapshot(java.util.Set<String> clientIds);
+  Map<String, java.util.Set<String>> taxiKnowledgeSnapshot(java.util.Set<String> clientIds);
 
   void registerTaxiKnowledge(String taxiDisplayId, String clientName);
 

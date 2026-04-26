@@ -189,6 +189,7 @@ public class TaxiScenarioControl extends AbstractControl {
     controls.add(batchProcessing);
 
     createComponentMap();
+    generateParameters();
     applyModeToUi();
     refreshP2PStatus();
     // Ensure any JScrollBar UIs create non-null decrease/increase buttons to avoid
@@ -715,7 +716,7 @@ public class TaxiScenarioControl extends AbstractControl {
           applyModeToUi();
           updateP2PModeWarning(isP2PModeSelected());
         });
-    generateParameters();
+    // generateParameters() is called explicitly in setup() after createComponentMap() – not here
     return button;
   }
 
@@ -1472,6 +1473,26 @@ public class TaxiScenarioControl extends AbstractControl {
     }
   }
 
+  // Explicit display order for P2P algorithm parameters, grouped by concern.
+  // Parameters not listed here are rendered at the end in their natural order.
+  private static final List<String> P2P_PARAMETER_DISPLAY_ORDER =
+      List.of(
+          // --- Request Routing ---
+          "p2pRequestForwardHops",
+          "p2pFixedSearchRadius",
+          "p2pRequestRepublishTicks",
+          // --- Overlay Topology (vehicle decision inserted between these groups in code) ---
+          "p2pOverlayMinNeighbors",
+          "p2pOverlayMaxNeighbors",
+          "p2pOverlayMaxDistanceFactor",
+          "p2pOverlayShortcuts",
+          "p2pTopologyScanTicks",
+          // --- Network / LAN (shortcut strategy inserted above these in code) ---
+          "p2pDiscoveryWaitMs",
+          "p2pTcpPort",
+          "p2pDiscoveryPort",
+          "p2pMulticastA");
+
   private void generateParameters() {
     Set<AlgorithmParameter> parameters = simulation.getSimulationParameters().getParameters();
     if (parameters.isEmpty()) {
@@ -1486,11 +1507,11 @@ public class TaxiScenarioControl extends AbstractControl {
     inputParameterMap = new HashMap<>();
     inputParameterMap.put("taxiCount", 0);
     inputParameterMap.put("clientCount", 0);
-    boolean multicastFieldAdded = false;
     int rowCount = 0;
 
     boolean showP2PStrategyOption =
         isP2PModeSelected()
+            || isP2PAlgorithm(simulation.getAlgorithm().get())
             || parameters.stream()
                 .map(AlgorithmParameter::name)
                 .anyMatch(
@@ -1500,136 +1521,293 @@ public class TaxiScenarioControl extends AbstractControl {
                             || isP2PMulticastOctet(name)
                             || "p2pDiscoveryWaitMs".equals(name));
 
-    if (showP2PStrategyOption) {
-      JLabel strategyLabel = new JLabel("Vehicle decision");
-      strategyLabel.setName("p2pVehicleDecisionStrategyLabel");
-      algorithmInputs.add(strategyLabel);
-      if (p2pVehicleStrategyBox == null) {
-        createP2PVehicleStrategyBox();
-      }
-      p2pVehicleStrategyBox.setEnabled(isP2PModeSelected());
-      algorithmInputs.add(p2pVehicleStrategyBox);
-      rowCount++;
-      // Place overlay shortcut controls into the algorithm inputs (per-user request)
-      JLabel overlayStrategyLabel = new JLabel("Overlay shortcut strategy");
-      overlayStrategyLabel.setName("p2pOverlayShortcutStrategyLabel");
-      algorithmInputs.add(overlayStrategyLabel);
-      JComboBox<String> shortcutStrategyBox = new JComboBox<>();
-      shortcutStrategyBox.setName("p2pOverlayShortcutStrategy");
-      shortcutStrategyBox.addItem("kleinberg");
-      shortcutStrategyBox.addItem("ring");
-       String configuredStrategy = System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg").trim().toLowerCase(Locale.ROOT);
-      shortcutStrategyBox.setSelectedItem(configuredStrategy);
-      shortcutStrategyBox.setToolTipText("Shortcut selection strategy for overlay peers (kleinberg|ring)");
-      algorithmInputs.add(shortcutStrategyBox);
-      p2pShortcutStrategyBox = shortcutStrategyBox;
-      rowCount++;
-
-      JLabel rLabel = new JLabel("Kleinberg exponent r");
-      rLabel.setName("p2pOverlayKleinbergRLabel");
-      algorithmInputs.add(rLabel);
-       double defaultR = Math.max(0.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0")));
-      SpinnerNumberModel rModel = new SpinnerNumberModel(defaultR, 0.0, 10.0, 0.1);
-      JSpinner rSpinner = new JSpinner(rModel);
-      JSpinner.NumberEditor rEditor = new JSpinner.NumberEditor(rSpinner, "0.0");
-      rSpinner.setEditor(rEditor);
-      rSpinner.setName("p2pOverlayKleinbergR");
-      rSpinner.setToolTipText("Kleinberg exponent r (only used when strategy=kleinberg)");
-      algorithmInputs.add(rSpinner);
-      p2pShortcutKleinbergRSpinner = rSpinner;
-      rowCount++;
-
-      // Wire listeners to update system properties and enable/disable r spinner
-      shortcutStrategyBox.addActionListener(e -> {
-        Object sel = shortcutStrategyBox.getSelectedItem();
-        boolean klein = sel != null && "kleinberg".equalsIgnoreCase(sel.toString());
-        p2pShortcutKleinbergRSpinner.setEnabled(klein);
-        System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, Objects.toString(sel, "kleinberg"));
-        System.setProperty(
-            P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) p2pShortcutKleinbergRSpinner.getValue()).doubleValue()));
-      });
-      p2pShortcutKleinbergRSpinner.addChangeListener(e -> {
-        Object rval = p2pShortcutKleinbergRSpinner.getValue();
-        System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) rval).doubleValue()));
-      });
-      p2pShortcutKleinbergRSpinner.setEnabled("kleinberg".equalsIgnoreCase(configuredStrategy));
-
-      // Node probability spinner: fraction of nodes that will create Kleinberg shortcuts
-      JLabel nodeProbLabel = new JLabel("Shortcut node probability");
-      nodeProbLabel.setName("p2pOverlayShortcutNodeProbabilityLabel");
-      algorithmInputs.add(nodeProbLabel);
-       double defaultNodeProb = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "0.2"))));
-      SpinnerNumberModel nodeProbModel = new SpinnerNumberModel(defaultNodeProb, 0.0, 1.0, 0.01);
-      JSpinner nodeProbSpinner = new JSpinner(nodeProbModel);
-      JSpinner.NumberEditor nodeProbEditor = new JSpinner.NumberEditor(nodeProbSpinner, "0.00");
-      nodeProbSpinner.setEditor(nodeProbEditor);
-      nodeProbSpinner.setName("p2pOverlayShortcutNodeProbability");
-      nodeProbSpinner.setToolTipText("Fraction of nodes that will create Kleinberg shortcuts (0.0-1.0)");
-      algorithmInputs.add(nodeProbSpinner);
-      p2pShortcutNodeProbabilitySpinner = nodeProbSpinner;
-        nodeProbSpinner.addChangeListener(e -> {
-        Object v = nodeProbSpinner.getValue();
-        double val = (v instanceof Number n) ? n.doubleValue() : Double.parseDouble(String.valueOf(v));
-        System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, String.valueOf(val));
-      });
-      rowCount++;
+    // Build a lookup map so we can render parameters in explicit order
+    Map<String, AlgorithmParameter> paramByName = new LinkedHashMap<>();
+    for (AlgorithmParameter p : parameters) {
+      paramByName.put(p.name(), p);
     }
 
-    for (AlgorithmParameter parameter : parameters) {
-      if (!shouldShowAlgorithmParameter(parameter.name())) {
-        continue;
+    if (showP2PStrategyOption) {
+      // GridBagLayout on algorithmInputs guarantees every group panel fills the full width
+      // without BoxLayout alignment pitfalls.
+      algorithmInputs.setLayout(new GridBagLayout());
+
+      // P2P-specific controls are only shown when a P2P mode is actually selected.
+      // Fall back to algorithm-based detection if componentMap isn't ready yet (startup).
+      boolean inP2PMode = isP2PModeSelected()
+          || (componentMap == null && isP2PAlgorithm(simulation.getAlgorithm().get()));
+
+      String selectedMode =
+          getComponentByName("simulationModeBox") instanceof JComboBox<?> combo
+              ? Objects.toString(combo.getSelectedItem(), MODE_LOCAL)
+              : (inP2PMode ? MODE_P2P_SIMULATED : MODE_LOCAL);
+
+      // === Group 1: Request Routing ===
+      JPanel routingGroup = newGroupPanel("Request Routing");
+      int routingRows = 0;
+      if (inP2PMode)
+        routingRows += addStandardParamRowIfPresent("p2pRequestForwardHops", paramByName, routingGroup);
+      routingRows += addStandardParamRowIfPresent("p2pFixedSearchRadius", paramByName, routingGroup);
+      routingRows += addStandardParamRowIfPresent("p2pRequestRepublishTicks", paramByName, routingGroup);
+      if (routingRows > 0) {
+        routingGroup.setLayout(new GridLayout(routingRows, 2, GAP, GAP));
+        algorithmInputs.add(routingGroup, fullWidthGbc());
       }
-      if (isP2PMulticastOctet(parameter.name())) {
-        if (multicastFieldAdded) {
+
+      // === Group 2: Vehicle Selection (P2P mode only) ===
+      if (inP2PMode) {
+        JPanel selectionGroup = newGroupPanel("Vehicle Selection");
+        JLabel strategyLabel = new JLabel("Vehicle decision");
+        strategyLabel.setName("p2pVehicleDecisionStrategyLabel");
+        selectionGroup.add(strategyLabel);
+        if (p2pVehicleStrategyBox == null) createP2PVehicleStrategyBox();
+        p2pVehicleStrategyBox.setEnabled(true);
+        selectionGroup.add(p2pVehicleStrategyBox);
+        selectionGroup.setLayout(new GridLayout(1, 2, GAP, GAP));
+        algorithmInputs.add(selectionGroup, fullWidthGbc());
+      }
+
+      // === Group 3: Overlay Topology ===
+      JPanel topologyGroup = newGroupPanel("Overlay Topology");
+      int topologyRows = 0;
+      topologyRows += addStandardParamRowIfPresent("p2pOverlayMinNeighbors", paramByName, topologyGroup);
+      topologyRows += addStandardParamRowIfPresent("p2pOverlayMaxNeighbors", paramByName, topologyGroup);
+      topologyRows += addStandardParamRowIfPresent("p2pOverlayMaxDistanceFactor", paramByName, topologyGroup);
+      topologyRows += addStandardParamRowIfPresent("p2pOverlayShortcuts", paramByName, topologyGroup);
+      topologyRows += addStandardParamRowIfPresent("p2pTopologyScanTicks", paramByName, topologyGroup);
+      if (topologyRows > 0) {
+        topologyGroup.setLayout(new GridLayout(topologyRows, 2, GAP, GAP));
+        algorithmInputs.add(topologyGroup, fullWidthGbc());
+      }
+
+      // === Group 4: Shortcut Strategy (P2P mode only) ===
+      if (inP2PMode) {
+        JPanel shortcutGroup = newGroupPanel("Shortcut Strategy");
+        int shortcutRows = 0;
+
+        JLabel overlayStrategyLabel = new JLabel("Overlay shortcut strategy");
+        overlayStrategyLabel.setName("p2pOverlayShortcutStrategyLabel");
+        shortcutGroup.add(overlayStrategyLabel);
+        JComboBox<String> shortcutStrategyBox = new JComboBox<>();
+        shortcutStrategyBox.setName("p2pOverlayShortcutStrategy");
+        shortcutStrategyBox.addItem("kleinberg");
+        shortcutStrategyBox.addItem("ring");
+        String configuredStrategy = System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg").trim().toLowerCase(Locale.ROOT);
+        shortcutStrategyBox.setSelectedItem(configuredStrategy);
+        shortcutStrategyBox.setToolTipText("Shortcut selection strategy (kleinberg|ring)");
+        shortcutGroup.add(shortcutStrategyBox);
+        p2pShortcutStrategyBox = shortcutStrategyBox;
+        shortcutRows++;
+
+        JLabel rLabel = new JLabel("Kleinberg exponent r");
+        rLabel.setName("p2pOverlayKleinbergRLabel");
+        shortcutGroup.add(rLabel);
+        double defaultR = Math.max(0.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0")));
+        JSpinner rSpinner = new JSpinner(new SpinnerNumberModel(defaultR, 0.0, 10.0, 0.1));
+        rSpinner.setEditor(new JSpinner.NumberEditor(rSpinner, "0.0"));
+        rSpinner.setName("p2pOverlayKleinbergR");
+        rSpinner.setToolTipText("Kleinberg exponent r (only used when strategy=kleinberg)");
+        shortcutGroup.add(rSpinner);
+        p2pShortcutKleinbergRSpinner = rSpinner;
+        shortcutRows++;
+
+        JLabel nodeProbLabel = new JLabel("Shortcut node probability");
+        nodeProbLabel.setName("p2pOverlayShortcutNodeProbabilityLabel");
+        shortcutGroup.add(nodeProbLabel);
+        double defaultNodeProb = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "0.2"))));
+        JSpinner nodeProbSpinner = new JSpinner(new SpinnerNumberModel(defaultNodeProb, 0.0, 1.0, 0.01));
+        nodeProbSpinner.setEditor(new JSpinner.NumberEditor(nodeProbSpinner, "0.00"));
+        nodeProbSpinner.setName("p2pOverlayShortcutNodeProbability");
+        nodeProbSpinner.setToolTipText("Fraction of nodes that create Kleinberg shortcuts (0.0-1.0)");
+        shortcutGroup.add(nodeProbSpinner);
+        p2pShortcutNodeProbabilitySpinner = nodeProbSpinner;
+        shortcutRows++;
+
+        shortcutGroup.setLayout(new GridLayout(shortcutRows, 2, GAP, GAP));
+        algorithmInputs.add(shortcutGroup, fullWidthGbc());
+
+        shortcutStrategyBox.addActionListener(e -> {
+          Object sel = shortcutStrategyBox.getSelectedItem();
+          p2pShortcutKleinbergRSpinner.setEnabled(sel != null && "kleinberg".equalsIgnoreCase(sel.toString()));
+          System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, Objects.toString(sel, "kleinberg"));
+          System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) p2pShortcutKleinbergRSpinner.getValue()).doubleValue()));
+        });
+        rSpinner.addChangeListener(e -> System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) rSpinner.getValue()).doubleValue())));
+        nodeProbSpinner.addChangeListener(e -> {
+          Object v = nodeProbSpinner.getValue();
+          System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, String.valueOf((v instanceof Number n) ? n.doubleValue() : Double.parseDouble(String.valueOf(v))));
+        });
+        p2pShortcutKleinbergRSpinner.setEnabled("kleinberg".equalsIgnoreCase(configuredStrategy));
+      }
+
+      // === Group 5: Network / LAN (only for P2P-LAN mode) ===
+      if (MODE_P2P_LAN.equals(selectedMode)) {
+        JPanel networkGroup = newGroupPanel("Network (LAN)");
+        int networkRows = 0;
+        networkRows += addStandardParamRowIfPresent("p2pDiscoveryWaitMs", paramByName, networkGroup);
+        networkRows += addPortParamRowIfPresent("p2pTcpPort", paramByName, networkGroup);
+        networkRows += addPortParamRowIfPresent("p2pDiscoveryPort", paramByName, networkGroup);
+        if (paramByName.containsKey("p2pMulticastA")) {
+          JLabel label = new JLabel("p2pMulticastGroup");
+          label.setName(P2P_MULTICAST_GROUP_FIELD + "Label");
+          networkGroup.add(label);
+          JTextField textField = new JTextField(buildMulticastGroupFromCurrentParameters());
+          textField.setName(P2P_MULTICAST_GROUP_FIELD);
+          textField.setToolTipText("IPv4 multicast group, z. B. 239.255.42.99");
+          networkGroup.add(textField);
+          inputParameterMap.put("p2pMulticastA", 239);
+          inputParameterMap.put("p2pMulticastB", 255);
+          inputParameterMap.put("p2pMulticastC", 42);
+          inputParameterMap.put("p2pMulticastD", 99);
+          networkRows++;
+        }
+        if (networkRows > 0) {
+          networkGroup.setLayout(new GridLayout(networkRows, 2, GAP, GAP));
+          algorithmInputs.add(networkGroup, fullWidthGbc());
+        }
+      }
+
+      // === Remaining parameters not in any named group ===
+      Set<String> alreadyRendered = new HashSet<>(P2P_PARAMETER_DISPLAY_ORDER);
+      alreadyRendered.addAll(Set.of("p2pOverlayMaxDistanceFactor",
+          "p2pMulticastB", "p2pMulticastC", "p2pMulticastD", "p2pEmbeddedSimulation"));
+      JPanel otherGroup = newGroupPanel("Other");
+      int otherRows = 0;
+      for (AlgorithmParameter parameter : parameters) {
+        if (alreadyRendered.contains(parameter.name())) continue;
+        if (!shouldShowAlgorithmParameter(parameter.name())) continue;
+        otherRows += addStandardRow(parameter, otherGroup);
+      }
+      if (otherRows > 0) {
+        otherGroup.setLayout(new GridLayout(otherRows, 2, GAP, GAP));
+        algorithmInputs.add(otherGroup, fullWidthGbc());
+      }
+
+      // Vertical filler so groups don't stretch to fill remaining space
+      GridBagConstraints fillerGbc = fullWidthGbc();
+      fillerGbc.weighty = 1.0;
+      algorithmInputs.add(new JPanel(), fillerGbc);
+
+    } else {
+      // Non-P2P mode: render all parameters flat in natural order
+      boolean multicastFieldAdded = false;
+      for (AlgorithmParameter parameter : parameters) {
+        if (!shouldShowAlgorithmParameter(parameter.name())) continue;
+        if (isP2PMulticastOctet(parameter.name())) {
+          if (multicastFieldAdded) continue;
+          JLabel label = new JLabel("p2pMulticastGroup");
+          label.setName(P2P_MULTICAST_GROUP_FIELD + "Label");
+          algorithmInputs.add(label);
+          JTextField textField = new JTextField(buildMulticastGroupFromCurrentParameters());
+          textField.setName(P2P_MULTICAST_GROUP_FIELD);
+          textField.setToolTipText("IPv4 multicast group, z. B. 239.255.42.99");
+          algorithmInputs.add(textField);
+          inputParameterMap.put("p2pMulticastA", 239);
+          inputParameterMap.put("p2pMulticastB", 255);
+          inputParameterMap.put("p2pMulticastC", 42);
+          inputParameterMap.put("p2pMulticastD", 99);
+          multicastFieldAdded = true;
+          rowCount++;
           continue;
         }
-        JLabel label = new JLabel("p2pMulticastGroup");
-        label.setName(P2P_MULTICAST_GROUP_FIELD + "Label");
-        algorithmInputs.add(label);
-        JTextField textField = new JTextField(buildMulticastGroupFromCurrentParameters());
-        textField.setName(P2P_MULTICAST_GROUP_FIELD);
-        textField.setToolTipText("IPv4 multicast group, z. B. 239.255.42.99");
-        algorithmInputs.add(textField);
-        inputParameterMap.put("p2pMulticastA", 239);
-        inputParameterMap.put("p2pMulticastB", 255);
-        inputParameterMap.put("p2pMulticastC", 42);
-        inputParameterMap.put("p2pMulticastD", 99);
-        multicastFieldAdded = true;
-        rowCount++;
-        continue;
+        if (isP2PPortField(parameter.name())) {
+          rowCount += addPortRowDirect(parameter, algorithmInputs);
+          continue;
+        }
+        rowCount += addStandardRow(parameter, algorithmInputs);
       }
-
-      if (isP2PPortField(parameter.name())) {
-        JLabel label = new JLabel(displayLabelForParameter(parameter.name()));
-        label.setName(parameter.name() + "Label");
-        algorithmInputs.add(label);
-        int defaultValue = parameter.defaultValue() != null ? parameter.defaultValue() : 1;
-        JTextField textField = new JTextField(String.valueOf(defaultValue));
-        textField.setName(parameter.name());
-        textField.setToolTipText(parameterTooltip(parameter.name()));
-        algorithmInputs.add(textField);
-        inputParameterMap.put(parameter.name(), 0);
-        rowCount++;
-        continue;
-      }
-
-      JLabel label = new JLabel(displayLabelForParameter(parameter.name()));
-      label.setName(parameter.name() + "Label");
-      algorithmInputs.add(label);
-      int defaultValue = parameter.defaultValue() != null ? parameter.defaultValue() : 1;
-      SpinnerModel model = new SpinnerNumberModel(defaultValue, 0, Integer.MAX_VALUE, 1);
-      JSpinner spinner = new JSpinner(model);
-      configureIntegerSpinner(spinner);
-      label.setLabelFor(spinner);
-      spinner.setName(parameter.name());
-      spinner.setToolTipText(parameterTooltip(parameter.name()));
-      algorithmInputs.add(spinner);
-      inputParameterMap.put(parameter.name(), 0);
-      rowCount++;
+      algorithmInputs.setLayout(new GridLayout(Math.max(1, rowCount), 2, GAP, GAP));
     }
-    algorithmInputs.setLayout(new GridLayout(Math.max(1, rowCount), 2, GAP, GAP));
+
     SwingUtilities.updateComponentTreeUI(worldInputs);
     applyModeToUi();
+  }
+
+  /**
+   * GridBagConstraints for a group panel that fills the full width of algorithmInputs.
+   * Each call creates a new instance (GBC is mutable).
+   */
+  private GridBagConstraints fullWidthGbc() {
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.gridx = 0;
+    gbc.gridy = GridBagConstraints.RELATIVE;
+    gbc.gridwidth = GridBagConstraints.REMAINDER;
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    gbc.weightx = 1.0;
+    gbc.weighty = 0.0;
+    gbc.insets = new Insets(0, 0, GAP, 0);
+    return gbc;
+  }
+
+  /** Creates a group sub-panel with a TitledBorder. Content is added before calling setLayout. */
+  private JPanel newGroupPanel(String title) {
+    JPanel panel = new JPanel();
+    panel.setBorder(new TitledBorder(title));
+    return panel;
+  }
+
+  /**
+   * Visits every component in {@code algorithmInputs} and its sub-panels depth-first,
+   * passing each to {@code visitor}. Used by initializeSimulation, copy/paste etc.
+   */
+  private void forEachAlgorithmComponent(java.util.function.Consumer<Component> visitor) {
+    forEachComponent(algorithmInputs, visitor);
+  }
+
+  private void forEachComponent(Container container, java.util.function.Consumer<Component> visitor) {
+    for (Component comp : container.getComponents()) {
+      visitor.accept(comp);
+      if (comp instanceof Container child) {
+        forEachComponent(child, visitor);
+      }
+    }
+  }
+
+  /** Adds a standard spinner row for a named parameter if it exists and should be shown. */
+  private int addStandardParamRowIfPresent(
+      String name, Map<String, AlgorithmParameter> paramByName, JPanel target) {
+    AlgorithmParameter p = paramByName.get(name);
+    if (p == null || !shouldShowAlgorithmParameter(name)) return 0;
+    return addStandardRow(p, target);
+  }
+
+  /** Adds a port text-field row for a named parameter if it exists and should be shown. */
+  private int addPortParamRowIfPresent(
+      String name, Map<String, AlgorithmParameter> paramByName, JPanel target) {
+    AlgorithmParameter p = paramByName.get(name);
+    if (p == null || !shouldShowAlgorithmParameter(name)) return 0;
+    return addPortRowDirect(p, target);
+  }
+
+  /** Adds a standard label + spinner row for the given parameter into {@code target}. Returns 1. */
+  private int addStandardRow(AlgorithmParameter parameter, JPanel target) {
+    JLabel label = new JLabel(displayLabelForParameter(parameter.name()));
+    label.setName(parameter.name() + "Label");
+    target.add(label);
+    int defaultValue = parameter.defaultValue() != null ? parameter.defaultValue() : 1;
+    SpinnerModel model = new SpinnerNumberModel(defaultValue, 0, Integer.MAX_VALUE, 1);
+    JSpinner spinner = new JSpinner(model);
+    configureIntegerSpinner(spinner);
+    label.setLabelFor(spinner);
+    spinner.setName(parameter.name());
+    spinner.setToolTipText(parameterTooltip(parameter.name()));
+    target.add(spinner);
+    inputParameterMap.put(parameter.name(), 0);
+    return 1;
+  }
+
+  /** Adds a label + text-field row for a port parameter into {@code target}. Returns 1. */
+  private int addPortRowDirect(AlgorithmParameter parameter, JPanel target) {
+    JLabel label = new JLabel(displayLabelForParameter(parameter.name()));
+    label.setName(parameter.name() + "Label");
+    target.add(label);
+    int defaultValue = parameter.defaultValue() != null ? parameter.defaultValue() : 1;
+    JTextField textField = new JTextField(String.valueOf(defaultValue));
+    textField.setName(parameter.name());
+    textField.setToolTipText(parameterTooltip(parameter.name()));
+    target.add(textField);
+    inputParameterMap.put(parameter.name(), 0);
+    return 1;
   }
 
   private boolean shouldShowAlgorithmParameter(String parameterName) {
@@ -1686,7 +1864,7 @@ public class TaxiScenarioControl extends AbstractControl {
         }
       }
 
-      for (Component component : algorithmInputs.getComponents()) {
+      forEachAlgorithmComponent(component -> {
         if (component instanceof JSpinner spinner) {
           Object val = spinner.getValue();
           int intVal = (val instanceof Number number) ? number.intValue() : Integer.parseInt(String.valueOf(val));
@@ -1710,7 +1888,7 @@ public class TaxiScenarioControl extends AbstractControl {
           algorithmParameterMap.put("p2pMulticastC", octets[2]);
           algorithmParameterMap.put("p2pMulticastD", octets[3]);
         }
-      }
+      });
 
       if (isP2PModeSelected()) {
         String selectedMode =
@@ -1833,6 +2011,7 @@ public class TaxiScenarioControl extends AbstractControl {
       case "p2pFixedSearchRadius" -> "Client RQS radius";
       case "p2pOverlayMinNeighbors" -> "Overlay min neighbors";
       case "p2pOverlayMaxNeighbors" -> "Overlay max neighbors";
+      case "p2pOverlayMaxDistanceFactor" -> "Overlay max distance factor";
       case "p2pOverlayShortcuts" -> "Overlay shortcuts";
       case "p2pRequestForwardHops" -> "Flood TTL (Hops)";
       case "p2pRequestRepublishTicks" -> "Republish throttle [ticks]";
@@ -1850,6 +2029,8 @@ public class TaxiScenarioControl extends AbstractControl {
           "Minimum overlay neighbors per node; additional neighbors can appear within distance bound.";
       case "p2pOverlayMaxNeighbors" ->
           "Maximum primary overlay neighbors per node; minNeighbors is always respected. Shortcuts and pinned collector may exceed this cap.";
+      case "p2pOverlayMaxDistanceFactor" ->
+          "Maximum geo distance factor for neighbor selection (0 = unlimited).";
       case "p2pOverlayShortcuts" ->
           "Number of additional small-world shortcut links per node.";
       case "p2pRequestForwardHops" ->
@@ -1889,8 +2070,8 @@ public class TaxiScenarioControl extends AbstractControl {
       }
     }
 
-    // dynamic Algorithm Parameters
-    for (Component comp : algorithmInputs.getComponents()) {
+    // dynamic Algorithm Parameters (deep traversal for sub-panel/TitledBorder groups)
+    forEachAlgorithmComponent(comp -> {
       if (comp instanceof JSpinner spinner && comp.getName() != null) {
         props.setProperty(spinner.getName(), spinner.getValue().toString());
       }
@@ -1900,7 +2081,7 @@ public class TaxiScenarioControl extends AbstractControl {
       if (comp instanceof JComboBox<?> combo && comp.getName() != null) {
         props.setProperty(combo.getName(), Objects.toString(combo.getSelectedItem(), ""));
       }
-    }
+    });
 
     // Batch Processing Parameters
     for (Component comp : batchProcessing.getComponents()) {
@@ -2004,38 +2185,36 @@ public class TaxiScenarioControl extends AbstractControl {
         String valueStr = props.getProperty(name);
         boolean valueSet = false;
 
-        // 1. try: set algorithm parameters
+        // 1. try: set algorithm parameters (deep traversal for sub-panel/TitledBorder groups)
         if (algorithmInputs != null) {
-          for (Component compInAlgoPanel : algorithmInputs.getComponents()) {
-            if (compInAlgoPanel instanceof JSpinner && effectiveName.equals(compInAlgoPanel.getName())) {
-              ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
-              log.trace("Set ALGORITHM JSpinner '{}' to '{}'", name, valueStr);
-              valueSet = true;
-              break;
-            }
-            if (compInAlgoPanel instanceof JTextField textField
-                && effectiveName.equals(compInAlgoPanel.getName())) {
-              textField.setText(valueStr);
-              valueSet = true;
-              break;
-            }
-            if (compInAlgoPanel instanceof JComboBox<?> combo && effectiveName.equals(compInAlgoPanel.getName())) {
+          final String lookupName = effectiveName;
+          final String lookupValue = valueStr;
+          final boolean[] found = {false};
+          forEachAlgorithmComponent(compInAlgoPanel -> {
+            if (found[0]) return;
+            if (compInAlgoPanel instanceof JSpinner && lookupName.equals(compInAlgoPanel.getName())) {
+              ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
+              log.trace("Set ALGORITHM JSpinner '{}' to '{}'", lookupName, lookupValue);
+              found[0] = true;
+            } else if (compInAlgoPanel instanceof JTextField textField
+                && lookupName.equals(compInAlgoPanel.getName())) {
+              textField.setText(lookupValue);
+              found[0] = true;
+            } else if (compInAlgoPanel instanceof JComboBox<?> combo && lookupName.equals(compInAlgoPanel.getName())) {
               try {
-                combo.setSelectedItem(valueStr);
-                log.trace("Set ALGORITHM JComboBox '{}' to '{}'", name, valueStr);
-                valueSet = true;
-                break;
+                combo.setSelectedItem(lookupValue);
+                log.trace("Set ALGORITHM JComboBox '{}' to '{}'", lookupName, lookupValue);
+                found[0] = true;
               } catch (Exception ex) {
-                log.warn("Could not set '{}' to '{}' for ALGORITHM combo '{}'", valueStr, name, ex.getMessage());
+                log.warn("Could not set '{}' to '{}' for ALGORITHM combo '{}'", lookupValue, lookupName, ex.getMessage());
               }
+            } else if (compInAlgoPanel instanceof JSlider && lookupName.equals(compInAlgoPanel.getName())) {
+              ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
+              log.trace("Set ALGORITHM JSlider '{}' to '{}'", lookupName, lookupValue);
+              found[0] = true;
             }
-            if (compInAlgoPanel instanceof JSlider && effectiveName.equals(compInAlgoPanel.getName())) {
-              ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(valueStr));
-              log.trace("Set ALGORITHM JSlider '{}' to '{}'", name, valueStr);
-              valueSet = true;
-              break;
-            }
-          }
+          });
+          valueSet = found[0];
         }
 
         // 2. try: set global parameters

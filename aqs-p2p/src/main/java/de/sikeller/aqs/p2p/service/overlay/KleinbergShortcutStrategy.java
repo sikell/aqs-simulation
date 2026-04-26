@@ -14,10 +14,26 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.Comparator;
-import java.util.regex.Pattern;
 
 /**
- * Kleinberg-like probabilistic long-range shortcut selection.
+ * Kleinberg-inspired probabilistic long-range shortcut selection.
+ *
+ * <p>Selects shortcuts by drawing peers with probability proportional to {@code dist⁻ʳ}, where
+ * {@code dist} is the geographic distance (or ring offset as fallback) and {@code r} is the
+ * clustering exponent (default 2.0). At {@code r = 2} this matches the optimal value for
+ * two-dimensional Kleinberg grids, enabling O(log² n) greedy routing.
+ *
+ * <p>Reference:
+ *
+ * <ul>
+ *   <li>Kleinberg, J. (2000). "The small-world phenomenon: An algorithmic perspective."
+ *       <i>Proceedings of the 32nd ACM Symposium on Theory of Computing (STOC)</i>, 163–170.
+ *   <li>Kleinberg, J. (2000). "Navigation in a small world." <i>Nature</i>, 406(6798), 845.
+ * </ul>
+ *
+ * <p>Deviations from the original model: nodes are arranged on a ring (sorted peer list) rather
+ * than a 2D grid; geographic positions are used for distance when available. Weighted sampling uses
+ * the Alias Method – see {@link de.sikeller.aqs.p2p.service.util.AliasSampler}.
  */
 public class KleinbergShortcutStrategy implements ShortcutStrategy {
   @Override
@@ -110,13 +126,12 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
     return candidateIndices;
   }
 
-  // Numeric pattern: optional sign, digits with optional decimal point and optional exponent
-  private static final Pattern NUMERIC = Pattern.compile("[-+]?\\d*\\.?\\d+([eE][-+]?\\d+)?");
-
   private static double parseDoubleOrDefault(String s, double defaultVal) {
-    if (s == null || s.isBlank()) return defaultVal;
-    if (!NUMERIC.matcher(s).matches()) return defaultVal;
-    return Double.parseDouble(s);
+    try {
+      return Double.parseDouble(s);
+    } catch (NumberFormatException e) {
+      return defaultVal;
+    }
   }
 
   private static double clamp(double v, double min, double max) {

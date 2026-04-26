@@ -4,7 +4,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Read-only / limited view of the collector runtime state used by extracted components.
+ * Limited view of the collector runtime state used by extracted components.
+ * Provides both read access and targeted write operations (knowledge registration).
  */
 public interface CollectorRuntimeStateView {
   void registerTaxiKnowledge(String taxiId, String clientName);
@@ -12,5 +13,7 @@ public interface CollectorRuntimeStateView {
   Map<String, Set<String>> taxiKnowledgeSnapshot(Set<String> activeClientNames);
 
   Set<String> pendingClientNamesSnapshot();
+
+  void removePendingForClient(String clientName);
 }
 

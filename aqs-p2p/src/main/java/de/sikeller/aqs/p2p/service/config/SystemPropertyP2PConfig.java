@@ -1,17 +1,11 @@
 package de.sikeller.aqs.p2p.service.config;
 
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
-import java.util.regex.Pattern;
 
 /** System-property backed P2PConfig.
- * Centralises access to system properties used by the P2P runtime and reads
- * canonical property keys only. Numeric parsing is validated before parsing
- * to avoid exceptions in the hot path.
+ * Centralises access to system properties used by the P2P runtime.
  */
 public class SystemPropertyP2PConfig implements P2PConfig {
-  private static final Pattern INTEGER = Pattern.compile("[-+]?\\d+");
-  private static final Pattern NUMERIC = Pattern.compile("[-+]?\\d*\\.?\\d+([eE][-+]?\\d+)?");
-
   @Override
   public int overlayMinNeighbors() {
     String configured = System.getProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "").trim();
@@ -80,21 +74,26 @@ public class SystemPropertyP2PConfig implements P2PConfig {
   }
 
   private static int parseIntOrDefault(String s, int defaultVal) {
-    if (s == null || s.isBlank()) return defaultVal;
-    if (!INTEGER.matcher(s).matches()) return defaultVal;
-    return Integer.parseInt(s);
+    try {
+      return Integer.parseInt(s);
+    } catch (NumberFormatException e) {
+      return defaultVal;
+    }
   }
 
   private static long parseLongOrDefault(String s, long defaultVal) {
-    if (s == null || s.isBlank()) return defaultVal;
-    if (!INTEGER.matcher(s).matches()) return defaultVal;
-    return Long.parseLong(s);
+    try {
+      return Long.parseLong(s);
+    } catch (NumberFormatException e) {
+      return defaultVal;
+    }
   }
 
   private static double parseDoubleOrDefault(String s, double defaultVal) {
-    if (s == null || s.isBlank()) return defaultVal;
-    if (!NUMERIC.matcher(s).matches()) return defaultVal;
-    return Double.parseDouble(s);
+    try {
+      return Double.parseDouble(s);
+    } catch (NumberFormatException e) {
+      return defaultVal;
+    }
   }
 }
-

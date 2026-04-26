@@ -5,7 +5,16 @@ import java.util.Deque;
 import java.util.Random;
 
 /**
- * Utility for alias table sampling (Vose/Alias method).
+ * Utility for alias-method sampling in O(1) per draw.
+ *
+ * <p>Implements the Alias Method as described in:
+ *
+ * <ul>
+ *   <li>Walker, A. J. (1974). "New fast method for generating discrete random numbers with
+ *       arbitrary frequency distributions." <i>Electronics Letters</i>, 10(8), 127–128.
+ *   <li>Vose, M. D. (1991). "A linear algorithm for generating random numbers with a given
+ *       distribution." <i>IEEE Transactions on Software Engineering</i>, 17(9), 972–975.
+ * </ul>
  */
 public final class AliasSampler {
   private AliasSampler() {}

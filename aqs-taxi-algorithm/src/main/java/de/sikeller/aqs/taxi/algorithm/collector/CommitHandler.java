@@ -6,6 +6,8 @@ import de.sikeller.aqs.model.World;
 import de.sikeller.aqs.p2p.api.P2PMessage;
 import de.sikeller.aqs.p2p.api.P2PPayloadKeys;
 import de.sikeller.aqs.p2p.service.KeyValuePayload;
+import de.sikeller.aqs.taxi.algorithm.collector.api.CollectorRuntimeStateView;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -27,29 +29,32 @@ final class CommitHandler {
 
   private static final String NODE_ID_VEHICLE_PREFIX = "vehicle-";
 
-  private final TaxiCollectorRuntimeState runtimeState;
+  private final CollectorRuntimeStateView runtimeState;
   private final Map<String, String> vehicleNodeToTaxiName;
   private final Map<String, String> taxiNameToVehicleNodeId;
   private final Function<World, Map<String, Taxi>> emptyTaxisProvider;
   private final TriConsumer<Taxi, Client, World> applyAssignment;
   private final Consumer<String> refreshStatusCallback;
+  private final Consumer<String> clearOfferForRequestCallback;
 
   CommitHandler(
-      TaxiCollectorRuntimeState runtimeState,
+      CollectorRuntimeStateView runtimeState,
       Map<String, String> vehicleNodeToTaxiName,
       Map<String, String> taxiNameToVehicleNodeId,
       Function<World, Map<String, Taxi>> emptyTaxisProvider,
       TriConsumer<Taxi, Client, World> applyAssignment,
-      Consumer<String> refreshStatusCallback) {
+      Consumer<String> refreshStatusCallback,
+      Consumer<String> clearOfferForRequestCallback) {
     this.runtimeState = runtimeState;
     this.vehicleNodeToTaxiName = vehicleNodeToTaxiName;
     this.taxiNameToVehicleNodeId = taxiNameToVehicleNodeId;
     this.emptyTaxisProvider = emptyTaxisProvider;
     this.applyAssignment = applyAssignment;
     this.refreshStatusCallback = refreshStatusCallback;
+    this.clearOfferForRequestCallback = clearOfferForRequestCallback;
   }
 
-  void handleCommit(P2PMessage message, TaxiCollectorRuntimeState.PendingRequest pending, World world, java.util.Collection<Client> waitingClients) {
+  void handleCommit(P2PMessage message, TaxiCollectorRuntimeState.PendingRequest pending, World world, Collection<Client> waitingClients) {
     Map<String, String> payload = KeyValuePayload.parse(message.payload());
     String vehicleNodeId = payload.getOrDefault(P2PPayloadKeys.VEHICLE, message.senderId());
     if (pending.committedVehicleNodeId() != null && !pending.committedVehicleNodeId().equals(vehicleNodeId)) {
@@ -83,12 +88,13 @@ final class CommitHandler {
         applyAssignment.accept(selectedTaxi, client, world);
         log.info(
             "[P2P-COLLECTOR] applied committed assignment requestId={} client={} vehicle={} taxiName={}",
-            pending.requestId(),
-            pending.clientName(),
-            vehicleNodeId,
-            selectedTaxi.getName());
-        runtimeState.removePendingForClient(pending.clientName());
-        refreshStatusCallback.accept("assigned-" + pending.requestId());
+               pending.requestId(),
+               pending.clientName(),
+               vehicleNodeId,
+               selectedTaxi.getName());
+         runtimeState.removePendingForClient(pending.clientName());
+         clearOfferForRequestCallback.accept(pending.requestId());
+         refreshStatusCallback.accept("assigned-" + pending.requestId());
         return;
       }
     } else {
@@ -107,12 +113,13 @@ final class CommitHandler {
               applyAssignment.accept(candidateTaxiObj, client, world);
               log.info(
                   "[P2P-COLLECTOR] applied committed assignment (via knowledge) requestId={} client={} vehicle={} taxiName={}",
-                  pending.requestId(),
-                  pending.clientName(),
-                  candidateVehicleNodeId,
-                  candidateTaxiObj.getName());
-              runtimeState.removePendingForClient(pending.clientName());
-              refreshStatusCallback.accept("assigned-" + pending.requestId());
+                   pending.requestId(),
+                   pending.clientName(),
+                   candidateVehicleNodeId,
+                   candidateTaxiObj.getName());
+               runtimeState.removePendingForClient(pending.clientName());
+               clearOfferForRequestCallback.accept(pending.requestId());
+               refreshStatusCallback.accept("assigned-" + pending.requestId());
               return;
             }
           }

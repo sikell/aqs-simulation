@@ -91,6 +91,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String P2P_OVERLAY_SHORTCUTS = "p2pOverlayShortcuts";
   private static final String P2P_OVERLAY_POSITION_TTL_TICKS = "p2pOverlayPositionTtlTicks";
   private static final String P2P_OVERLAY_MAX_DISTANCE_FACTOR = "p2pOverlayMaxDistanceFactor";
+  private static final String P2P_OVERLAY_SHORTCUT_STRATEGY = "p2pOverlayShortcutStrategy";
   private static final String EMBEDDED_MODE_PROPERTY = "p2pEmbeddedSimulation";
   private static final String STATUS_MODE = "mode";
   private static final String STATUS_COLLECTOR_NODE = "collectorNode";
@@ -101,6 +102,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String STATUS_TOPOLOGY_VIEWS = "topologyViews";
   private static final String STATUS_TOPOLOGY_SCAN_ID = "topologyScanId";
   private static final String STATUS_OVERLAY_MODE = "overlayMode";
+  private static final String STATUS_OVERLAY_SHORTCUT_STRATEGY = "overlayShortcutStrategy";
   private static final String STATUS_OVERLAY_MIN_NEIGHBORS = "overlayMinNeighbors";
   private static final String STATUS_OVERLAY_MAX_NEIGHBORS = "overlayMaxNeighbors";
   private static final String STATUS_OVERLAY_MAX_DISTANCE = "overlayMaxDistance";
@@ -159,7 +161,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         new AlgorithmParameter(P2P_OVERLAY_MAX_NEIGHBORS, 4),
         new AlgorithmParameter(P2P_OVERLAY_SHORTCUTS, 1),
         new AlgorithmParameter(P2P_OVERLAY_POSITION_TTL_TICKS, 200),
-        new AlgorithmParameter(P2P_OVERLAY_MAX_DISTANCE_FACTOR, 2));
+        new AlgorithmParameter(P2P_OVERLAY_MAX_DISTANCE_FACTOR, 2),
+        new AlgorithmParameter(P2P_OVERLAY_SHORTCUT_STRATEGY, 1));
   }
 
   @Override
@@ -197,7 +200,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         taxiNameToVehicleNodeId,
         worldArg -> getEmptyTaxis(worldArg).stream().collect(Collectors.toMap(Taxi::getName, t -> t, (a, b) -> a, HashMap::new)),
         (taxi, client, worldArg) -> worldArg.mutate().planClientForTaxi(taxi, client, TargetList.sequentialOrders),
-        this::refreshStatus);
+        this::refreshStatus,
+        offerAggregator::clearForRequest);
     topologyManager = new TopologyManager(
         () -> clientNode,
         () -> network,
@@ -307,6 +311,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
           client.getName(),
           pending.committedVehicleNodeId());
       assignedClients.add(client.getName());
+      offerAggregator.clearForRequest(pending.requestId());
       refreshStatus(EVENT_ASSIGNED_PREFIX + pending.requestId());
       applied++;
     }
@@ -366,11 +371,11 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     if (pending.isCommitted()) {
       return;
     }
-    Map<String, String> payload = KeyValuePayload.parse(message.payload());
-    String vehicleNodeId = payload.getOrDefault(P2PPayloadKeys.VEHICLE, message.senderId());
-    // preserve previous behavior: register knowledge mapping
-    registerTaxiKnowledge(vehicleNodeId, pending.clientName());
-    int etaSeconds = parseEtaSeconds(payload.get(P2PPayloadKeys.ETA_SECONDS));
+      Map<String, String> payload = KeyValuePayload.parse(message.payload());
+      String vehicleNodeId = payload.getOrDefault(P2PPayloadKeys.VEHICLE, message.senderId());
+      // register knowledge with resolved display ID before recording the offer
+      registerTaxiKnowledge(vehicleNodeId, pending.clientName());
+      int etaSeconds = parseEtaSeconds(payload.get(P2PPayloadKeys.ETA_SECONDS));
     // delegate aggregation / storage to extracted component
     offerAggregator.recordOffer(pending.requestId(), pending.clientName(), vehicleNodeId, etaSeconds, message.senderId(), payload);
   }
@@ -387,10 +392,13 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   private void cleanupNoLongerWaiting(Collection<Client> waitingClients) {
-    // Build a set of active waiting names once and remove directly from runtimeState
     Set<String> waitingNames = waitingClients.stream().map(Client::getName).collect(Collectors.toSet());
     for (String clientName : runtimeState.pendingClientNamesSnapshot()) {
       if (!waitingNames.contains(clientName)) {
+        TaxiCollectorRuntimeState.PendingRequest stale = runtimeState.pendingForClient(clientName);
+        if (stale != null) {
+          offerAggregator.clearForRequest(stale.requestId());
+        }
         runtimeState.removePendingForClient(clientName);
       }
     }
@@ -401,7 +409,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return;
     }
     String taxiDisplayId = vehicleNodeToTaxiName.getOrDefault(vehicleNodeId, vehicleNodeId);
-    runtimeState.registerTaxiKnowledge(taxiDisplayId, clientName);
+    offerAggregator.registerTaxiKnowledge(taxiDisplayId, clientName);
   }
 
   @Override
@@ -420,6 +428,9 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         STATUS_TOPOLOGY_SCAN_ID,
         lastTopologyScanId == null || lastTopologyScanId.isBlank() ? VALUE_UNKNOWN : lastTopologyScanId);
     status.put(STATUS_OVERLAY_MODE, VALUE_SMALL_WORLD);
+    status.put(
+        STATUS_OVERLAY_SHORTCUT_STRATEGY,
+        System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg"));
     String configuredMinNeighbors =
         System.getProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, DEFAULT_OVERLAY_MIN_NEIGHBORS);
     status.put(STATUS_OVERLAY_MIN_NEIGHBORS, configuredMinNeighbors);
@@ -467,7 +478,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return liveSnapshot;
     }
 
-    return runtimeState.taxiKnowledgeSnapshot(activeClientNames);
+    return offerAggregator.taxiKnowledgeSnapshot(activeClientNames);
   }
 
   @Override
@@ -584,6 +595,12 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, String.valueOf(shortcuts));
     System.setProperty(P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, String.valueOf(positionTtlTicks));
     System.setProperty(P2PSystemProperties.OVERLAY_MAX_DISTANCE, String.valueOf(maxDistance));
+    // 0 = ring, 1 = kleinberg (default); only set if no external JVM property is already present
+    if (System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY) == null) {
+      int strategyFlag = config.getOrDefault(P2P_OVERLAY_SHORTCUT_STRATEGY, 1);
+      System.setProperty(
+          P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, strategyFlag == 0 ? "ring" : "kleinberg");
+    }
   }
 
   private long resolveOverlayMaxDistance() {

@@ -146,8 +146,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    int etaSeconds = estimateEtaSeconds(openRequest.payload); // O(1) simple arithmetic + parse
-    if (!shouldReoffer(openRequest, etaSeconds, currentSimulationTick)) { // O(1)
+    int etaSeconds = estimateEtaSeconds(openRequest.payload);
+    if (!shouldReoffer(openRequest, etaSeconds, currentSimulationTick)) {
       return;
     }
     if (!isBestKnownVehicleForRequest(openRequest, etaSeconds)) { // Worst-case O(n_peers) (snapshot + iterate peers). Early-exit may reduce work
@@ -155,7 +155,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    sendOffer( // O(1) enqueue/send (wraps sendToMessage)
+    sendOffer(
         openRequest.originNodeId,
         openRequest.requestId,
         buildOfferPayload(openRequest.requestId, etaSeconds));
@@ -418,11 +418,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         Math.max(
             0.1,
             parseDouble(System.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS)));
-    return P2PGeoUtils.etaSeconds(startX, startY, reqX, reqY, speedMps); // O(1)
+    return P2PGeoUtils.etaSeconds(startX, startY, reqX, reqY, speedMps);
   }
 
   private void forwardRideRequest(P2PMessage message, Map<String, String> requestPayload) {
-    int incomingHops = parseNonNegativeInt(requestPayload.get(P2PPayloadKeys.HOPS_REMAINING)); // O(1)
+    int incomingHops = parseNonNegativeInt(requestPayload.get(P2PPayloadKeys.HOPS_REMAINING));
     if (incomingHops <= 0) {
       log.info(
           "Vehicle {} not forwarding requestId={} (remainingHops={} reason=ttl-exhausted)",

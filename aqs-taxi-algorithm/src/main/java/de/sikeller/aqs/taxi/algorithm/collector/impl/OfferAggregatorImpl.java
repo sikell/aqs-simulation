@@ -24,8 +24,6 @@ public class OfferAggregatorImpl implements OfferAggregator {
   public void recordOffer(String requestId, String clientName, String vehicleNodeId, int etaSeconds, String senderId, Map<String, String> payload) {
     if (requestId == null || requestId.isBlank()) return;
     offersByRequest.computeIfAbsent(requestId, k -> new ArrayList<>()).add(new Offer(vehicleNodeId, etaSeconds, senderId, payload));
-    // keep taxi knowledge in runtimeState as before
-    runtimeState.registerTaxiKnowledge(vehicleNodeId, clientName);
     log.info("[P2P-COLLECTOR][OfferAggregator] observed offer requestId={} client={} vehicle={} etaSeconds={}", requestId, clientName, vehicleNodeId, etaSeconds);
   }
 

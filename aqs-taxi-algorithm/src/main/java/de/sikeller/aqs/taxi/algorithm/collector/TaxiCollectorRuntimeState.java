@@ -55,7 +55,7 @@ public final class TaxiCollectorRuntimeState implements CollectorRuntimeStateVie
     pendingByRequestId.put(requestId, pending);
   }
 
-  void removePendingForClient(String clientName) {
+  public void removePendingForClient(String clientName) {
     if (clientName == null || clientName.isBlank()) {
       return;
     }
