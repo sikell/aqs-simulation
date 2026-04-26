@@ -30,7 +30,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final long DEFAULT_VEHICLE_COMMIT_LEASE_TICKS = 20L;
   private static final double DEFAULT_ASSUMED_SPEED_MPS = 12.0;
   private static final long DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS = 3L;
-  private static final int DEFAULT_VEHICLE_REOFFER_MIN_ETA_IMPROVEMENT_SECONDS = 10;
   private static final int DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M = 200;
   private static final long DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 600L;
   private static final long DEFAULT_CLEANUP_INTERVAL_TICKS = 10L;
@@ -147,7 +146,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
 
     int etaSeconds = estimateEtaSeconds(openRequest.payload);
-    if (!shouldReoffer(openRequest, etaSeconds, currentSimulationTick)) {
+    if (!shouldReoffer(openRequest, currentSimulationTick)) {
       return;
     }
     if (!isBestKnownVehicleForRequest(openRequest, etaSeconds)) { // Worst-case O(n_peers) (snapshot + iterate peers). Early-exit may reduce work
@@ -160,7 +159,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         openRequest.requestId,
         buildOfferPayload(openRequest.requestId, etaSeconds));
     openRequest.lastOfferAtTick = currentSimulationTick;
-    openRequest.lastOfferedEtaSeconds = etaSeconds;
     log.info(
         "Vehicle {} offered requestId={} to origin={} trigger={} etaSeconds={}",
         descriptor().id(),
@@ -266,8 +264,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
               if (!shouldOffer(request.payload)) {
                 return false;
               }
-              int etaSeconds = estimateEtaSeconds(request.payload); // O(1)
-              return shouldReoffer(request, etaSeconds, nowTick); // O(1)
+              return shouldReoffer(request, nowTick); // O(1)
             })
         .collect(Collectors.toCollection(LinkedHashSet::new));
     if (eligibleRequests.isEmpty()) {
@@ -307,18 +304,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     return P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY);
   }
 
-  private boolean shouldReoffer(OpenRideRequest openRequest, int etaSeconds, long nowTick) {
+  private boolean shouldReoffer(OpenRideRequest openRequest, long nowTick) {
     if (openRequest.lastOfferAtTick == 0L) {
       return true;
     }
-
-    long minIntervalTicks = Math.max(0L, resolveReofferMinIntervalTicks()); // O(1)
-    if (nowTick - openRequest.lastOfferAtTick < minIntervalTicks) {
-      return false;
-    }
-
-    int minImprovementSeconds = Math.max(0, resolveReofferMinEtaImprovementSeconds()); // O(1)
-    return etaSeconds + minImprovementSeconds <= openRequest.lastOfferedEtaSeconds;
+    long minIntervalTicks = Math.max(0L, resolveReofferMinIntervalTicks());
+    return nowTick - openRequest.lastOfferAtTick >= minIntervalTicks;
   }
 
   private boolean movedEnoughForRetrigger(int positionX, int positionY) {
@@ -508,12 +499,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS);
   }
 
-  private int resolveReofferMinEtaImprovementSeconds() {
-    return Integer.getInteger(
-        P2PSystemProperties.VEHICLE_REOFFER_MIN_ETA_IMPROVEMENT_SECONDS,
-        DEFAULT_VEHICLE_REOFFER_MIN_ETA_IMPROVEMENT_SECONDS);
-  }
-
   private int resolveReofferMoveDistanceMeters() {
     return Integer.getInteger(
         P2PSystemProperties.VEHICLE_REOFFER_MOVE_DISTANCE_METERS,
@@ -609,7 +594,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     private volatile Map<String, String> payload;
     private final long firstSeenAtTick;
     private volatile long lastOfferAtTick;
-    private volatile int lastOfferedEtaSeconds = Integer.MAX_VALUE;
 
     private OpenRideRequest(
         String requestId,
