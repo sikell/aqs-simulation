@@ -1,22 +1,15 @@
 package de.sikeller.aqs.taxi.algorithm.collector.api;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Aggregates offers observed for published requests.
- * Minimal interface for the first extraction step.
+ * Tracks taxi knowledge observed during the P2P ride assignment protocol.
+ * Offers are no longer used; vehicles commit autonomously (first-come-first-serve).
  */
 public interface OfferAggregator {
 
-  void recordOffer(
-      String requestId,
-      String clientName,
-      String vehicleNodeId,
-      int etaSeconds,
-      String senderId,
-      Map<String, String> payload);
-
-  Map<String, java.util.Set<String>> taxiKnowledgeSnapshot(java.util.Set<String> clientIds);
+  Map<String, Set<String>> taxiKnowledgeSnapshot(Set<String> clientIds);
 
   void registerTaxiKnowledge(String taxiDisplayId, String clientName);
 

@@ -17,7 +17,6 @@ import de.sikeller.aqs.p2p.api.P2PPayloadKeys;
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.api.P2PTopics;
 import de.sikeller.aqs.p2p.service.ClientP2PService;
-import de.sikeller.aqs.p2p.service.KeyValuePayload;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import de.sikeller.aqs.p2p.service.strategy.NearestVehicleRequestSelectionStrategy;
 import de.sikeller.aqs.taxi.algorithm.AbstractTaxiAlgorithm;
@@ -359,37 +358,20 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         continue;
       }
 
-      if (P2PTopics.RIDE_OFFER.equals(message.topic())) {
-        handleOffer(message, pending);
-      } else if (P2PTopics.RIDE_COMMIT.equals(message.topic())) {
+      if (P2PTopics.RIDE_COMMIT.equals(message.topic())) {
         handleCommit(message, pending, world, waitingClients);
       }
     }
   }
 
-  private void handleOffer(P2PMessage message, TaxiCollectorRuntimeState.PendingRequest pending) {
-    if (pending.isCommitted()) {
-      return;
-    }
-      Map<String, String> payload = KeyValuePayload.parse(message.payload());
-      String vehicleNodeId = payload.getOrDefault(P2PPayloadKeys.VEHICLE, message.senderId());
-      // register knowledge with resolved display ID before recording the offer
-      registerTaxiKnowledge(vehicleNodeId, pending.clientName());
-      int etaSeconds = parseEtaSeconds(payload.get(P2PPayloadKeys.ETA_SECONDS));
-    // delegate aggregation / storage to extracted component
-    offerAggregator.recordOffer(pending.requestId(), pending.clientName(), vehicleNodeId, etaSeconds, message.senderId(), payload);
-  }
-
   private void handleCommit(P2PMessage message, TaxiCollectorRuntimeState.PendingRequest pending, World world, Collection<Client> waitingClients) {
+    // Register taxi knowledge from the commit payload before delegating
+    Map<String, String> payload = de.sikeller.aqs.p2p.service.KeyValuePayload.parse(message.payload());
+    String vehicleNodeId = payload.getOrDefault(P2PPayloadKeys.VEHICLE, message.senderId());
+    registerTaxiKnowledge(vehicleNodeId, pending.clientName());
     commitHandler.handleCommit(message, pending, world, waitingClients);
   }
 
-  private int parseEtaSeconds(String value) {
-    if (value == null || value.isBlank()) {
-      return Integer.MAX_VALUE;
-    }
-    return Integer.parseInt(value.trim());
-  }
 
   private void cleanupNoLongerWaiting(Collection<Client> waitingClients) {
     Set<String> waitingNames = waitingClients.stream().map(Client::getName).collect(Collectors.toSet());
