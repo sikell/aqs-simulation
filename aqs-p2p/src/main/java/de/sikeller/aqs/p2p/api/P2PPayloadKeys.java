@@ -7,7 +7,6 @@ public final class P2PPayloadKeys {
   public static final String ORIGIN_NODE = "originNode";
   public static final String FROM = "from";
   public static final String TO = "to";
-  public static final String REQUEST_GEO_HASH = "requestGeoHash";
   public static final String HOPS_REMAINING = "hopsRemaining";
 
   public static final String CLIENT_NAME = "clientName";
@@ -17,7 +16,6 @@ public final class P2PPayloadKeys {
   public static final String SEARCH_RADIUS = "searchRadius";
   public static final String FORWARDED_BY = "forwardedBy";
   public static final String VEHICLE = "vehicle";
-  public static final String ETA_SECONDS = "etaSeconds";
   public static final String TAXI_NAME = "taxiName";
 
   public static final String ROLE = "role";

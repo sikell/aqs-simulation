@@ -56,9 +56,6 @@ public class ClientP2PService extends AbstractP2PNodeService {
     if (to != null && !to.isBlank()) {
       payload.put(P2PPayloadKeys.TO, to);
     }
-    if (requestGeoHash != null && !requestGeoHash.isBlank()) {
-      payload.put(P2PPayloadKeys.REQUEST_GEO_HASH, requestGeoHash);
-    }
     if (extraPayloadFields != null) {
       extraPayloadFields.forEach(
           (key, value) -> {

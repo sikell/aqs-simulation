@@ -46,6 +46,7 @@ public class SimulationVisualization extends AbstractVisualization implements Si
     JScrollPane controlsScrollPane = new JScrollPane(controls);
     controlsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
     controlsScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+    controlsScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
     var content = new JPanel(new GridLayout(1, 2, 14, 0));
     content.setBorder(new EmptyBorder(8, 8, 8, 8));

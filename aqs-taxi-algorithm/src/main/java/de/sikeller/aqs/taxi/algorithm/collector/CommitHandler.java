@@ -35,7 +35,6 @@ final class CommitHandler {
   private final Function<World, Map<String, Taxi>> emptyTaxisProvider;
   private final TriConsumer<Taxi, Client, World> applyAssignment;
   private final Consumer<String> refreshStatusCallback;
-  private final Consumer<String> clearOfferForRequestCallback;
 
   CommitHandler(
       CollectorRuntimeStateView runtimeState,
@@ -43,15 +42,13 @@ final class CommitHandler {
       Map<String, String> taxiNameToVehicleNodeId,
       Function<World, Map<String, Taxi>> emptyTaxisProvider,
       TriConsumer<Taxi, Client, World> applyAssignment,
-      Consumer<String> refreshStatusCallback,
-      Consumer<String> clearOfferForRequestCallback) {
+      Consumer<String> refreshStatusCallback) {
     this.runtimeState = runtimeState;
     this.vehicleNodeToTaxiName = vehicleNodeToTaxiName;
     this.taxiNameToVehicleNodeId = taxiNameToVehicleNodeId;
     this.emptyTaxisProvider = emptyTaxisProvider;
     this.applyAssignment = applyAssignment;
     this.refreshStatusCallback = refreshStatusCallback;
-    this.clearOfferForRequestCallback = clearOfferForRequestCallback;
   }
 
   void handleCommit(P2PMessage message, TaxiCollectorRuntimeState.PendingRequest pending, World world, Collection<Client> waitingClients) {
@@ -93,7 +90,6 @@ final class CommitHandler {
                vehicleNodeId,
                selectedTaxi.getName());
          runtimeState.removePendingForClient(pending.clientName());
-         clearOfferForRequestCallback.accept(pending.requestId());
          refreshStatusCallback.accept("assigned-" + pending.requestId());
         return;
       }
@@ -118,7 +114,6 @@ final class CommitHandler {
                    candidateVehicleNodeId,
                    candidateTaxiObj.getName());
                runtimeState.removePendingForClient(pending.clientName());
-               clearOfferForRequestCallback.accept(pending.requestId());
                refreshStatusCallback.accept("assigned-" + pending.requestId());
               return;
             }
@@ -132,4 +127,3 @@ final class CommitHandler {
     refreshStatusCallback.accept("commit-" + pending.requestId());
   }
 }
-

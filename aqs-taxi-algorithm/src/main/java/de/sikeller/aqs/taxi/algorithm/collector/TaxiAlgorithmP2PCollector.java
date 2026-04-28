@@ -20,8 +20,6 @@ import de.sikeller.aqs.p2p.service.ClientP2PService;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import de.sikeller.aqs.p2p.service.strategy.NearestVehicleRequestSelectionStrategy;
 import de.sikeller.aqs.taxi.algorithm.AbstractTaxiAlgorithm;
-import de.sikeller.aqs.taxi.algorithm.collector.api.OfferAggregator;
-import de.sikeller.aqs.taxi.algorithm.collector.impl.OfferAggregatorImpl;
 import de.sikeller.aqs.taxi.algorithm.distributed.rqs.RangeQuerySystem;
 import de.sikeller.aqs.taxi.algorithm.distributed.rqs.SimulatedRangeQuerySystem;
 import java.util.ArrayList;
@@ -58,7 +56,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private final Map<String, VehicleP2PService> localVehicleNodesByTaxiName = new HashMap<>();
   private long stepCounter = 0;
   private final TaxiCollectorRuntimeState runtimeState = new TaxiCollectorRuntimeState();
-  private final OfferAggregator offerAggregator = new OfferAggregatorImpl(runtimeState);
   private RequestCoordinator requestCoordinator;
   private final Map<String, String> vehicleNodeToTaxiName = new HashMap<>();
   private final Map<String, String> taxiNameToVehicleNodeId = new HashMap<>();
@@ -199,8 +196,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         taxiNameToVehicleNodeId,
         worldArg -> getEmptyTaxis(worldArg).stream().collect(Collectors.toMap(Taxi::getName, t -> t, (a, b) -> a, HashMap::new)),
         (taxi, client, worldArg) -> worldArg.mutate().planClientForTaxi(taxi, client, TargetList.sequentialOrders),
-        this::refreshStatus,
-        offerAggregator::clearForRequest);
+        this::refreshStatus);
     topologyManager = new TopologyManager(
         () -> clientNode,
         () -> network,
@@ -310,7 +306,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
           client.getName(),
           pending.committedVehicleNodeId());
       assignedClients.add(client.getName());
-      offerAggregator.clearForRequest(pending.requestId());
       refreshStatus(EVENT_ASSIGNED_PREFIX + pending.requestId());
       applied++;
     }
@@ -379,9 +374,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       if (!waitingNames.contains(clientName)) {
         TaxiCollectorRuntimeState.PendingRequest stale = runtimeState.pendingForClient(clientName);
         if (stale != null) {
-          offerAggregator.clearForRequest(stale.requestId());
-        }
-        runtimeState.removePendingForClient(clientName);
+        // no-op: offers are not stored centrally
+      }        runtimeState.removePendingForClient(clientName);
       }
     }
   }
@@ -391,7 +385,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return;
     }
     String taxiDisplayId = vehicleNodeToTaxiName.getOrDefault(vehicleNodeId, vehicleNodeId);
-    offerAggregator.registerTaxiKnowledge(taxiDisplayId, clientName);
+    runtimeState.registerTaxiKnowledge(taxiDisplayId, clientName);
   }
 
   @Override
@@ -460,7 +454,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return liveSnapshot;
     }
 
-    return offerAggregator.taxiKnowledgeSnapshot(activeClientNames);
+    return runtimeState.taxiKnowledgeSnapshot(activeClientNames);
   }
 
   @Override
