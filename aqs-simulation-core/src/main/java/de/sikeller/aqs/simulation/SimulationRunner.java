@@ -1,6 +1,7 @@
 package de.sikeller.aqs.simulation;
 
 import de.sikeller.aqs.model.*;
+import de.sikeller.aqs.model.TickDataPoint;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import de.sikeller.aqs.simulation.result.SimulationResultSink;
 import de.sikeller.aqs.simulation.stats.CollectorMinMaxAverage;
@@ -45,7 +46,8 @@ public class SimulationRunner implements SimulationControl {
     this.algorithm = algorithm;
     this.worldGenerator = worldGenerator;
     this.resultVisualization = new ResultVisualization();
-    this.resultSink = resultSink == null ? table -> this.resultVisualization.showResults(table) : resultSink;
+    this.resultSink =
+        resultSink == null ? this.resultVisualization::showResults : resultSink;
   }
 
   public static SimulationResultSink noVisualizationResultSink() {
@@ -66,6 +68,7 @@ public class SimulationRunner implements SimulationControl {
     WorldSimulator worldSimulator = new WorldSimulator(world);
     var algorithmCalculationTime = CollectorMinMaxAverage.longCollector();
     var customCalculationTime = CollectorMinMaxAverage.longCollector();
+    List<TickDataPoint> tickDataPoints = new ArrayList<>();
     while (!world.isFinished()) {
       int sleepMillis = (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1));
       Thread.sleep(sleepMillis);
@@ -73,11 +76,18 @@ public class SimulationRunner implements SimulationControl {
         continue;
       }
       var currentTime = world.getCurrentTime() + 1;
+      int activeClients =
+          world
+              .getClientsByModes(
+                  Set.of(ClientMode.WAITING, ClientMode.PLANNED, ClientMode.MOVING), true)
+              .size();
       var startTime = System.nanoTime();
       var result = algorithm.get().nextStep(world);
       var calculationTime = System.nanoTime() - startTime;
       algorithmCalculationTime.collect(calculationTime);
-      customCalculationTime.collect(result.getCalculationTime() != null ? result.getCalculationTime() : 0);
+      customCalculationTime.collect(
+          result.getCalculationTime() != null ? result.getCalculationTime() : 0);
+      tickDataPoints.add(new TickDataPoint(currentTime, calculationTime, activeClients));
       log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
       if (realtimeVisualizationEnabled) {
@@ -99,6 +109,9 @@ public class SimulationRunner implements SimulationControl {
       resultSink.accept(latestResultTable);
     } catch (Exception e) {
       log.error(e.getMessage(), e);
+    }
+    if (realtimeVisualizationEnabled) {
+      resultVisualization.showLoadChart(tickDataPoints, algorithm.get().getName());
     }
     eventDispatcher.resetEvents();
 
@@ -135,7 +148,8 @@ public class SimulationRunner implements SimulationControl {
 
   @Override
   public void init(Map<String, Integer> parameters) {
-    Map<String, Integer> preparedParameters = algorithm.get().prepareWorldParameters(new HashMap<>(parameters));
+    Map<String, Integer> preparedParameters =
+        algorithm.get().prepareWorldParameters(new HashMap<>(parameters));
     worldGenerator.init(world, preparedParameters);
     algorithm.get().init(world);
     if (realtimeVisualizationEnabled) {

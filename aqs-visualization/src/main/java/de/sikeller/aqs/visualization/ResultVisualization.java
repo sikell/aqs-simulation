@@ -4,25 +4,33 @@ import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.defaultFo
 import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.smallFont;
 
 import de.sikeller.aqs.model.ResultTable;
+import de.sikeller.aqs.model.TickDataPoint;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import lombok.extern.slf4j.Slf4j;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.labels.CategoryItemLabelGenerator;
 import org.jfree.chart.labels.StandardCategoryItemLabelGenerator;
 import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.category.BarRenderer;
-import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.chart.renderer.category.StandardBarPainter;
+import org.jfree.chart.renderer.xy.XYAreaRenderer;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.title.LegendTitle;
 import org.jfree.chart.title.TextTitle;
 import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 
 @Slf4j
 public class ResultVisualization extends AbstractVisualization {
@@ -33,11 +41,15 @@ public class ResultVisualization extends AbstractVisualization {
   private final DefaultCategoryDataset taxiDataset = new DefaultCategoryDataset();
   private final DefaultCategoryDataset clientDataset = new DefaultCategoryDataset();
   private final DefaultCategoryDataset timeDataset = new DefaultCategoryDataset();
+  private final XYSeriesCollection calcTimeCollection = new XYSeriesCollection();
+  private final XYSeriesCollection clientCountCollection = new XYSeriesCollection();
+  private final XYAreaRenderer loadAreaRenderer = new XYAreaRenderer();
+  private final XYLineAndShapeRenderer loadLineRenderer = new XYLineAndShapeRenderer(true, false);
 
   public ResultVisualization() {
     super("Taxi Scenario Results");
     frame.setMinimumSize(new Dimension(600, 200));
-    frame.setPreferredSize(new Dimension(1200, 800));
+    frame.setPreferredSize(new Dimension(1600, 800));
     frame.setLayout(new BorderLayout());
     addDiagrams();
   }
@@ -80,11 +92,12 @@ public class ResultVisualization extends AbstractVisualization {
 
   public void addDiagrams() {
     chartPanel = new JPanel();
-    chartPanel.setLayout(new GridLayout(0, 3));
+    chartPanel.setLayout(new GridLayout(0, 4));
     chartPanel.add(
         createBarChart("Taxi Travel Distance", null, "Distance in Kilometers", taxiDataset));
     chartPanel.add(createBarChart("Client Travel Time", null, "Time in Minutes", clientDataset));
     chartPanel.add(createBarChart("Calculation Time", null, "Time in Millis", timeDataset));
+    chartPanel.add(createLoadChart());
     frame.pack();
   }
 
@@ -114,32 +127,6 @@ public class ResultVisualization extends AbstractVisualization {
     renderer.setItemMargin(0.5);
 
     renderer.setBarPainter(new StandardBarPainter());
-    return new ChartPanel(chart);
-  }
-
-  private ChartPanel createLineChart(
-      String name, String xAxisName, String yAxisName, DefaultCategoryDataset dataset) {
-    JFreeChart chart = ChartFactory.createLineChart(name, xAxisName, yAxisName, dataset);
-    chart.setBackgroundPaint(null);
-    CategoryPlot plot = chart.getCategoryPlot();
-    plot.setBackgroundPaint(null);
-    plot.setOutlineVisible(false);
-    plot.getDomainAxis().setLabelFont(defaultFont());
-    plot.getDomainAxis().setTickLabelFont(smallFont());
-    plot.getRangeAxis().setLabelFont(defaultFont());
-    plot.getRangeAxis().setTickLabelFont(smallFont());
-    LegendTitle legend = chart.getLegend();
-    legend.setBackgroundPaint(null);
-    legend.setItemFont(smallFont());
-    TextTitle title = chart.getTitle();
-    title.setFont(defaultFont());
-    LineAndShapeRenderer renderer = (LineAndShapeRenderer) plot.getRenderer();
-    CategoryItemLabelGenerator clientGenerator =
-        new StandardCategoryItemLabelGenerator("{2}", NumberFormat.getInstance());
-    renderer.setDefaultItemLabelGenerator(clientGenerator);
-    renderer.setDefaultItemLabelFont(smallFont());
-    renderer.setDefaultItemLabelsVisible(true);
-    renderer.setItemMargin(0.5);
     return new ChartPanel(chart);
   }
 
@@ -194,7 +181,93 @@ public class ResultVisualization extends AbstractVisualization {
     taxiDataset.clear();
     clientDataset.clear();
     timeDataset.clear();
+    calcTimeCollection.removeAllSeries();
+    clientCountCollection.removeAllSeries();
     SwingUtilities.updateComponentTreeUI(table);
+  }
+
+  private ChartPanel createLoadChart() {
+    NumberAxis timeAxis = new NumberAxis("Simulation Tick");
+    timeAxis.setAutoRangeIncludesZero(false);
+    timeAxis.setLabelFont(defaultFont());
+    timeAxis.setTickLabelFont(smallFont());
+
+    NumberAxis calcAxis = new NumberAxis("Calc Time [ms]");
+    calcAxis.setAutoRangeIncludesZero(true);
+    calcAxis.setLabelFont(defaultFont());
+    calcAxis.setTickLabelFont(smallFont());
+
+    NumberAxis clientAxis = new NumberAxis("Active Clients");
+    clientAxis.setAutoRangeIncludesZero(true);
+    clientAxis.setLabelFont(defaultFont());
+    clientAxis.setTickLabelFont(smallFont());
+
+    XYAreaRenderer areaRenderer = loadAreaRenderer;
+    areaRenderer.setOutline(true);
+    areaRenderer.setAutoPopulateSeriesPaint(false);
+    areaRenderer.setAutoPopulateSeriesOutlinePaint(false);
+    areaRenderer.setAutoPopulateSeriesOutlineStroke(false);
+
+    XYLineAndShapeRenderer lineRenderer = loadLineRenderer;
+    lineRenderer.setAutoPopulateSeriesStroke(false);
+    lineRenderer.setDefaultStroke(new BasicStroke(1.5f));
+
+    XYPlot plot = new XYPlot();
+    plot.setDomainAxis(timeAxis);
+    plot.setRangeAxis(0, calcAxis);
+    plot.setRangeAxis(1, clientAxis);
+    plot.setDataset(0, clientCountCollection);
+    plot.setRenderer(0, areaRenderer);
+    plot.mapDatasetToRangeAxis(0, 1);
+    plot.setDataset(1, calcTimeCollection);
+    plot.setRenderer(1, lineRenderer);
+    plot.mapDatasetToRangeAxis(1, 0);
+    plot.setBackgroundPaint(null);
+    plot.setOutlineVisible(false);
+
+    JFreeChart chart =
+        new JFreeChart("Load Over Time", JFreeChart.DEFAULT_TITLE_FONT, plot, true);
+    chart.setBackgroundPaint(null);
+    LegendTitle legend = chart.getLegend();
+    if (legend != null) {
+      legend.setBackgroundPaint(null);
+      legend.setItemFont(smallFont());
+    }
+    chart.getTitle().setFont(defaultFont());
+    return new ChartPanel(chart);
+  }
+
+  public void showLoadChart(List<TickDataPoint> tickDataPoints, String algorithmName) {
+    if (tickDataPoints == null || tickDataPoints.isEmpty()) return;
+    int runIndex = calcTimeCollection.getSeriesCount();
+    String runLabel = algorithmName + " | Run " + (runIndex + 1);
+
+    // Add series first so the line renderer auto-assigns a color for this index
+    XYSeries calcSeries = new XYSeries(runLabel, true, false);
+    XYSeries clientSeries = new XYSeries(runLabel, true, false);
+    long lastTick = Long.MIN_VALUE;
+    for (TickDataPoint dp : tickDataPoints) {
+      if (dp.tick() <= lastTick) continue; // skip duplicates from cancelled/restarted runs
+      lastTick = dp.tick();
+      double ms = TimeUnit.NANOSECONDS.toMicros(dp.calculationTimeNanos()) / 1000.0;
+      calcSeries.add(dp.tick(), ms);
+      clientSeries.add(dp.tick(), dp.activeClientCount());
+    }
+    calcTimeCollection.addSeries(calcSeries);
+    clientCountCollection.addSeries(clientSeries);
+
+    // Read the auto-assigned color from the line renderer and apply a transparent version to the area
+    Color base = (Color) loadLineRenderer.lookupSeriesPaint(runIndex);
+    Color areaFill = new Color(base.getRed(), base.getGreen(), base.getBlue(), 35);
+    Color areaOutline = new Color(base.getRed(), base.getGreen(), base.getBlue(), 130);
+    Stroke dashedStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+        10.0f, new float[]{4.0f, 4.0f}, 0.0f);
+    loadAreaRenderer.setSeriesPaint(runIndex, areaFill);
+    loadAreaRenderer.setSeriesOutlinePaint(runIndex, areaOutline);
+    loadAreaRenderer.setSeriesOutlineStroke(runIndex, dashedStroke);
+    loadLineRenderer.setSeriesStroke(runIndex, new BasicStroke(1.5f));
+
+    frame.pack();
   }
 
   private JButton resetButton() {
