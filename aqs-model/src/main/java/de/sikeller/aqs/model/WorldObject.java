@@ -18,8 +18,8 @@ import lombok.Data;
 @Data
 @Builder
 public class WorldObject implements World {
-  private final int maxX;
-  private final int maxY;
+  private int maxX;
+  private int maxY;
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
   @Builder.Default private final Collection<Taxi> taxis = new ArrayList<>();
   @Builder.Default private final Collection<TaxiEntity> taxiEntities = new ArrayList<>();

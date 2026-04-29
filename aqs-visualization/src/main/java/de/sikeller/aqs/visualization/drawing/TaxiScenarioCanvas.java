@@ -26,8 +26,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TaxiScenarioCanvas extends JPanel {
-  private final double height;
-  private final double width;
+  private double height;
+  private double width;
   private final VisualizationProperties visuProperties;
   private final int canvasHeight;
   private final int canvasWidth;
@@ -76,6 +76,8 @@ public class TaxiScenarioCanvas extends JPanel {
   }
 
   public void repaint(World world) {
+    this.width = world.getMaxX();
+    this.height = world.getMaxY();
     Graphics2D g2d = bufferedImage.createGraphics();
     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);

@@ -14,6 +14,9 @@ public class WorldGeneratorRandom implements WorldGenerator {
     int seed = parameters.getOrDefault("worldSeed", 1);
     var random = new Random(seed);
 
+    int mapSize = parameters.getOrDefault("mapSize", 40000);
+    world.setMaxX(mapSize);
+    world.setMaxY(mapSize);
     world.reset();
     generateClients(world, parameters, random);
     generateTaxis(world, parameters, random);

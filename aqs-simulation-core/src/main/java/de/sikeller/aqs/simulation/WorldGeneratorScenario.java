@@ -33,6 +33,9 @@ public class WorldGeneratorScenario implements WorldGenerator {
 
     log.info("Initialize world with scenario={} parameters={}", scenario, parameters);
 
+    int mapSize = parameters.getOrDefault("mapSize", 40000);
+    world.setMaxX(mapSize);
+    world.setMaxY(mapSize);
     world.reset();
     generateTaxis(world, parameters, random);
     generateClients(world, parameters, random, scenario);

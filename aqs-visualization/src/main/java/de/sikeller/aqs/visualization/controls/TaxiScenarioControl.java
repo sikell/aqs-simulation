@@ -171,9 +171,11 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(simulationSpeed());
     worldInputs.add(label("Spawn scenario", "spawnScenarioLabel"));
     worldInputs.add(spawnScenarioCombo());
+    worldInputs.add(label("Map size [m]", "mapSizeLabel"));
+    worldInputs.add(mapSizeSpinner());
     worldInputs.setBorder(new TitledBorder("World Parameters"));
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
-    worldInputs.setLayout(new GridLayout(9, 2, GAP, GAP));
+    worldInputs.setLayout(new GridLayout(10, 2, GAP, GAP));
     p2pStatusPanel = setupP2PStatusPanel();
     p2pScanNowButton = createP2PScanNowButton();
     p2pTopologyPanel = new P2PTopologyPanel();
@@ -1518,11 +1520,21 @@ public class TaxiScenarioControl extends AbstractControl {
     return combo;
   }
 
-  private JSpinner taxiSpeedSpinner() {    SpinnerModel spinnerModel = new SpinnerNumberModel(80, 1, 1_000_000_000, 1);
+  private JSpinner taxiSpeedSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(80, 1, 1_000_000_000, 1);
     JSpinner spinner = new JSpinner(spinnerModel);
     configureIntegerSpinner(spinner);
     spinner.setName("taxiSpeed");
     spinner.setToolTipText("Set the initial Speed of the Taxi");
+    return spinner;
+  }
+
+  private JSpinner mapSizeSpinner() {
+    SpinnerModel spinnerModel = new SpinnerNumberModel(40000, 1, 1_000_000_000, 1000);
+    JSpinner spinner = new JSpinner(spinnerModel);
+    configureIntegerSpinner(spinner);
+    spinner.setName("mapSize");
+    spinner.setToolTipText("Set the size of the simulation map in meters (width and height)");
     return spinner;
   }
 

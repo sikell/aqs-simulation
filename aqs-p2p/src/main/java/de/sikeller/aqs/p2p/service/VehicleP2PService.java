@@ -507,6 +507,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       forwardedPayloadStr = prev == null ? computed : prev;
     }
 
+    final Set<String> forwardTargets = overlayNeighbors;
     publishMessage( // O(n_peers) due to overlay selection + broadcast
         P2PTopics.RIDE_REQUEST,
         forwardedPayloadStr,
@@ -514,7 +515,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         message.correlationId(),
         node -> node.role() == NodeRole.VEHICLE
             && !node.id().equals(descriptor().id())
-            && !node.id().equals(message.senderId()));
+            && !node.id().equals(message.senderId())
+            && forwardTargets.contains(node.id()));
     log.debug("Vehicle {} forwarded requestId={} payloadToForward={}", descriptor().id(), message.requestId(), forwardedPayloadStr);
 
     log.info(
