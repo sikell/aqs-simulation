@@ -98,8 +98,7 @@ final class RequestCoordinator {
               client.getTarget().toString(),
               effectiveFilter,
               requestForwardHops,
-              "",
-              extraPayload);
+                  extraPayload);
       runtimeState.putPendingRequest(requestId, client.getName(), stepCounter);
       log.info(
           "[P2P-COLLECTOR] published requestId={} client={} scope=rqs-seeded searchRadius={} seededVehicles={} forwardHops={}",

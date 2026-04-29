@@ -7,7 +7,6 @@ import de.sikeller.aqs.p2p.api.NodeRole;
 import de.sikeller.aqs.p2p.service.position.PositionManagerImpl;
 import de.sikeller.aqs.p2p.service.config.P2PConfig;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class OverlaySelectorImplTest {
@@ -17,6 +16,7 @@ class OverlaySelectorImplTest {
     @Override public int overlayMaxNeighbors() { return 10; }
     @Override public double overlayMaxDistance() { return Double.MAX_VALUE; }
     @Override public String overlayShortcutStrategy() { return "kleinberg"; }
+    @Override public int overlayShortcuts() { return 1; }
     @Override public long positionTtlTicks() { return 10L; }
     @Override public long positionRevisionThrottleTicks() { return 1L; }
     @Override public int positionRevisionMinMoveMeters() { return 0; }

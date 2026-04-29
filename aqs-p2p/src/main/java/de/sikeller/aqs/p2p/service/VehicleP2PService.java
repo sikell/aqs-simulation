@@ -104,6 +104,41 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (P2PTopics.RIDE_REQUEST.equals(message.topic())) {
       handleRideRequest(message);
     }
+    if (P2PTopics.RIDE_ASSIGNED.equals(message.topic())) {
+      handleRideAssigned(message);
+    }
+  }
+
+  /**
+   * Handles a RIDE_ASSIGNED broadcast from the client/collector. Drops the request from the local
+   * open queue immediately. If this vehicle is the loser (not the winner), the busy-lease is also
+   * cleared so the taxi is available for the next request without waiting for TTL.
+   */
+  private void handleRideAssigned(P2PMessage message) {
+    String requestId = message.requestId();
+    if (requestId == null || requestId.isBlank()) {
+      return;
+    }
+    Map<String, String> payload = KeyValuePayload.parse(message.payload());
+    String winnerVehicleId = payload.get(P2PPayloadKeys.WINNER_VEHICLE);
+
+    // Mark as committed so we never re-offer this request
+    committedByRequest.putIfAbsent(requestId, winnerVehicleId != null ? winnerVehicleId : "assigned");
+    openRideRequests.remove(requestId);
+
+    boolean iWon = descriptor().id().equals(winnerVehicleId);
+    if (!iWon) {
+      // Loser: release the busy-lease immediately so this taxi can serve the next request
+      busyUntilTick = 0L;
+      log.info(
+          "Vehicle {} released busy-lease (lost requestId={} winner={})",
+          descriptor().id(),
+          requestId,
+          winnerVehicleId);
+    } else {
+      log.debug(
+          "Vehicle {} received own win announcement requestId={}", descriptor().id(), requestId);
+    }
   }
 
   private void handleRideRequest(P2PMessage message) {

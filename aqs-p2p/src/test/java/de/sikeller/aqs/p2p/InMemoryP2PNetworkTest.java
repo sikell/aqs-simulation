@@ -8,7 +8,6 @@ import de.sikeller.aqs.p2p.api.P2PMessage;
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.api.P2PTopics;
 import de.sikeller.aqs.p2p.service.ClientP2PService;
-import de.sikeller.aqs.p2p.service.KeyValuePayload;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import de.sikeller.aqs.p2p.transport.inmemory.InMemoryP2PNetwork;
 import java.util.HashMap;
@@ -21,7 +20,7 @@ import org.junit.jupiter.api.Test;
 class InMemoryP2PNetworkTest {
 
   @Test
-  void clientRequestIsVisibleToVehicleAndOfferToClient() {
+  void clientRequestIsVisibleToVehicleAndCommitToClient() {
     var network = new InMemoryP2PNetwork();
 
     try (var client = new ClientP2PService("client-1", network);
@@ -30,14 +29,14 @@ class InMemoryP2PNetworkTest {
       vehicle.start();
 
       String requestId = client.requestRide("(0,0)", "(100,100)");
-      vehicle.sendOffer("client-1", requestId, "etaSeconds=90");
 
+      // Vehicle receives RIDE_REQUEST and autonomously sends RIDE_COMMIT (no offer/accept round-trip)
       assertTrue(
           vehicle.inboxSnapshot().stream()
               .anyMatch(msg -> msg.topic().equals(P2PTopics.RIDE_REQUEST)));
       assertTrue(
           client.inboxSnapshot().stream()
-              .anyMatch(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER)));
+              .anyMatch(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT)));
       assertTrue(
           vehicle.inboxSnapshot().stream()
               .anyMatch(msg -> msg.requestId() != null && !msg.requestId().isBlank()));
@@ -52,7 +51,7 @@ class InMemoryP2PNetworkTest {
   }
 
   @Test
-  void acceptCreatesSingleCommitAndIsIdempotent() {
+  void vehicleCommitsExactlyOncePerRequest() {
     var network = new InMemoryP2PNetwork();
 
     try (var client = new ClientP2PService("client-1", network);
@@ -62,18 +61,7 @@ class InMemoryP2PNetworkTest {
 
       String requestId = client.requestRide("(0,0)", "(100,100)");
 
-      List<P2PMessage> offers =
-          client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
-              .toList();
-      assertFalse(offers.isEmpty());
-
-      String vehicleNodeId =
-          KeyValuePayload.parse(offers.getFirst().payload()).getOrDefault("vehicle", "vehicle-1");
-
-      client.acceptOffer(vehicleNodeId, requestId);
-      client.acceptOffer(vehicleNodeId, requestId);
-
+      // Vehicle autonomously commits; guard in VehicleP2PService ensures exactly one RIDE_COMMIT
       long commits =
           client.inboxSnapshot().stream()
               .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
@@ -89,7 +77,7 @@ class InMemoryP2PNetworkTest {
   }
 
   @Test
-  void clientAutoAcceptsFirstOfferAndCommitsExactlyOnce() {
+  void clientReceivesCommitFromAtLeastOneVehicle() {
     var network = new InMemoryP2PNetwork();
 
     try (var client = new ClientP2PService("client-fcfs", network);
@@ -104,22 +92,15 @@ class InMemoryP2PNetworkTest {
               "(0,0)",
               "(100,100)",
               node -> node.id().startsWith("vehicle-fcfs-"),
-              0,
-              "");
+              0);
 
-      long offers =
-          client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
-              .filter(msg -> requestId.equals(msg.requestId()))
-              .count();
-      assertTrue(offers >= 1);
-
+      // Both vehicles may commit directly; at least one commit must arrive
       long commits =
           client.inboxSnapshot().stream()
               .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
-      assertEquals(1, commits);
+      assertTrue(commits >= 1);
     }
   }
 
@@ -140,13 +121,14 @@ class InMemoryP2PNetworkTest {
         vehicleB.start();
         vehicleC.start();
 
-        client.requestRide("(0,0)", "(100,100)", node -> node.id().startsWith("vehicle-"), 0, "");
+        client.requestRide("(0,0)", "(100,100)", node -> node.id().startsWith("vehicle-"), 0);
 
-        long offers =
+        // All 3 vehicles receive the request and each autonomously commits
+        long commits =
             client.inboxSnapshot().stream()
-                .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
+                .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
                 .count();
-        assertEquals(3, offers);
+        assertEquals(3, commits);
       }
     } finally {
       if (previous == null) {
@@ -253,12 +235,11 @@ class InMemoryP2PNetworkTest {
               "(100,100)",
               node -> node.id().startsWith("vehicle-"),
               0,
-              "",
-              Map.of("requestX", "100", "requestY", "100", "searchRadius", "300"));
+                  Map.of("requestX", "100", "requestY", "100", "searchRadius", "300"));
 
       long offersWhileBusy =
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
       assertEquals(0, offersWhileBusy);
@@ -267,7 +248,7 @@ class InMemoryP2PNetworkTest {
 
       long offersAfterAvailable =
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
       assertEquals(1, offersAfterAvailable);
@@ -290,12 +271,11 @@ class InMemoryP2PNetworkTest {
               "(1100,1100)",
               node -> node.id().equals("vehicle-range"),
               0,
-              "",
-              Map.of("requestX", "1000", "requestY", "1000", "searchRadius", "100"));
+                  Map.of("requestX", "1000", "requestY", "1000", "searchRadius", "100"));
 
       long offers =
           client.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
               .filter(msg -> requestId.equals(msg.requestId()))
               .count();
       assertEquals(0, offers);
@@ -321,12 +301,11 @@ class InMemoryP2PNetworkTest {
                     "(1100,1100)",
                     node -> node.id().equals("vehicle-range-open"),
                     0,
-                    "",
-                    Map.of("requestX", "1000", "requestY", "1000", "searchRadius", "100"));
+                        Map.of("requestX", "1000", "requestY", "1000", "searchRadius", "100"));
 
             long offers =
                 client.inboxSnapshot().stream()
-                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
+                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
                     .filter(msg -> requestId.equals(msg.requestId()))
                     .count();
             assertEquals(1, offers);
@@ -361,12 +340,11 @@ class InMemoryP2PNetworkTest {
                     "(100,100)",
                     node -> node.id().equals("vehicle-seed"),
                     1,
-                    "",
-                    Map.of("requestX", "0", "requestY", "0", "searchRadius", "100"));
+                        Map.of("requestX", "0", "requestY", "0", "searchRadius", "100"));
 
             long offers =
                 client.inboxSnapshot().stream()
-                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
+                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
                     .filter(msg -> requestId.equals(msg.requestId()))
                     .count();
             assertEquals(1, offers);
@@ -460,8 +438,7 @@ class InMemoryP2PNetworkTest {
                     "(100,100)",
                     node -> node.id().equals("vehicle-seed-forward"),
                     1,
-                    "",
-                    Map.of("requestX", "0", "requestY", "0", "searchRadius", "200"));
+                        Map.of("requestX", "0", "requestY", "0", "searchRadius", "200"));
 
             boolean neighborGotForwardedRequest =
                 neighborVehicle.inboxSnapshot().stream()
@@ -531,8 +508,8 @@ class InMemoryP2PNetworkTest {
               "(0,0)",
               "(100,100)",
               node -> node.id().equals("vehicle-a"),
-              2,
-              "");
+              2
+          );
 
       long requestsSeenBySeedVehicle =
           vehicleA.inboxSnapshot().stream()
@@ -574,12 +551,11 @@ class InMemoryP2PNetworkTest {
                     "(100,100)",
                     node -> node.id().equals("vehicle-seed"),
                     1,
-                    "",
-                    Map.of("requestX", "0", "requestY", "0", "searchRadius", "50"));
+                        Map.of("requestX", "0", "requestY", "0", "searchRadius", "50"));
 
             long offers =
                 client.inboxSnapshot().stream()
-                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_OFFER))
+                    .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
                     .filter(msg -> requestId.equals(msg.requestId()))
                     .count();
             assertTrue(offers >= 1);
@@ -598,8 +574,8 @@ class InMemoryP2PNetworkTest {
         "(0,0)",
         "(100,100)",
         node -> node.id().equals(seedVehicleNodeId),
-        hops,
-        "");
+        hops
+    );
 
     long reachedVehicles = 0;
     for (int i = 0; i < vehicles.size(); i++) {

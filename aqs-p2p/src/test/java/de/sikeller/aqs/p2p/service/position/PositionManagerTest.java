@@ -13,6 +13,7 @@ class PositionManagerTest {
     @Override public int overlayMaxNeighbors() { return Integer.MAX_VALUE; }
     @Override public double overlayMaxDistance() { return Double.MAX_VALUE; }
     @Override public String overlayShortcutStrategy() { return "kleinberg"; }
+    @Override public int overlayShortcuts() { return 1; }
     @Override public long positionTtlTicks() { return 5L; }
     @Override public long positionRevisionThrottleTicks() { return 3L; }
     @Override public int positionRevisionMinMoveMeters() { return 10; }

@@ -10,6 +10,7 @@ public final class P2PTopics {
   public static final String TOPOLOGY_SCAN_RESPONSE = "topology.scan.response";
   public static final String RIDE_REQUEST = "ride.request";
   public static final String RIDE_COMMIT = "ride.commit";
+  public static final String RIDE_ASSIGNED = "ride.assigned";
   public static final String VEHICLE_POSITION = "vehicle.position";
 }
 

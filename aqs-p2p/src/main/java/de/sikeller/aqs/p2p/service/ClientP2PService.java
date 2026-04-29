@@ -26,7 +26,7 @@ public class ClientP2PService extends AbstractP2PNodeService {
   }
 
   public String requestRide(String from, String to) {
-    return requestRide(from, to, node -> !node.id().equals(descriptor().id()), 0, "");
+    return requestRide(from, to, node -> !node.id().equals(descriptor().id()), 0);
   }
 
 
@@ -34,9 +34,8 @@ public class ClientP2PService extends AbstractP2PNodeService {
       String from,
       String to,
       Predicate<NodeDescriptor> targetFilter,
-      int maxForwardHops,
-      String requestGeoHash) {
-    return requestRide(from, to, targetFilter, maxForwardHops, requestGeoHash, Map.of());
+      int maxForwardHops) {
+    return requestRide(from, to, targetFilter, maxForwardHops, Map.of());
   }
 
   public String requestRide(
@@ -44,7 +43,6 @@ public class ClientP2PService extends AbstractP2PNodeService {
       String to,
       Predicate<NodeDescriptor> targetFilter,
       int maxForwardHops,
-      String requestGeoHash,
       Map<String, String> extraPayloadFields) {
     String requestId = UUID.randomUUID().toString();
     Map<String, String> payload = new LinkedHashMap<>();
@@ -73,6 +71,32 @@ public class ClientP2PService extends AbstractP2PNodeService {
     return requestId;
   }
 
+
+  /**
+   * Announces the winning vehicle for a committed ride request to all vehicle peers. Losers can
+   * immediately drop the request instead of waiting for their busy-lease TTL to expire.
+   */
+  public void announceWinner(String requestId, String winnerVehicleId) {
+    if (requestId == null || requestId.isBlank()) {
+      return;
+    }
+    Map<String, String> payload = new LinkedHashMap<>();
+    payload.put(P2PPayloadKeys.REQUEST_ID, requestId);
+    if (winnerVehicleId != null && !winnerVehicleId.isBlank()) {
+      payload.put(P2PPayloadKeys.WINNER_VEHICLE, winnerVehicleId);
+    }
+    publishMessage(
+        P2PTopics.RIDE_ASSIGNED,
+        KeyValuePayload.write(payload),
+        requestId,
+        requestId,
+        node -> node.role() == NodeRole.VEHICLE);
+    log.info(
+        "Client node {} announced winner requestId={} winner={}",
+        descriptor().id(),
+        requestId,
+        winnerVehicleId);
+  }
 
   public String requestTopologyScan() {
     String scanId = UUID.randomUUID().toString();
