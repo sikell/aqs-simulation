@@ -56,38 +56,41 @@ public class ResultVisualization extends AbstractVisualization {
 
   public void showResults(ResultTable resultTable) {
     ResultTable convertedResultTable = convertResultTable(resultTable);
-    updateChart(convertedResultTable);
-    if (table == null) {
-      model = new DefaultTableModel(convertedResultTable.getData(), resultTable.getColumns());
-      table = new JTable(model);
-      JScrollPane scrollPane = new JScrollPane(table);
-      int frameWidth = frame.getWidth();
-      scrollPane.setMinimumSize(
-          new Dimension(
-              (int) (frameWidth * 0.8), table.getRowHeight() * (model.getRowCount() + 2)));
-      chartPanel.setPreferredSize(new Dimension(frameWidth, 700));
-      frame.add(chartPanel, BorderLayout.CENTER);
-      JPanel tablePanel = new JPanel(new GridBagLayout());
-      GridBagConstraints constraints = new GridBagConstraints();
-      constraints.gridx = 0;
-      constraints.gridy = 0;
-      constraints.weightx = 1.0;
-      constraints.fill = GridBagConstraints.HORIZONTAL;
-      tablePanel.add(scrollPane, constraints);
-      constraints.gridy = 1;
-      constraints.fill = GridBagConstraints.NONE;
-      tablePanel.add(resetButton(), constraints);
-
-      frame.add(tablePanel, BorderLayout.SOUTH);
-      frame.pack();
-      openResults();
-    } else {
-
-      for (int i = 0; i < resultTable.getData().length; i++) {
-        model.addRow(resultTable.getData()[i]);
-      }
-      SwingUtilities.updateComponentTreeUI(frame);
-    }
+    SwingUtilities.invokeLater(
+        () -> {
+          updateChart(convertedResultTable);
+          if (table == null) {
+            model =
+                new DefaultTableModel(convertedResultTable.getData(), resultTable.getColumns());
+            table = new JTable(model);
+            JScrollPane scrollPane = new JScrollPane(table);
+            int frameWidth = frame.getWidth();
+            scrollPane.setMinimumSize(
+                new Dimension(
+                    (int) (frameWidth * 0.8), table.getRowHeight() * (model.getRowCount() + 2)));
+            chartPanel.setPreferredSize(new Dimension(frameWidth, 700));
+            frame.add(chartPanel, BorderLayout.CENTER);
+            JPanel tablePanel = new JPanel(new GridBagLayout());
+            GridBagConstraints constraints = new GridBagConstraints();
+            constraints.gridx = 0;
+            constraints.gridy = 0;
+            constraints.weightx = 1.0;
+            constraints.fill = GridBagConstraints.HORIZONTAL;
+            tablePanel.add(scrollPane, constraints);
+            constraints.gridy = 1;
+            constraints.fill = GridBagConstraints.NONE;
+            tablePanel.add(resetButton(), constraints);
+            frame.add(tablePanel, BorderLayout.SOUTH);
+            frame.pack();
+            openResults();
+          } else {
+            for (int i = 0; i < resultTable.getData().length; i++) {
+              model.addRow(resultTable.getData()[i]);
+            }
+            frame.revalidate();
+            frame.repaint();
+          }
+        });
   }
 
   public void addDiagrams() {
@@ -177,13 +180,18 @@ public class ResultVisualization extends AbstractVisualization {
   }
 
   private void resetData() {
-    model.getDataVector().removeAllElements();
-    taxiDataset.clear();
-    clientDataset.clear();
-    timeDataset.clear();
-    calcTimeCollection.removeAllSeries();
-    clientCountCollection.removeAllSeries();
-    SwingUtilities.updateComponentTreeUI(table);
+    SwingUtilities.invokeLater(
+        () -> {
+          model.getDataVector().removeAllElements();
+          model.fireTableDataChanged();
+          taxiDataset.clear();
+          clientDataset.clear();
+          timeDataset.clear();
+          calcTimeCollection.removeAllSeries();
+          clientCountCollection.removeAllSeries();
+          frame.revalidate();
+          frame.repaint();
+        });
   }
 
   private ChartPanel createLoadChart() {
@@ -242,32 +250,41 @@ public class ResultVisualization extends AbstractVisualization {
     int runIndex = calcTimeCollection.getSeriesCount();
     String runLabel = algorithmName + " | Run " + (runIndex + 1);
 
-    // Add series first so the line renderer auto-assigns a color for this index
     XYSeries calcSeries = new XYSeries(runLabel, true, false);
     XYSeries clientSeries = new XYSeries(runLabel, true, false);
     long lastTick = Long.MIN_VALUE;
     for (TickDataPoint dp : tickDataPoints) {
-      if (dp.tick() <= lastTick) continue; // skip duplicates from cancelled/restarted runs
+      if (dp.tick() <= lastTick) continue;
       lastTick = dp.tick();
       double ms = TimeUnit.NANOSECONDS.toMicros(dp.calculationTimeNanos()) / 1000.0;
       calcSeries.add(dp.tick(), ms);
       clientSeries.add(dp.tick(), dp.activeClientCount());
     }
-    calcTimeCollection.addSeries(calcSeries);
-    clientCountCollection.addSeries(clientSeries);
 
-    // Read the auto-assigned color from the line renderer and apply a transparent version to the area
-    Color base = (Color) loadLineRenderer.lookupSeriesPaint(runIndex);
-    Color areaFill = new Color(base.getRed(), base.getGreen(), base.getBlue(), 35);
-    Color areaOutline = new Color(base.getRed(), base.getGreen(), base.getBlue(), 130);
-    Stroke dashedStroke = new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
-        10.0f, new float[]{4.0f, 4.0f}, 0.0f);
-    loadAreaRenderer.setSeriesPaint(runIndex, areaFill);
-    loadAreaRenderer.setSeriesOutlinePaint(runIndex, areaOutline);
-    loadAreaRenderer.setSeriesOutlineStroke(runIndex, dashedStroke);
-    loadLineRenderer.setSeriesStroke(runIndex, new BasicStroke(1.5f));
-
-    frame.pack();
+    final int capturedRunIndex = runIndex;
+    final XYSeries capturedCalc = calcSeries;
+    final XYSeries capturedClient = clientSeries;
+    SwingUtilities.invokeLater(
+        () -> {
+          calcTimeCollection.addSeries(capturedCalc);
+          clientCountCollection.addSeries(capturedClient);
+          Color base = (Color) loadLineRenderer.lookupSeriesPaint(capturedRunIndex);
+          Color areaFill = new Color(base.getRed(), base.getGreen(), base.getBlue(), 35);
+          Color areaOutline = new Color(base.getRed(), base.getGreen(), base.getBlue(), 130);
+          Stroke dashedStroke =
+              new BasicStroke(
+                  1.0f,
+                  BasicStroke.CAP_BUTT,
+                  BasicStroke.JOIN_MITER,
+                  10.0f,
+                  new float[] {4.0f, 4.0f},
+                  0.0f);
+          loadAreaRenderer.setSeriesPaint(capturedRunIndex, areaFill);
+          loadAreaRenderer.setSeriesOutlinePaint(capturedRunIndex, areaOutline);
+          loadAreaRenderer.setSeriesOutlineStroke(capturedRunIndex, dashedStroke);
+          loadLineRenderer.setSeriesStroke(capturedRunIndex, new BasicStroke(1.5f));
+          frame.pack();
+        });
   }
 
   private JButton resetButton() {
