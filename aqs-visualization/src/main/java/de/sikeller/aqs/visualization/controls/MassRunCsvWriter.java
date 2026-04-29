@@ -29,6 +29,7 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      String spawnScenario,
       int runIndex,
       int worldSeed,
       String timestamp) {
@@ -56,6 +57,7 @@ final class MassRunCsvWriter {
                p2pOverlayMinNeighbors,
                p2pOverlayMaxNeighbors,
                p2pOverlayShortcuts,
+              spawnScenario,
               runIndex,
               worldSeed,
               metric,
@@ -106,6 +108,8 @@ final class MassRunCsvWriter {
               + "|"
               + row.p2pOverlayShortcuts()
               + "|"
+              + row.spawnScenario()
+              + "|"
               + row.metric();
       grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(row);
     }
@@ -125,6 +129,7 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors = group.get(0).p2pOverlayMinNeighbors();
       int p2pOverlayMaxNeighbors = group.get(0).p2pOverlayMaxNeighbors();
       int p2pOverlayShortcuts = group.get(0).p2pOverlayShortcuts();
+      String spawnScenario = group.get(0).spawnScenario();
       String metric = group.get(0).metric();
 
       double avgOfAvg = average(group, RunMetricRow::avg);
@@ -140,6 +145,7 @@ final class MassRunCsvWriter {
                p2pOverlayMinNeighbors,
                p2pOverlayMaxNeighbors,
                p2pOverlayShortcuts,
+              spawnScenario,
               metric,
               group.size(),
               avgOfAvg,
@@ -156,7 +162,7 @@ final class MassRunCsvWriter {
   private static void writeRunCsv(Path file, List<RunMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "timestamp,algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
+        "timestamp,algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,spawnScenario,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
     for (RunMetricRow row : rows) {
       lines.add(
           csv(
@@ -171,6 +177,7 @@ final class MassRunCsvWriter {
                row.p2pOverlayMinNeighbors(),
                row.p2pOverlayMaxNeighbors(),
                row.p2pOverlayShortcuts(),
+              row.spawnScenario(),
               row.runIndex(),
               row.worldSeed(),
               row.metric(),
@@ -187,7 +194,7 @@ final class MassRunCsvWriter {
   private static void writeAggregateCsv(Path file, List<AggregateMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
+        "algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,spawnScenario,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
     for (AggregateMetricRow row : rows) {
       lines.add(
           csv(
@@ -201,6 +208,7 @@ final class MassRunCsvWriter {
                row.p2pOverlayMinNeighbors(),
                row.p2pOverlayMaxNeighbors(),
                row.p2pOverlayShortcuts(),
+              row.spawnScenario(),
               row.metric(),
               row.runs(),
               row.avgOfAvg(),
@@ -290,6 +298,7 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      String spawnScenario,
       int runIndex,
       int worldSeed,
       String metric,
@@ -311,6 +320,7 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      String spawnScenario,
       String metric,
       int runs,
       double avgOfAvg,

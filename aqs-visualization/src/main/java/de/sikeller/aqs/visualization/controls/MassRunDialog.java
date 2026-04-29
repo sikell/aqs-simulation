@@ -26,6 +26,7 @@ final class MassRunDialog extends JDialog {
   private final List<String> availableAlgorithms;
   private final Map<String, JCheckBox> algorithmChecks = new LinkedHashMap<>();
   private final Map<String, JCheckBox> strategyChecks = new LinkedHashMap<>();
+  private final Map<String, JCheckBox> spawnScenarioChecks = new LinkedHashMap<>();
   private final JTextField kHopsField;
   private final JTextField rqsRadiusField;
   private final JTextField overlayMinNeighborsField;
@@ -51,10 +52,11 @@ final class MassRunDialog extends JDialog {
     content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
     content.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
 
-    JPanel selectionPanel = new JPanel(new GridLayout(1, 2, 8, 8));
+    JPanel selectionPanel = new JPanel(new GridLayout(1, 3, 8, 8));
     selectionPanel.setBorder(BorderFactory.createTitledBorder("Selection"));
     selectionPanel.add(buildAlgorithmSelectionPanel(defaults.algorithmsCsv()));
     selectionPanel.add(buildStrategySelectionPanel(defaults.p2pStrategiesCsv()));
+    selectionPanel.add(buildSpawnScenarioPanel(defaults.spawnScenariosCsv()));
 
     JPanel runPanel = new JPanel(new GridLayout(0, 2, 8, 8));
     runPanel.setBorder(BorderFactory.createTitledBorder("Run Setup"));
@@ -128,6 +130,25 @@ final class MassRunDialog extends JDialog {
     return new JScrollPane(panel);
   }
 
+  private Component buildSpawnScenarioPanel(String defaultsCsv) {
+    JPanel panel = new JPanel();
+    panel.setBorder(BorderFactory.createTitledBorder("Spawn Scenarios"));
+    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+    Set<String> defaults = parseCsvStringsOrEmpty(defaultsCsv);
+    addSpawnScenarioCheck(panel, "BASELINE", defaults);
+    addSpawnScenarioCheck(panel, "RUSH_HOUR", defaults);
+    addSpawnScenarioCheck(panel, "SPATIAL_IMBALANCE", defaults);
+    addSpawnScenarioCheck(panel, "SPATIAL_ISLANDS", defaults);
+    return panel;
+  }
+
+  private void addSpawnScenarioCheck(JPanel panel, String scenario, Set<String> defaults) {
+    JCheckBox check = new JCheckBox(scenario, defaults.contains(scenario));
+    spawnScenarioChecks.put(scenario, check);
+    panel.add(check);
+  }
+
   private Component buildStrategySelectionPanel(String defaultsCsv) {
     JPanel panel = new JPanel();
     panel.setBorder(BorderFactory.createTitledBorder("P2P strategies"));
@@ -162,6 +183,7 @@ final class MassRunDialog extends JDialog {
     try {
       List<String> algorithms = selectedAlgorithms();
       List<String> p2pStrategies = selectedStrategies();
+      List<String> spawnScenarios = selectedSpawnScenarios();
       List<Integer> kHops = parseCsvInts(kHopsField.getText(), 0, "k-hop");
       List<Integer> rqsRadiusValues = parseCsvInts(rqsRadiusField.getText(), 1, "RQS radius");
       List<Integer> overlayMinNeighborsValues =
@@ -198,6 +220,7 @@ final class MassRunDialog extends JDialog {
               overlayMinNeighborsValues,
               overlayMaxNeighborsValues,
               overlayShortcutsValues,
+              spawnScenarios,
               runs,
               baseSeed,
               outputDir,
@@ -223,6 +246,19 @@ final class MassRunDialog extends JDialog {
     }
     if (selected.isEmpty()) {
       throw new IllegalArgumentException("Select at least one algorithm");
+    }
+    return selected;
+  }
+
+  private List<String> selectedSpawnScenarios() {
+    List<String> selected = new ArrayList<>();
+    for (Map.Entry<String, JCheckBox> entry : spawnScenarioChecks.entrySet()) {
+      if (entry.getValue().isSelected()) {
+        selected.add(entry.getKey());
+      }
+    }
+    if (selected.isEmpty()) {
+      throw new IllegalArgumentException("Select at least one spawn scenario");
     }
     return selected;
   }
@@ -312,6 +348,7 @@ final class MassRunDialog extends JDialog {
       String overlayMinNeighborsCsv,
       String overlayMaxNeighborsCsv,
       String overlayShortcutsCsv,
+      String spawnScenariosCsv,
       int runs,
       int baseSeed,
       String outputDir,
@@ -331,6 +368,7 @@ final class MassRunDialog extends JDialog {
       List<Integer> overlayMinNeighborsValues,
       List<Integer> overlayMaxNeighborsValues,
       List<Integer> overlayShortcutsValues,
+      List<String> spawnScenarios,
       int runs,
       int baseSeed,
       String outputDir,

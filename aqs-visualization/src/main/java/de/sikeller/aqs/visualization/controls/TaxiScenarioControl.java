@@ -169,9 +169,11 @@ public class TaxiScenarioControl extends AbstractControl {
     worldInputs.add(taxiSpeedSpinner());
     worldInputs.add(label("Simulation speed", "simulationSpeedLabel"));
     worldInputs.add(simulationSpeed());
+    worldInputs.add(label("Spawn scenario", "spawnScenarioLabel"));
+    worldInputs.add(spawnScenarioCombo());
     worldInputs.setBorder(new TitledBorder("World Parameters"));
     controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
-    worldInputs.setLayout(new GridLayout(8, 2, GAP, GAP));
+    worldInputs.setLayout(new GridLayout(9, 2, GAP, GAP));
     p2pStatusPanel = setupP2PStatusPanel();
     p2pScanNowButton = createP2PScanNowButton();
     p2pTopologyPanel = new P2PTopologyPanel();
@@ -873,6 +875,7 @@ public class TaxiScenarioControl extends AbstractControl {
         String.valueOf(readSpinnerValue("p2pOverlayMinNeighbors", 1)),
         String.valueOf(defaultOverlayMaxNeighbors),
         String.valueOf(readSpinnerValue("p2pOverlayShortcuts", 1)),
+        "BASELINE",
         10,
         1,
         "mass-run-results",
@@ -934,6 +937,7 @@ public class TaxiScenarioControl extends AbstractControl {
                                     .size()
                                 * effectiveOverlayShortcutsForAlgorithm(algorithmSimpleName, config)
                                     .size()
+                                * config.spawnScenarios().size()
                                 * config.taxiCounts().size()
                                 * config.taxiSeatCounts().size()
                                 * config.runs())
@@ -959,55 +963,59 @@ public class TaxiScenarioControl extends AbstractControl {
                     for (int overlayMinNeighbors : effectiveOverlayMinNeighbors) {
                       for (int overlayMaxNeighbors : effectiveOverlayMaxNeighbors) {
                         for (int overlayShortcuts : effectiveOverlayShortcuts) {
-                          for (int pairIndex = 0;
-                              pairIndex < config.taxiCounts().size();
-                              pairIndex++) {
-                            int taxiCount = config.taxiCounts().get(pairIndex);
-                            int clientCount = config.clientCounts().get(pairIndex);
-                            for (int taxiSeatCount : config.taxiSeatCounts()) {
-                              for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
-                                int seed = config.baseSeed() + (runIndex - 1);
-                                MassRunIterationResult result =
-                                    executeMassRunIteration(
-                                        config,
-                                        algorithmSimpleName,
-                                        kHops,
-                                        rqsRadius,
-                                        p2pStrategy,
-                                        overlayMinNeighbors,
-                                        overlayMaxNeighbors,
-                                        overlayShortcuts,
-                                        taxiCount,
-                                        clientCount,
-                                        taxiSeatCount,
-                                        seed);
-                                String timestamp = java.time.Instant.now().toString();
-                                runRows.addAll(
-                                    MassRunCsvWriter.toRunRows(
-                                        result.table(),
-                                        result.executedAlgorithm(),
-                                        kHops,
-                                        result.executedRqsRadius(),
-                                        taxiCount,
-                                        clientCount,
-                                        taxiSeatCount,
-                                        result.executedStrategy(),
-                                        result.executedOverlayMinNeighbors(),
-                                        result.executedOverlayMaxNeighbors(),
-                                        result.executedOverlayShortcuts(),
-                                        runIndex,
-                                        seed,
-                                        timestamp));
+                          for (String spawnScenario : config.spawnScenarios()) {
+                            for (int pairIndex = 0;
+                                pairIndex < config.taxiCounts().size();
+                                pairIndex++) {
+                              int taxiCount = config.taxiCounts().get(pairIndex);
+                              int clientCount = config.clientCounts().get(pairIndex);
+                              for (int taxiSeatCount : config.taxiSeatCounts()) {
+                                for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
+                                  int seed = config.baseSeed() + (runIndex - 1);
+                                  MassRunIterationResult result =
+                                      executeMassRunIteration(
+                                          config,
+                                          algorithmSimpleName,
+                                          kHops,
+                                          rqsRadius,
+                                          p2pStrategy,
+                                          overlayMinNeighbors,
+                                          overlayMaxNeighbors,
+                                          overlayShortcuts,
+                                          spawnScenario,
+                                          taxiCount,
+                                          clientCount,
+                                          taxiSeatCount,
+                                          seed);
+                                  String timestamp = java.time.Instant.now().toString();
+                                  runRows.addAll(
+                                      MassRunCsvWriter.toRunRows(
+                                          result.table(),
+                                          result.executedAlgorithm(),
+                                          kHops,
+                                          result.executedRqsRadius(),
+                                          taxiCount,
+                                          clientCount,
+                                          taxiSeatCount,
+                                          result.executedStrategy(),
+                                          result.executedOverlayMinNeighbors(),
+                                          result.executedOverlayMaxNeighbors(),
+                                          result.executedOverlayShortcuts(),
+                                          result.executedSpawnScenario(),
+                                          runIndex,
+                                          seed,
+                                          timestamp));
 
-                                // Fortschritt pro abgeschlossener Iteration aktualisieren
-                                doneRuns++;
-                                int progress =
-                                    (int) Math.round(doneRuns * 100.0 / Math.max(1, totalRuns));
-                                setProgress(Math.max(0, Math.min(100, progress)));
-                                publish(
-                                    new int[] {
-                                      doneRuns, totalRuns, Math.max(0, Math.min(100, progress))
-                                    });
+                                  // Fortschritt pro abgeschlossener Iteration aktualisieren
+                                  doneRuns++;
+                                  int progress =
+                                      (int) Math.round(doneRuns * 100.0 / Math.max(1, totalRuns));
+                                  setProgress(Math.max(0, Math.min(100, progress)));
+                                  publish(
+                                      new int[] {
+                                        doneRuns, totalRuns, Math.max(0, Math.min(100, progress))
+                                      });
+                                }
                               }
                             }
                           }
@@ -1074,6 +1082,7 @@ public class TaxiScenarioControl extends AbstractControl {
       int overlayMinNeighbors,
       int overlayMaxNeighbors,
       int overlayShortcuts,
+      String spawnScenario,
       int taxiCount,
       int clientCount,
       int taxiSeatCount,
@@ -1090,6 +1099,7 @@ public class TaxiScenarioControl extends AbstractControl {
           setSpinnerValueIfPresent("clientSpeed", config.clientSpeed());
           setSpinnerValueIfPresent("taxiSeatCount", taxiSeatCount);
           setSpinnerValueIfPresent("taxiSpeed", config.taxiSpeed());
+          setComboIndexIfPresent("spawnScenario", de.sikeller.aqs.model.SpawnScenario.fromLabel(spawnScenario).ordinal());
           String executedAlgorithm = simulation.getAlgorithm().get().getClass().getSimpleName();
           String executedStrategy = "n/a";
           int executedRqsRadius = -1;
@@ -1119,7 +1129,8 @@ public class TaxiScenarioControl extends AbstractControl {
               executedRqsRadius,
               executedOverlayMinNeighbors,
               executedOverlayMaxNeighbors,
-              executedOverlayShortcuts);
+              executedOverlayShortcuts,
+              spawnScenario);
         });
 
     long timeoutMs = Math.max(1_000L, MASS_RUN_ITERATION_TIMEOUT_MS);
@@ -1157,7 +1168,8 @@ public class TaxiScenarioControl extends AbstractControl {
         result.executedRqsRadius(),
         result.executedOverlayMinNeighbors(),
         result.executedOverlayMaxNeighbors(),
-        result.executedOverlayShortcuts());
+        result.executedOverlayShortcuts(),
+        result.executedSpawnScenario());
   }
 
   private void selectAlgorithmForMassRun(String algorithmSimpleName) {
@@ -1184,6 +1196,34 @@ public class TaxiScenarioControl extends AbstractControl {
     Component component = getComponentByName(name);
     if (component instanceof JSpinner spinner) {
       spinner.setValue(value);
+      return;
+    }
+    // Algorithm parameter spinners live in algorithmInputs which is rebuilt dynamically
+    // and is therefore NOT included in the static componentMap – search it explicitly.
+    forEachAlgorithmComponent(
+        comp -> {
+          if (comp instanceof JSpinner s && name.equals(s.getName())) {
+            s.setValue(value);
+          }
+        });
+  }
+
+  private void setComboIndexIfPresent(String name, int index) {
+    Component component = getComponentByName(name);
+    if (component instanceof JComboBox<?> combo) {
+      if (index >= 0 && index < combo.getItemCount()) {
+        combo.setSelectedIndex(index);
+        return;
+      }
+    }
+    // Also search worldInputs combos (e.g. spawnScenario) that may not be in componentMap
+    for (Component comp : worldInputs.getComponents()) {
+      if (comp instanceof JComboBox<?> combo && name.equals(combo.getName())) {
+        if (index >= 0 && index < combo.getItemCount()) {
+          combo.setSelectedIndex(index);
+        }
+        return;
+      }
     }
   }
 
@@ -1195,7 +1235,18 @@ public class TaxiScenarioControl extends AbstractControl {
         return number.intValue();
       }
     }
-    return defaultValue;
+    // Also search algorithmInputs (not in static componentMap)
+    final int[] result = {defaultValue};
+    forEachAlgorithmComponent(
+        comp -> {
+          if (comp instanceof JSpinner s && name.equals(s.getName())) {
+            Object val = s.getValue();
+            if (val instanceof Number number) {
+              result[0] = number.intValue();
+            }
+          }
+        });
+    return result[0];
   }
 
   private String applyP2PStrategyForMassRun(String strategy) {
@@ -1279,7 +1330,8 @@ public class TaxiScenarioControl extends AbstractControl {
       int executedRqsRadius,
       int executedOverlayMinNeighbors,
       int executedOverlayMaxNeighbors,
-      int executedOverlayShortcuts) {}
+      int executedOverlayShortcuts,
+      String executedSpawnScenario) {}
 
 
   private void setControlsEnabledForMassRun(boolean enabled) {
@@ -1453,8 +1505,20 @@ public class TaxiScenarioControl extends AbstractControl {
     return spinner;
   }
 
-  private JSpinner taxiSpeedSpinner() {
-    SpinnerModel spinnerModel = new SpinnerNumberModel(80, 1, 1_000_000_000, 1);
+  private JComboBox<String> spawnScenarioCombo() {
+    JComboBox<String> combo = new JComboBox<>();
+    combo.setName("spawnScenario");
+    combo.addItem("BASELINE");
+    combo.addItem("RUSH_HOUR");
+    combo.addItem("SPATIAL_IMBALANCE");
+    combo.addItem("SPATIAL_ISLANDS");
+    combo.setSelectedIndex(0);
+    combo.setToolTipText(
+        "S1 BASELINE: constant load | S2 RUSH_HOUR: peaks at 7-9h / 17-19h | S3 SPATIAL_IMBALANCE: CBD hotspot | S4 SPATIAL_ISLANDS: 6 distributed hotspot islands");
+    return combo;
+  }
+
+  private JSpinner taxiSpeedSpinner() {    SpinnerModel spinnerModel = new SpinnerNumberModel(80, 1, 1_000_000_000, 1);
     JSpinner spinner = new JSpinner(spinnerModel);
     configureIntegerSpinner(spinner);
     spinner.setName("taxiSpeed");
@@ -1897,6 +1961,9 @@ public class TaxiScenarioControl extends AbstractControl {
           Object val = spinner.getValue();
           int intVal = (val instanceof Number number) ? number.intValue() : Integer.parseInt(String.valueOf(val));
           allParameterMap.put(spinner.getName(), intVal);
+        }
+        if (component instanceof JComboBox<?> combo && combo.getName() != null) {
+          allParameterMap.put(combo.getName(), combo.getSelectedIndex());
         }
       }
 

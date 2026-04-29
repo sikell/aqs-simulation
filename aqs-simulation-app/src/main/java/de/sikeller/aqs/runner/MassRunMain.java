@@ -6,7 +6,8 @@ import de.sikeller.aqs.model.ResultTable;
 import de.sikeller.aqs.model.TaxiAlgorithm;
 import de.sikeller.aqs.model.WorldObject;
 import de.sikeller.aqs.simulation.SimulationRunner;
-import de.sikeller.aqs.simulation.WorldGeneratorRandom;
+import de.sikeller.aqs.model.SpawnScenario;
+import de.sikeller.aqs.simulation.WorldGeneratorScenario;
 import de.sikeller.aqs.taxi.algorithm.collector.TaxiAlgorithmP2PCollector;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -38,9 +39,12 @@ public final class MassRunMain {
     List<Class<? extends TaxiAlgorithm>> algorithms = resolveAlgorithmClasses(config.algorithms());
     for (Class<? extends TaxiAlgorithm> algorithmClass : algorithms) {
       for (Integer kHops : config.kHops()) {
-        for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
-          int seed = config.baseSeed() + (runIndex - 1);
-          runRows.addAll(runOnce(config, algorithmClass, kHops, runIndex, seed));
+        for (String scenarioLabel : config.spawnScenarios()) {
+          SpawnScenario scenario = SpawnScenario.fromLabel(scenarioLabel);
+          for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
+            int seed = config.baseSeed() + (runIndex - 1);
+            runRows.addAll(runOnce(config, algorithmClass, kHops, scenario, runIndex, seed));
+          }
         }
       }
     }
@@ -53,6 +57,7 @@ public final class MassRunMain {
       MassRunConfig config,
       Class<? extends TaxiAlgorithm> algorithmClass,
       int kHops,
+      SpawnScenario scenario,
       int runIndex,
       int seed) {
     TaxiAlgorithm algorithmInstance = instantiateAlgorithm(algorithmClass);
@@ -61,7 +66,7 @@ public final class MassRunMain {
       algorithmParameters.put(PARAM_FORWARD_HOPS, Math.max(0, kHops));
       algorithmInstance.setParameters(algorithmParameters);
 
-      Map<String, Integer> runParameters = defaultWorldParameters(config, seed);
+      Map<String, Integer> runParameters = defaultWorldParameters(config, seed, scenario);
       runParameters.putAll(algorithmParameters);
 
       WorldObject world = WorldObject.builder().maxX(config.maxX()).maxY(config.maxY()).build();
@@ -69,7 +74,7 @@ public final class MassRunMain {
           new SimulationRunner(
               world,
               new Algorithm(algorithmInstance),
-              new WorldGeneratorRandom(),
+              new WorldGeneratorScenario(),
               SimulationRunner.noVisualizationResultSink());
       runner.setSpeed(100);
       runner.init(runParameters);
@@ -83,6 +88,7 @@ public final class MassRunMain {
           algorithmClass.getSimpleName(),
           algorithmInstance.getName(),
           kHops,
+          scenario.name(),
           runIndex,
           seed);
     } finally {
@@ -90,7 +96,8 @@ public final class MassRunMain {
     }
   }
 
-  private static Map<String, Integer> defaultWorldParameters(MassRunConfig config, int worldSeed) {
+  private static Map<String, Integer> defaultWorldParameters(
+      MassRunConfig config, int worldSeed, SpawnScenario scenario) {
     Map<String, Integer> parameters = new LinkedHashMap<>();
     parameters.put("worldSeed", worldSeed);
     parameters.put("taxiCount", config.taxiCount());
@@ -100,6 +107,7 @@ public final class MassRunMain {
     parameters.put("taxiSeatCount", config.taxiSeatCount());
     parameters.put("taxiSpeed", config.taxiSpeed());
     parameters.put("p2pEmbeddedSimulation", 1);
+    parameters.put("spawnScenario", scenario.ordinal());
     return parameters;
   }
 
@@ -159,6 +167,7 @@ public final class MassRunMain {
       String algorithmClass,
       String algorithmLabel,
       int kHops,
+      String spawnScenario,
       int runIndex,
       int worldSeed) {
     List<RunMetricRow> rows = new ArrayList<>();
@@ -177,6 +186,7 @@ public final class MassRunMain {
               algorithmClass,
               algorithmLabel,
               kHops,
+              spawnScenario,
               runIndex,
               worldSeed,
               metric,
@@ -204,7 +214,7 @@ public final class MassRunMain {
   private static List<AggregatedMetricRow> aggregate(List<RunMetricRow> runRows) {
     Map<String, List<RunMetricRow>> grouped = new LinkedHashMap<>();
     for (RunMetricRow row : runRows) {
-      String key = row.algorithmClass() + "|" + row.kHops() + "|" + row.metric();
+      String key = row.algorithmClass() + "|" + row.kHops() + "|" + row.spawnScenario() + "|" + row.metric();
       grouped.computeIfAbsent(key, ignored -> new ArrayList<>()).add(row);
     }
 
@@ -216,6 +226,7 @@ public final class MassRunMain {
       String algorithmClass = group.getFirst().algorithmClass();
       String algorithmLabel = group.getFirst().algorithmLabel();
       int kHops = group.getFirst().kHops();
+      String spawnScenario = group.getFirst().spawnScenario();
       String metric = group.getFirst().metric();
 
       int runs = group.size();
@@ -232,6 +243,7 @@ public final class MassRunMain {
               algorithmClass,
               algorithmLabel,
               kHops,
+              spawnScenario,
               metric,
               runs,
               avgOfAvg,
@@ -304,7 +316,7 @@ public final class MassRunMain {
   private static void writeRunCsv(Path file, List<RunMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "timestamp,algorithmClass,algorithmLabel,kHops,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
+        "timestamp,algorithmClass,algorithmLabel,kHops,spawnScenario,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
     for (RunMetricRow row : rows) {
       lines.add(
           csvRow(
@@ -312,6 +324,7 @@ public final class MassRunMain {
               row.algorithmClass(),
               row.algorithmLabel(),
               row.kHops(),
+              row.spawnScenario(),
               row.runIndex(),
               row.worldSeed(),
               row.metric(),
@@ -328,13 +341,14 @@ public final class MassRunMain {
   private static void writeAggregateCsv(Path file, List<AggregatedMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "algorithmClass,algorithmLabel,kHops,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
+        "algorithmClass,algorithmLabel,kHops,spawnScenario,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
     for (AggregatedMetricRow row : rows) {
       lines.add(
           csvRow(
               row.algorithmClass(),
               row.algorithmLabel(),
               row.kHops(),
+              row.spawnScenario(),
               row.metric(),
               row.runs(),
               row.avgOfAvg(),
@@ -364,6 +378,7 @@ public final class MassRunMain {
       String algorithmClass,
       String algorithmLabel,
       int kHops,
+      String spawnScenario,
       int runIndex,
       int worldSeed,
       String metric,
@@ -378,6 +393,7 @@ public final class MassRunMain {
       String algorithmClass,
       String algorithmLabel,
       int kHops,
+      String spawnScenario,
       String metric,
       int runs,
       double avgOfAvg,
@@ -391,6 +407,7 @@ public final class MassRunMain {
   private record MassRunConfig(
       List<String> algorithms,
       List<Integer> kHops,
+      List<String> spawnScenarios,
       int runs,
       int baseSeed,
       String outputDir,
@@ -408,10 +425,12 @@ public final class MassRunMain {
       Map<String, String> cli = parseCliArgs(args);
       List<String> algorithms = splitCsv(read(cli, "algorithms", "TaxiAlgorithmP2PCollector"));
       List<Integer> kHops = parseIntList(read(cli, "kHops", "2"), 0);
+      List<String> spawnScenarios = splitCsvStrings(read(cli, "spawnScenarios", "BASELINE"));
 
       return new MassRunConfig(
           algorithms,
           kHops,
+          spawnScenarios,
           parseInt(read(cli, "runs", "10"), 1),
           parseInt(read(cli, "baseSeed", "1"), Integer.MIN_VALUE),
           read(cli, "outputDir", "mass-run-results"),
@@ -466,6 +485,17 @@ public final class MassRunMain {
       } catch (Exception ex) {
         throw new IllegalArgumentException("Invalid integer value: " + value, ex);
       }
+    }
+
+    private static List<String> splitCsvStrings(String csv) {
+      Set<String> deduplicated = new LinkedHashSet<>();
+      for (String entry : csv.split(",")) {
+        String trimmed = entry.trim();
+        if (!trimmed.isBlank()) {
+          deduplicated.add(trimmed.toUpperCase(Locale.ROOT));
+        }
+      }
+      return deduplicated.isEmpty() ? List.of("BASELINE") : List.copyOf(deduplicated);
     }
 
     private static List<String> splitCsv(String csv) {
