@@ -242,12 +242,15 @@ public class WorldObject implements World {
       String name, int spawnTime, Position position, Position target, Integer clientSpeed) {
     try {
       lock.writeLock().lock();
+      Position clampedPosition = clampToWorld(position);
+      Position clampedTarget = clampToWorld(target);
       ClientEntity clientEntity =
           ClientEntity.builder()
               .name(name)
               .spawnTime(spawnTime)
-              .position(position)
-              .target(target)
+              .position(clampedPosition)
+              .target(clampedTarget)
+              .lastUpdate(spawnTime)
               .currentSpeed(clientSpeed)
               .build();
       this.clients.add(clientEntity);
@@ -261,11 +264,12 @@ public class WorldObject implements World {
       String name, Integer taxiSeatCount, Position taxiPosition, Integer taxiSpeed) {
     try {
       lock.writeLock().lock();
+      Position clampedTaxiPosition = clampToWorld(taxiPosition);
       TaxiEntity taxiEntity =
           TaxiEntity.builder()
               .name(name)
               .capacity(taxiSeatCount)
-              .position(taxiPosition)
+              .position(clampedTaxiPosition)
               .currentSpeed(taxiSpeed)
               .build();
       this.taxis.add(taxiEntity);
@@ -273,5 +277,19 @@ public class WorldObject implements World {
     } finally {
       lock.writeLock().unlock();
     }
+  }
+
+  private Position clampToWorld(Position position) {
+    if (position == null) {
+      return new Position(0, 0);
+    }
+    int maxAllowedX = Math.max(0, maxX - 1);
+    int maxAllowedY = Math.max(0, maxY - 1);
+    int clampedX = Math.max(0, Math.min(maxAllowedX, position.getX()));
+    int clampedY = Math.max(0, Math.min(maxAllowedY, position.getY()));
+    if (clampedX == position.getX() && clampedY == position.getY()) {
+      return position;
+    }
+    return new Position(clampedX, clampedY);
   }
 }
