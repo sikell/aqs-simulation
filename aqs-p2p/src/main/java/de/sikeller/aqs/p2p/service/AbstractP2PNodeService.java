@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -53,21 +55,12 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   protected AbstractP2PNodeService(NodeDescriptor descriptor, P2PNetwork network) {
     this.descriptor = descriptor;
     this.network = network;
-    // wire default concrete implementations (can be overridden via alternate constructor)
-    try {
-      // create config first so dependent adapters can use it
-      this.configAdapter = new SystemPropertyP2PConfig();
-      this.positionManager = new PositionManagerImpl(this.configAdapter);
-      this.overlaySelector =
-          new de.sikeller.aqs.p2p.service.overlay.OverlaySelectorImpl(
-              descriptor, this.positionManager, this.configAdapter);
-      this.messagePublisher = new MessagePublisherImpl(descriptor, network, this.overlaySelector);
-    } catch (Throwable t) {
-      try {
-        log.warn("Failed to initialise default P2P adapters", t);
-      } catch (Throwable ignore) {
-      }
-    }
+    this.configAdapter = new SystemPropertyP2PConfig();
+    this.positionManager = new PositionManagerImpl(this.configAdapter);
+    this.overlaySelector =
+        new de.sikeller.aqs.p2p.service.overlay.OverlaySelectorImpl(
+            descriptor, this.positionManager, this.configAdapter);
+    this.messagePublisher = new MessagePublisherImpl(descriptor, network, this.overlaySelector);
   }
 
   @Override
@@ -211,20 +204,15 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     OverlaySelection selection =
         overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE); // Worst-case O(n_peers log n_peers)
 
-    // Building neighbor string: sorting costs O(n_peers log n_peers)
     String neighbors =
         selection.peers().stream()
             .map(NodeDescriptor::id)
             .sorted()
-            .reduce((left, right) -> left + "," + right)
-            .orElse(""); // Worst-case O(n_peers log n_peers)
+            .collect(Collectors.joining(","));
     payload.put(P2PPayloadKeys.NEIGHBORS, neighbors);
 
     String shortcutNeighbors =
-        selection.shortcutPeerIds().stream()
-            .sorted()
-            .reduce((left, right) -> left + "," + right)
-            .orElse("");
+        selection.shortcutPeerIds().stream().sorted().collect(Collectors.joining(","));
     payload.put(P2PPayloadKeys.SHORTCUT_NEIGHBORS, shortcutNeighbors);
 
     sendToMessage(

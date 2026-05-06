@@ -11,18 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClientP2PService extends AbstractP2PNodeService {
-  private final NodeDescriptor nodeDescriptor;
   // Track requests that have been committed so further commits are ignored (first-come-first-serve)
   private final Set<String> committedRequestIds = ConcurrentHashMap.newKeySet();
 
   public ClientP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.CLIENT), network);
-    this.nodeDescriptor = descriptor();
-  }
-
-  @Override
-  public NodeDescriptor descriptor() {
-    return nodeDescriptor;
   }
 
   public String requestRide(String from, String to) {

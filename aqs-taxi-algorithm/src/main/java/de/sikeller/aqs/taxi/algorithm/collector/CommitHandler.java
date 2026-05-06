@@ -84,8 +84,13 @@ final class CommitHandler {
     Map<String, Taxi> emptyTaxisByName = emptyTaxisProvider.apply(world);
 
     Taxi selectedTaxi = emptyTaxisByName.remove(mappedTaxiName);
+    if (selectedTaxi == null) {
+      // Fallback: resolve via taxi knowledge
+      selectedTaxi = resolveViaKnowledge(pending, emptyTaxisByName);
+    }
+
     if (selectedTaxi != null) {
-      Client client = waitingClients.stream().filter(c -> c.getName().equals(pending.clientName())).findFirst().orElse(null);
+      Client client = findClientByName(waitingClients, pending.clientName());
       if (client != null) {
         applyAssignment.accept(selectedTaxi, client, world);
         log.info(
@@ -99,38 +104,28 @@ final class CommitHandler {
          onAssignedCallback.accept(pending.requestId(), vehicleNodeId);
         return;
       }
-    } else {
-      // selectedTaxi not found by vehicleNodeId mapping — try via taxi knowledge (handles
-      // commits forwarded by shortcuts where senderId != origin vehicle)
-      try {
-        var knowledge = runtimeState.taxiKnowledgeSnapshot(Set.of(pending.clientName()));
-        if (!knowledge.isEmpty()) {
-          String candidateTaxi = knowledge.keySet().iterator().next();
-          String candidateVehicleNodeId = taxiNameToVehicleNodeId.getOrDefault(candidateTaxi, candidateTaxi);
-          String candidateMappedTaxiName = vehicleNodeToTaxiName.getOrDefault(candidateVehicleNodeId, candidateTaxi);
-          Taxi candidateTaxiObj = emptyTaxisByName.remove(candidateMappedTaxiName);
-          if (candidateTaxiObj != null) {
-            Client client = waitingClients.stream().filter(c -> c.getName().equals(pending.clientName())).findFirst().orElse(null);
-            if (client != null) {
-              applyAssignment.accept(candidateTaxiObj, client, world);
-              log.info(
-                  "[P2P-COLLECTOR] applied committed assignment (via knowledge) requestId={} client={} vehicle={} taxiName={}",
-                   pending.requestId(),
-                   pending.clientName(),
-                   candidateVehicleNodeId,
-                   candidateTaxiObj.getName());
-               runtimeState.removePendingForClient(pending.clientName());
-               refreshStatusCallback.accept("assigned-" + pending.requestId());
-               onAssignedCallback.accept(pending.requestId(), vehicleNodeId);
-              return;
-            }
-          }
-        }
-      } catch (Exception ex) {
-        log.warn("[P2P-COLLECTOR] error while resolving commit via taxi knowledge: {}", ex.getMessage());
-      }
     }
 
     refreshStatusCallback.accept("commit-" + pending.requestId());
+  }
+
+  private Taxi resolveViaKnowledge(TaxiCollectorRuntimeState.PendingRequest pending, Map<String, Taxi> emptyTaxisByName) {
+    var knowledge = runtimeState.taxiKnowledgeSnapshot(Set.of(pending.clientName()));
+    if (knowledge.isEmpty()) {
+      return null;
+    }
+    String candidateTaxi = knowledge.keySet().iterator().next();
+    String candidateVehicleNodeId = taxiNameToVehicleNodeId.getOrDefault(candidateTaxi, candidateTaxi);
+    String candidateMappedTaxiName = vehicleNodeToTaxiName.getOrDefault(candidateVehicleNodeId, candidateTaxi);
+    return emptyTaxisByName.remove(candidateMappedTaxiName);
+  }
+
+  private static Client findClientByName(Collection<Client> clients, String name) {
+    for (Client c : clients) {
+      if (c.getName().equals(name)) {
+        return c;
+      }
+    }
+    return null;
   }
 }

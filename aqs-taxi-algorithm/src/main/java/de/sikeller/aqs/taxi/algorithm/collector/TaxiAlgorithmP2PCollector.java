@@ -749,7 +749,11 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   private long countVehiclePeers(Set<NodeDescriptor> peers) {
-    return peers.stream().filter(peer -> peer.role() == NodeRole.VEHICLE).count();
+    long count = 0;
+    for (NodeDescriptor peer : peers) {
+      if (peer.role() == NodeRole.VEHICLE) count++;
+    }
+    return count;
   }
 
   private void refreshStatus(String event) {

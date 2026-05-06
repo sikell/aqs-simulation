@@ -36,8 +36,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final int DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M = 200;
   private static final long DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 600L;
   private static final long DEFAULT_CLEANUP_INTERVAL_TICKS = 10L;
+  private static final int MAX_FORWARDED_PAYLOAD_CACHE_SIZE = 200;
 
-  private final NodeDescriptor nodeDescriptor;
   private final ConcurrentMap<String, String> committedByRequest = new ConcurrentHashMap<>();
   private final Set<String> seenRideRequests = ConcurrentHashMap.newKeySet();
   private final ConcurrentMap<String, OpenRideRequest> openRideRequests = new ConcurrentHashMap<>();
@@ -72,12 +72,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
   public VehicleP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.VEHICLE), network);
-    this.nodeDescriptor = descriptor();
-  }
-
-  @Override
-  public NodeDescriptor descriptor() {
-    return nodeDescriptor;
   }
 
   /** Sends a RIDE_COMMIT directly to the collector/origin node (autonomous vehicle decision). */
@@ -482,12 +476,16 @@ public class VehicleP2PService extends AbstractP2PNodeService {
             1L,
             Long.getLong(
                 P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
-                DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS)); // O(1)
+                DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
     long nowTick = currentSimulationTick;
     openRideRequests
         .entrySet()
         .removeIf(
-            entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks); // O(n_openRequests)
+            entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks);
+    // Evict forwarded payload cache if too large
+    if (forwardedPayloadCache.size() > MAX_FORWARDED_PAYLOAD_CACHE_SIZE) {
+      forwardedPayloadCache.clear();
+    }
   }
 
   private void cleanupStaleOpenRequestsIfNeeded() {
@@ -573,32 +571,15 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
 
     int nextHops = incomingHops - 1;
-    Set<String> overlayNeighbors = overlayNeighborIdsSnapshot(); // O(n_peers)
-    long targetCount =
-        network().peers().stream()
-            .filter(node -> node.role() == NodeRole.VEHICLE)
-            .filter(node -> !node.id().equals(descriptor().id()))
-            .filter(node -> !node.id().equals(message.senderId()))
-            .filter(node -> overlayNeighbors.contains(node.id()))
-            .count(); // O(n_peers)
-    log.debug(
-        "Vehicle {} forwarding requestId={} overlayNeighbors={} targetCount={}",
-        descriptor().id(),
-        message.requestId(),
-        overlayNeighbors,
-        targetCount);
+    Set<String> overlayNeighbors = overlayNeighborIdsSnapshot();
 
     // ensure the forwarded payload preserves the original origin information
-    // (origin node id) so downstream vehicles and the collector can always
-    // resolve who originally published the request. Also keep VEHICLE/TAXI
-    // fields if present.
     String originNodeId =
         requestPayload.getOrDefault(P2PPayloadKeys.ORIGIN_NODE, message.senderId());
     String cacheKey = message.requestId() + ":" + nextHops + ":" + originNodeId;
     String forwardedPayloadStr = forwardedPayloadCache.get(cacheKey);
     if (forwardedPayloadStr == null) {
       Map<String, String> m = new LinkedHashMap<>(requestPayload);
-      // canonicalise important metadata for forwarded messages
       m.put(P2PPayloadKeys.ORIGIN_NODE, originNodeId);
       m.put(P2PPayloadKeys.HOPS_REMAINING, String.valueOf(nextHops));
       m.put(P2PPayloadKeys.FORWARDED_BY, descriptor().id());
@@ -608,7 +589,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
 
     final Set<String> forwardTargets = overlayNeighbors;
-    publishMessage( // O(n_peers) due to overlay selection + broadcast
+    publishMessage(
         P2PTopics.RIDE_REQUEST,
         forwardedPayloadStr,
         message.requestId(),
@@ -619,18 +600,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
                 && !node.id().equals(message.senderId())
                 && forwardTargets.contains(node.id()));
     log.debug(
-        "Vehicle {} forwarded requestId={} payloadToForward={}",
+        "Vehicle {} forwarded requestId={} nextHops={}",
         descriptor().id(),
         message.requestId(),
-        forwardedPayloadStr);
-
-    log.info(
-        "Vehicle {} forwarded requestId={} to vehicle peers (incomingHops={} nextHops={} targets={})",
-        descriptor().id(),
-        message.requestId(),
-        incomingHops,
-        nextHops,
-        targetCount);
+        nextHops);
   }
 
   private double parseDouble(String value) {

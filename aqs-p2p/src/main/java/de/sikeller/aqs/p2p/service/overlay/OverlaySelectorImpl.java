@@ -112,11 +112,15 @@ public class OverlaySelectorImpl implements OverlaySelector {
     List<NodeDescriptor> collectorPeers =
         allPeers.stream().filter(peer -> isCollectorNodeId(peer.id())).toList();
     if (collectorPeers.isEmpty()) return selected;
-    Map<String, NodeDescriptor> byId = new LinkedHashMap<>();
-    selected.forEach(peer -> byId.put(peer.id(), peer));
-    collectorPeers.forEach(peer -> byId.put(peer.id(), peer));
-    return new ArrayList<>(byId.values())
-        .stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
+    Set<String> selectedIds = new HashSet<>(selected.size());
+    selected.forEach(peer -> selectedIds.add(peer.id()));
+    List<NodeDescriptor> result = new ArrayList<>(selected);
+    for (NodeDescriptor collector : collectorPeers) {
+      if (selectedIds.add(collector.id())) {
+        result.add(collector);
+      }
+    }
+    return result;
   }
 
   private boolean isCollectorNodeId(String nodeId) {
