@@ -17,7 +17,7 @@ public class ClientP2PService extends AbstractP2PNodeService {
 
   public ClientP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.CLIENT), network);
-    this.nodeDescriptor = new NodeDescriptor(nodeId, NodeRole.CLIENT);
+    this.nodeDescriptor = descriptor();
   }
 
   @Override

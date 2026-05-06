@@ -57,6 +57,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
   /** Pending idle travel target, consumed by the collector to move the taxi in the World. */
   private final AtomicReference<Position> pendingIdleTravelTarget = new AtomicReference<>();
+
   /** Persistent idle target while taxi remains idle; reused until reached or cancelled. */
   private final AtomicReference<Position> currentIdleTarget = new AtomicReference<>();
 
@@ -71,7 +72,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
   public VehicleP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.VEHICLE), network);
-    this.nodeDescriptor = new NodeDescriptor(nodeId, NodeRole.VEHICLE);
+    this.nodeDescriptor = descriptor();
   }
 
   @Override
@@ -107,8 +108,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     updateVehiclePositionSnapshot(positionX, positionY, currentSimulationTick);
     // If we reached the persistent idle target, clear it so a new one may be chosen later
     Position persistent = currentIdleTarget.get();
-    if (persistent != null && simulationX != null && simulationY != null
-        && simulationX == persistent.getX() && simulationY == persistent.getY()) {
+    if (persistent != null
+        && simulationX != null
+        && simulationY != null
+        && simulationX == persistent.getX()
+        && simulationY == persistent.getY()) {
       currentIdleTarget.set(null);
       pendingIdleTravelTarget.set(null);
       lastIdleTravelPublishTick = 0L;
@@ -743,14 +747,13 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
     // Vehicle is idle - publish a new position periodically while idle
     // This allows continuous movement in the P2P network during idleness
-    long publishIntervalTicks =
-        Math.max(1L, idleCheckThrottleTicks); // Publish as often as we check
     if (lastIdleTravelPublishTick > 0
-        && currentSimulationTick - lastIdleTravelPublishTick < publishIntervalTicks) {
+        && currentSimulationTick - lastIdleTravelPublishTick < idleCheckThrottleTicks) {
       return; // Not yet time for next publish
     }
 
-    // Vehicle is idle and threshold exceeded: reuse existing idle target while idle, create if absent
+    // Vehicle is idle and threshold exceeded: reuse existing idle target while idle, create if
+    // absent
     if (simulationX == null || simulationY == null) {
       return;
     }
@@ -774,7 +777,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     updateVehiclePositionSnapshot(target.getX(), target.getY(), currentSimulationTick);
 
     // Ensure collector can consume idle target at least once per idle period
-    pendingIdleTravelTarget.compareAndSet(null, new Position(target.getX(), target.getY(), currentSimulationTick));
+    pendingIdleTravelTarget.compareAndSet(
+        null, new Position(target.getX(), target.getY(), currentSimulationTick));
 
     lastIdleTravelPublishTick = currentSimulationTick;
   }

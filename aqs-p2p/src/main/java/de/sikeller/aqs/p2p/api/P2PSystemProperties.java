@@ -32,8 +32,6 @@ public final class P2PSystemProperties {
   public static final String VEHICLE_ASSUMED_SPEED_MPS = "aqs.p2p.vehicle.assumedSpeedMps";
   public static final String VEHICLE_REOFFER_MIN_INTERVAL_TICKS =
       "aqs.p2p.vehicle.reofferMinIntervalTicks";
-  public static final String VEHICLE_REOFFER_MIN_ETA_IMPROVEMENT_SECONDS =
-      "aqs.p2p.vehicle.reofferMinEtaImprovementSeconds";
   public static final String VEHICLE_REOFFER_MOVE_DISTANCE_METERS =
       "aqs.p2p.vehicle.reofferMoveDistanceMeters";
   public static final String VEHICLE_REQUEST_CACHE_TTL_TICKS =
