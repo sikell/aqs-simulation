@@ -8,8 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default MessagePublisher implementation that uses the provided P2PNetwork
- * and an OverlaySelector to compute target peers.
+ * Default MessagePublisher implementation that uses the provided P2PNetwork and an OverlaySelector
+ * to compute target peers.
  */
 public class MessagePublisherImpl implements MessagePublisher {
   private static final Logger log = LoggerFactory.getLogger(MessagePublisherImpl.class);
@@ -17,7 +17,8 @@ public class MessagePublisherImpl implements MessagePublisher {
   private final P2PNetwork network;
   private final OverlaySelector overlaySelector;
 
-  public MessagePublisherImpl(NodeDescriptor descriptor, P2PNetwork network, OverlaySelector overlaySelector) {
+  public MessagePublisherImpl(
+      NodeDescriptor descriptor, P2PNetwork network, OverlaySelector overlaySelector) {
     this.descriptor = descriptor;
     this.network = network;
     this.overlaySelector = overlaySelector;
@@ -29,10 +30,23 @@ public class MessagePublisherImpl implements MessagePublisher {
   }
 
   @Override
-  public void publish(String topic, String payload, String requestId, String correlationId, Predicate<NodeDescriptor> targetFilter) {
-    P2PMessage msg = requestId == null ? P2PMessage.now(descriptor.id(), topic, payload)
-        : P2PMessage.now(descriptor.id(), topic, payload, requestId, correlationId == null ? "" : correlationId);
-    var peers = network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
+  public void publish(
+      String topic,
+      String payload,
+      String requestId,
+      String correlationId,
+      Predicate<NodeDescriptor> targetFilter) {
+    P2PMessage msg =
+        requestId == null
+            ? P2PMessage.now(descriptor.id(), topic, payload)
+            : P2PMessage.now(
+                descriptor.id(),
+                topic,
+                payload,
+                requestId,
+                correlationId == null ? "" : correlationId);
+    var peers =
+        network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
     final Set<String> overlayIds = computeOverlayIds(topic, peers);
     if (overlayIds == null || overlayIds.isEmpty()) {
       // fallback: no overlay filtering -> broadcast to all peers matching targetFilter
@@ -52,10 +66,17 @@ public class MessagePublisherImpl implements MessagePublisher {
   }
 
   @Override
-  public void sendTo(String targetNodeId, String topic, String payload, String requestId, String correlationId) {
-    P2PMessage msg = requestId == null ? P2PMessage.now(descriptor.id(), topic, payload)
-        : P2PMessage.now(descriptor.id(), topic, payload, requestId, correlationId == null ? "" : correlationId);
+  public void sendTo(
+      String targetNodeId, String topic, String payload, String requestId, String correlationId) {
+    P2PMessage msg =
+        requestId == null
+            ? P2PMessage.now(descriptor.id(), topic, payload)
+            : P2PMessage.now(
+                descriptor.id(),
+                topic,
+                payload,
+                requestId,
+                correlationId == null ? "" : correlationId);
     network.sendTo(targetNodeId, msg);
   }
 }
-

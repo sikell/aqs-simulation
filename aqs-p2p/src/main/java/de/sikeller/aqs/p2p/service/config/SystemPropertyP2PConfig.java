@@ -2,8 +2,9 @@ package de.sikeller.aqs.p2p.service.config;
 
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 
-/** System-property backed P2PConfig.
- * Centralises access to system properties used by the P2P runtime.
+/**
+ * System-property backed P2PConfig. Centralises access to system properties used by the P2P
+ * runtime.
  */
 public class SystemPropertyP2PConfig implements P2PConfig {
   @Override
@@ -32,7 +33,9 @@ public class SystemPropertyP2PConfig implements P2PConfig {
 
   @Override
   public String overlayShortcutStrategy() {
-    return System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg").trim().toLowerCase();
+    return System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg")
+        .trim()
+        .toLowerCase();
   }
 
   @Override
@@ -52,7 +55,8 @@ public class SystemPropertyP2PConfig implements P2PConfig {
 
   @Override
   public long positionRevisionThrottleTicks() {
-    String val = System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, "").trim();
+    String val =
+        System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, "").trim();
     if (val.isBlank()) return 5L;
     long parsed = parseLongOrDefault(val, 5L);
     return Math.max(1L, parsed);
@@ -60,7 +64,9 @@ public class SystemPropertyP2PConfig implements P2PConfig {
 
   @Override
   public int positionRevisionMinMoveMeters() {
-    String val = System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, "").trim();
+    String val =
+        System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, "")
+            .trim();
     if (val.isBlank()) return 50;
     int parsed = parseIntOrDefault(val, 50);
     return Math.max(0, parsed);

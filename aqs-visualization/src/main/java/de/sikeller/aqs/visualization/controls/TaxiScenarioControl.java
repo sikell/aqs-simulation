@@ -41,13 +41,13 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String MODE_LOCAL = "LOCAL";
   private static final String MODE_P2P_SIMULATED = "P2P-SIMULATED";
   private static final String MODE_P2P_LAN = "P2P-LAN";
-  private static final String P2P_VEHICLE_STRATEGY_PROPERTY = P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY;
+  private static final String P2P_VEHICLE_STRATEGY_PROPERTY =
+      P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY;
   private static final String P2P_VEHICLE_STRATEGY_CONFIG_KEY = "p2pVehicleDecisionStrategy";
   private static final String P2P_STRATEGY_NEAREST = "nearest";
   private static final String P2P_STRATEGY_GREEDY = "greedy";
   private static final String P2P_MULTICAST_GROUP_FIELD = "p2pMulticastGroup";
-  private static final Set<String> P2P_PORT_FIELDS =
-      Set.of("p2pTcpPort", "p2pDiscoveryPort");
+  private static final Set<String> P2P_PORT_FIELDS = Set.of("p2pTcpPort", "p2pDiscoveryPort");
   private static final Set<String> P2P_CORE_PARAMETERS =
       Set.of(
           "p2pFixedSearchRadius",
@@ -98,6 +98,11 @@ public class TaxiScenarioControl extends AbstractControl {
   private JComboBox<String> p2pShortcutStrategyBox;
   private JSpinner p2pShortcutKleinbergRSpinner;
   private JSpinner p2pShortcutNodeProbabilitySpinner;
+  // Idle vehicle random travel UI controls
+  private JCheckBox p2pIdleRandomTravelEnabledCheckBox;
+  private JSpinner p2pIdleThresholdSpinner;
+  private JSpinner p2pIdleCheckThrottleSpinner;
+  private JSpinner p2pRandomTravelMaxDistanceSpinner;
   private volatile boolean massRunInProgress;
   private boolean modeSwitchInProgress;
   private Consumer<Boolean> p2pModeUiListener = ignored -> {};
@@ -236,7 +241,8 @@ public class TaxiScenarioControl extends AbstractControl {
     modes.addItem(MODE_LOCAL);
     modes.addItem(MODE_P2P_SIMULATED);
     modes.addItem(MODE_P2P_LAN);
-    modes.setSelectedItem(isP2PAlgorithm(simulation.getAlgorithm().get()) ? MODE_P2P_SIMULATED : MODE_LOCAL);
+    modes.setSelectedItem(
+        isP2PAlgorithm(simulation.getAlgorithm().get()) ? MODE_P2P_SIMULATED : MODE_LOCAL);
     modes.addActionListener(
         e -> {
           generateParameters();
@@ -300,25 +306,6 @@ public class TaxiScenarioControl extends AbstractControl {
     panel.add(label("Last event", "p2pLastEventLabel"));
     p2pLastEventValue = new JLabel("-");
     panel.add(p2pLastEventValue);
-    // Position revision controls (throttle ticks and min move meters)
-    panel.add(label("Position revision throttle [ticks]", "p2pPosRevThrottleLabel"));
-    int defaultThrottle = Integer.parseInt(System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, "5"));
-    SpinnerModel throttleModel = new SpinnerNumberModel(defaultThrottle, 0, Integer.MAX_VALUE, 1);
-    p2pPositionRevisionThrottleSpinner = new JSpinner(throttleModel);
-    configureIntegerSpinner(p2pPositionRevisionThrottleSpinner);
-    p2pPositionRevisionThrottleSpinner.setName("p2pPositionRevisionThrottleTicks");
-    p2pPositionRevisionThrottleSpinner.setToolTipText("Throttle ticks before bumping vehicle position revision");
-    panel.add(p2pPositionRevisionThrottleSpinner);
-
-    panel.add(label("Position revision min move [m]", "p2pPosRevMinMoveLabel"));
-    int defaultMinMove = Integer.parseInt(System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, "50"));
-    SpinnerModel minMoveModel = new SpinnerNumberModel(defaultMinMove, 0, Integer.MAX_VALUE, 1);
-    p2pPositionRevisionMinMoveSpinner = new JSpinner(minMoveModel);
-    configureIntegerSpinner(p2pPositionRevisionMinMoveSpinner);
-    p2pPositionRevisionMinMoveSpinner.setName("p2pPositionRevisionMinMoveMeters");
-    p2pPositionRevisionMinMoveSpinner.setToolTipText("Minimum move in meters to bump position revision");
-    panel.add(p2pPositionRevisionMinMoveSpinner);
-
 
     return panel;
   }
@@ -462,12 +449,14 @@ public class TaxiScenarioControl extends AbstractControl {
       }
       if (p2pScanNowButton != null) {
         p2pScanNowButton.setVisible(p2pMode);
-        p2pScanNowButton.setEnabled(p2pMode && simulation.getAlgorithm().get() instanceof P2PStatusProvider);
+        p2pScanNowButton.setEnabled(
+            p2pMode && simulation.getAlgorithm().get() instanceof P2PStatusProvider);
       }
       if (p2pToggleCollectorButton != null) {
         p2pToggleCollectorButton.setEnabled(p2pMode);
       }
-      // Show algorithm parameters in every mode; P2P-specific fields are filtered in generateParameters().
+      // Show algorithm parameters in every mode; P2P-specific fields are filtered in
+      // generateParameters().
       algorithmInputs.setVisible(true);
 
       worldInputs.setBorder(
@@ -496,7 +485,9 @@ public class TaxiScenarioControl extends AbstractControl {
 
     if (!isAlgorithmAvailable(P2P_COLLECTOR_SIMPLE_NAME)) {
       p2pModeWarningLabel.setText(
-          "Warning: " + P2P_COLLECTOR_SIMPLE_NAME + " was not found. P2P mode falls back to the current algorithm.");
+          "Warning: "
+              + P2P_COLLECTOR_SIMPLE_NAME
+              + " was not found. P2P mode falls back to the current algorithm.");
       p2pModeWarningLabel.setToolTipText(
           "Check reflections scanning and module/classpath wiring for aqs-taxi-algorithm.");
       p2pModeWarningLabel.setVisible(true);
@@ -508,7 +499,9 @@ public class TaxiScenarioControl extends AbstractControl {
         current != null && P2P_COLLECTOR_SIMPLE_NAME.equals(current.getClass().getSimpleName());
     if (!collectorActive) {
       p2pModeWarningLabel.setText(
-          "Warning: P2P mode is active, but the selected algorithm is not " + P2P_COLLECTOR_SIMPLE_NAME + ".");
+          "Warning: P2P mode is active, but the selected algorithm is not "
+              + P2P_COLLECTOR_SIMPLE_NAME
+              + ".");
       p2pModeWarningLabel.setToolTipText(
           "Select the P2P collector algorithm or switch back to LOCAL mode.");
       p2pModeWarningLabel.setVisible(true);
@@ -643,7 +636,8 @@ public class TaxiScenarioControl extends AbstractControl {
       if (node == null || node.id() == null) {
         continue;
       }
-      roleByNodeId.put(node.id(), node.role() == null ? "" : node.role().trim().toUpperCase(Locale.ROOT));
+      roleByNodeId.put(
+          node.id(), node.role() == null ? "" : node.role().trim().toUpperCase(Locale.ROOT));
     }
 
     int vehicleEdges = 0;
@@ -692,10 +686,13 @@ public class TaxiScenarioControl extends AbstractControl {
       }
     }
     if (selectedAlgorithm.isEmpty()) {
-      log.warn("Could not force algorithm selection: {} not found in algorithm list.", simpleClassName);
+      log.warn(
+          "Could not force algorithm selection: {} not found in algorithm list.", simpleClassName);
       return false;
     }
-    simulation.getAlgorithm().setAlgorithm(instantiateAlgorithm(selectedAlgorithm, algorithmParameterMap));
+    simulation
+        .getAlgorithm()
+        .setAlgorithm(instantiateAlgorithm(selectedAlgorithm, algorithmParameterMap));
 
     JComboBox<String> algorithmBox =
         getComponentByName("algorithmSelectionBox") instanceof JComboBox<?> combo
@@ -749,7 +746,9 @@ public class TaxiScenarioControl extends AbstractControl {
             JComboBox<String> modeBox = (JComboBox<String>) getComponentByName("simulationModeBox");
             if (modeBox != null) {
               modeBox.setSelectedItem(
-                  isP2PAlgorithm(simulation.getAlgorithm().get()) ? MODE_P2P_SIMULATED : MODE_LOCAL);
+                  isP2PAlgorithm(simulation.getAlgorithm().get())
+                      ? MODE_P2P_SIMULATED
+                      : MODE_LOCAL);
             }
           }
           generateParameters();
@@ -1092,48 +1091,51 @@ public class TaxiScenarioControl extends AbstractControl {
       throws Exception {
     MassRunIterationResult result =
         runOnEdt(
-        () -> {
-          selectAlgorithmForMassRun(algorithmSimpleName);
-          setSpinnerValueIfPresent("worldSeed", seed);
-          setSpinnerValueIfPresent("taxiCount", taxiCount);
-          setSpinnerValueIfPresent("clientCount", clientCount);
-          setSpinnerValueIfPresent("clientSpawnWindow", config.clientSpawnWindow());
-          setSpinnerValueIfPresent("clientSpeed", config.clientSpeed());
-          setSpinnerValueIfPresent("taxiSeatCount", taxiSeatCount);
-          setSpinnerValueIfPresent("taxiSpeed", config.taxiSpeed());
-          setComboIndexIfPresent("spawnScenario", de.sikeller.aqs.model.SpawnScenario.fromLabel(spawnScenario).ordinal());
-          String executedAlgorithm = simulation.getAlgorithm().get().getClass().getSimpleName();
-          String executedStrategy = "n/a";
-          int executedRqsRadius = -1;
-          int executedOverlayMinNeighbors = -1;
-          int executedOverlayMaxNeighbors = -1;
-          int executedOverlayShortcuts = -1;
-          if (isCollectorAlgorithmName(executedAlgorithm)) {
-            setSpinnerValueIfPresent("p2pRequestForwardHops", kHops);
-            setSpinnerValueIfPresent("p2pFixedSearchRadius", rqsRadius);
-            setSpinnerValueIfPresent("p2pOverlayMinNeighbors", overlayMinNeighbors);
-            setSpinnerValueIfPresent("p2pOverlayMaxNeighbors", overlayMaxNeighbors);
-            setSpinnerValueIfPresent("p2pOverlayShortcuts", overlayShortcuts);
-            // Mass-runs: keep topology scan ticks as configured to ensure proper protocol behavior.
-            executedRqsRadius = rqsRadius;
-            executedOverlayMinNeighbors = overlayMinNeighbors;
-            executedOverlayMaxNeighbors = overlayMaxNeighbors;
-            executedOverlayShortcuts = overlayShortcuts;
-            executedStrategy = applyP2PStrategyForMassRun(p2pStrategy);
-          }
-          simulation.setSpeed(config.simulationSpeed());
-          initializeSimulation();
-          simulation.start();
-          return new MassRunIterationResult(
-              null,
-              executedAlgorithm,
-              executedStrategy,
-              executedRqsRadius,
-              executedOverlayMinNeighbors,
-              executedOverlayMaxNeighbors,
-              executedOverlayShortcuts,
-              spawnScenario);
-        });
+            () -> {
+              selectAlgorithmForMassRun(algorithmSimpleName);
+              setSpinnerValueIfPresent("worldSeed", seed);
+              setSpinnerValueIfPresent("taxiCount", taxiCount);
+              setSpinnerValueIfPresent("clientCount", clientCount);
+              setSpinnerValueIfPresent("clientSpawnWindow", config.clientSpawnWindow());
+              setSpinnerValueIfPresent("clientSpeed", config.clientSpeed());
+              setSpinnerValueIfPresent("taxiSeatCount", taxiSeatCount);
+              setSpinnerValueIfPresent("taxiSpeed", config.taxiSpeed());
+              setComboIndexIfPresent(
+                  "spawnScenario",
+                  de.sikeller.aqs.model.SpawnScenario.fromLabel(spawnScenario).ordinal());
+              String executedAlgorithm = simulation.getAlgorithm().get().getClass().getSimpleName();
+              String executedStrategy = "n/a";
+              int executedRqsRadius = -1;
+              int executedOverlayMinNeighbors = -1;
+              int executedOverlayMaxNeighbors = -1;
+              int executedOverlayShortcuts = -1;
+              if (isCollectorAlgorithmName(executedAlgorithm)) {
+                setSpinnerValueIfPresent("p2pRequestForwardHops", kHops);
+                setSpinnerValueIfPresent("p2pFixedSearchRadius", rqsRadius);
+                setSpinnerValueIfPresent("p2pOverlayMinNeighbors", overlayMinNeighbors);
+                setSpinnerValueIfPresent("p2pOverlayMaxNeighbors", overlayMaxNeighbors);
+                setSpinnerValueIfPresent("p2pOverlayShortcuts", overlayShortcuts);
+                // Mass-runs: keep topology scan ticks as configured to ensure proper protocol
+                // behavior.
+                executedRqsRadius = rqsRadius;
+                executedOverlayMinNeighbors = overlayMinNeighbors;
+                executedOverlayMaxNeighbors = overlayMaxNeighbors;
+                executedOverlayShortcuts = overlayShortcuts;
+                executedStrategy = applyP2PStrategyForMassRun(p2pStrategy);
+              }
+              simulation.setSpeed(config.simulationSpeed());
+              initializeSimulation();
+              simulation.start();
+              return new MassRunIterationResult(
+                  null,
+                  executedAlgorithm,
+                  executedStrategy,
+                  executedRqsRadius,
+                  executedOverlayMinNeighbors,
+                  executedOverlayMaxNeighbors,
+                  executedOverlayShortcuts,
+                  spawnScenario);
+            });
 
     long timeoutMs = Math.max(1_000L, MASS_RUN_ITERATION_TIMEOUT_MS);
     long deadline = System.currentTimeMillis() + timeoutMs;
@@ -1178,7 +1180,9 @@ public class TaxiScenarioControl extends AbstractControl {
     // Prevent LOCAL algorithms from being overridden by P2P-mode collector forcing.
     setSimulationModeForMassRunAlgorithm(algorithmSimpleName);
     Class<?> algorithmClass = resolveAlgorithmClassBySimpleName(algorithmSimpleName);
-    simulation.getAlgorithm().setAlgorithm(instantiateAlgorithm(algorithmClass.getName(), algorithmParameterMap));
+    simulation
+        .getAlgorithm()
+        .setAlgorithm(instantiateAlgorithm(algorithmClass.getName(), algorithmParameterMap));
     generateParameters();
     applyModeToUi();
     updateP2PModeWarning(isP2PModeSelected());
@@ -1191,7 +1195,32 @@ public class TaxiScenarioControl extends AbstractControl {
         return algorithmClass;
       }
     }
-    throw new IllegalArgumentException("Unknown algorithm: " + algorithmSimpleName);
+    // Fallback: try to load common fully-qualified locations for taxi algorithms.
+    // This helps in environments where Reflections scanning didn't discover the class
+    // (classpath/module-classloader quirks). Try a few known packages before failing.
+    String[] fallbackPackages =
+        new String[] {
+          "de.sikeller.aqs.taxi.algorithm.collector",
+          "de.sikeller.aqs.taxi.algorithm",
+          "de.sikeller.aqs.taxi.algorithm.distributed",
+          "de.sikeller.aqs.taxi.algorithm.p2p"
+        };
+    for (String pkg : fallbackPackages) {
+      String fq = pkg + "." + algorithmSimpleName;
+      try {
+        return Class.forName(fq);
+      } catch (ClassNotFoundException ignored) {
+        // try next
+      }
+    }
+
+    // Nothing found - provide a clearer error including the available algorithm simple names
+    String available =
+        algorithmList == null
+            ? "[]"
+            : algorithmList.stream().map(Class::getSimpleName).sorted().toList().toString();
+    throw new IllegalArgumentException(
+        "Unknown algorithm: " + algorithmSimpleName + ". Available: " + available);
   }
 
   private void setSpinnerValueIfPresent(String name, int value) {
@@ -1265,7 +1294,8 @@ public class TaxiScenarioControl extends AbstractControl {
     if (!(component instanceof JComboBox<?> modeBox)) {
       return;
     }
-    String targetMode = isCollectorAlgorithmName(algorithmSimpleName) ? MODE_P2P_SIMULATED : MODE_LOCAL;
+    String targetMode =
+        isCollectorAlgorithmName(algorithmSimpleName) ? MODE_P2P_SIMULATED : MODE_LOCAL;
     modeBox.setSelectedItem(targetMode);
   }
 
@@ -1334,7 +1364,6 @@ public class TaxiScenarioControl extends AbstractControl {
       int executedOverlayMaxNeighbors,
       int executedOverlayShortcuts,
       String executedSpawnScenario) {}
-
 
   private void setControlsEnabledForMassRun(boolean enabled) {
     for (Component component : buttons.getComponents()) {
@@ -1646,8 +1675,9 @@ public class TaxiScenarioControl extends AbstractControl {
 
       // P2P-specific controls are only shown when a P2P mode is actually selected.
       // Fall back to algorithm-based detection if componentMap isn't ready yet (startup).
-      boolean inP2PMode = isP2PModeSelected()
-          || (componentMap == null && isP2PAlgorithm(simulation.getAlgorithm().get()));
+      boolean inP2PMode =
+          isP2PModeSelected()
+              || (componentMap == null && isP2PAlgorithm(simulation.getAlgorithm().get()));
 
       String selectedMode =
           getComponentByName("simulationModeBox") instanceof JComboBox<?> combo
@@ -1658,9 +1688,12 @@ public class TaxiScenarioControl extends AbstractControl {
       JPanel routingGroup = newGroupPanel("Request Routing");
       int routingRows = 0;
       if (inP2PMode)
-        routingRows += addStandardParamRowIfPresent("p2pRequestForwardHops", paramByName, routingGroup);
-      routingRows += addStandardParamRowIfPresent("p2pFixedSearchRadius", paramByName, routingGroup);
-      routingRows += addStandardParamRowIfPresent("p2pRequestRepublishTicks", paramByName, routingGroup);
+        routingRows +=
+            addStandardParamRowIfPresent("p2pRequestForwardHops", paramByName, routingGroup);
+      routingRows +=
+          addStandardParamRowIfPresent("p2pFixedSearchRadius", paramByName, routingGroup);
+      routingRows +=
+          addStandardParamRowIfPresent("p2pRequestRepublishTicks", paramByName, routingGroup);
       if (routingRows > 0) {
         routingGroup.setLayout(new GridLayout(routingRows, 2, GAP, GAP));
         algorithmInputs.add(routingGroup, fullWidthGbc());
@@ -1682,11 +1715,16 @@ public class TaxiScenarioControl extends AbstractControl {
       // === Group 3: Overlay Topology ===
       JPanel topologyGroup = newGroupPanel("Overlay Topology");
       int topologyRows = 0;
-      topologyRows += addStandardParamRowIfPresent("p2pOverlayMinNeighbors", paramByName, topologyGroup);
-      topologyRows += addStandardParamRowIfPresent("p2pOverlayMaxNeighbors", paramByName, topologyGroup);
-      topologyRows += addStandardParamRowIfPresent("p2pOverlayMaxDistanceFactor", paramByName, topologyGroup);
-      topologyRows += addStandardParamRowIfPresent("p2pOverlayShortcuts", paramByName, topologyGroup);
-      topologyRows += addStandardParamRowIfPresent("p2pTopologyScanTicks", paramByName, topologyGroup);
+      topologyRows +=
+          addStandardParamRowIfPresent("p2pOverlayMinNeighbors", paramByName, topologyGroup);
+      topologyRows +=
+          addStandardParamRowIfPresent("p2pOverlayMaxNeighbors", paramByName, topologyGroup);
+      topologyRows +=
+          addStandardParamRowIfPresent("p2pOverlayMaxDistanceFactor", paramByName, topologyGroup);
+      topologyRows +=
+          addStandardParamRowIfPresent("p2pOverlayShortcuts", paramByName, topologyGroup);
+      topologyRows +=
+          addStandardParamRowIfPresent("p2pTopologyScanTicks", paramByName, topologyGroup);
       if (topologyRows > 0) {
         topologyGroup.setLayout(new GridLayout(topologyRows, 2, GAP, GAP));
         algorithmInputs.add(topologyGroup, fullWidthGbc());
@@ -1704,7 +1742,10 @@ public class TaxiScenarioControl extends AbstractControl {
         shortcutStrategyBox.setName("p2pOverlayShortcutStrategy");
         shortcutStrategyBox.addItem("kleinberg");
         shortcutStrategyBox.addItem("ring");
-        String configuredStrategy = System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg").trim().toLowerCase(Locale.ROOT);
+        String configuredStrategy =
+            System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg")
+                .trim()
+                .toLowerCase(Locale.ROOT);
         shortcutStrategyBox.setSelectedItem(configuredStrategy);
         shortcutStrategyBox.setToolTipText("Shortcut selection strategy (kleinberg|ring)");
         shortcutGroup.add(shortcutStrategyBox);
@@ -1714,7 +1755,11 @@ public class TaxiScenarioControl extends AbstractControl {
         JLabel rLabel = new JLabel("Kleinberg exponent r");
         rLabel.setName("p2pOverlayKleinbergRLabel");
         shortcutGroup.add(rLabel);
-        double defaultR = Math.max(0.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0")));
+        double defaultR =
+            Math.max(
+                0.0,
+                Double.parseDouble(
+                    System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0")));
         JSpinner rSpinner = new JSpinner(new SpinnerNumberModel(defaultR, 0.0, 10.0, 0.1));
         rSpinner.setEditor(new JSpinner.NumberEditor(rSpinner, "0.0"));
         rSpinner.setName("p2pOverlayKleinbergR");
@@ -1726,11 +1771,20 @@ public class TaxiScenarioControl extends AbstractControl {
         JLabel nodeProbLabel = new JLabel("Shortcut node probability");
         nodeProbLabel.setName("p2pOverlayShortcutNodeProbabilityLabel");
         shortcutGroup.add(nodeProbLabel);
-        double defaultNodeProb = Math.max(0.0, Math.min(1.0, Double.parseDouble(System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "0.2"))));
-        JSpinner nodeProbSpinner = new JSpinner(new SpinnerNumberModel(defaultNodeProb, 0.0, 1.0, 0.01));
+        double defaultNodeProb =
+            Math.max(
+                0.0,
+                Math.min(
+                    1.0,
+                    Double.parseDouble(
+                        System.getProperty(
+                            P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "0.2"))));
+        JSpinner nodeProbSpinner =
+            new JSpinner(new SpinnerNumberModel(defaultNodeProb, 0.0, 1.0, 0.01));
         nodeProbSpinner.setEditor(new JSpinner.NumberEditor(nodeProbSpinner, "0.00"));
         nodeProbSpinner.setName("p2pOverlayShortcutNodeProbability");
-        nodeProbSpinner.setToolTipText("Fraction of nodes that create Kleinberg shortcuts (0.0-1.0)");
+        nodeProbSpinner.setToolTipText(
+            "Fraction of nodes that create Kleinberg shortcuts (0.0-1.0)");
         shortcutGroup.add(nodeProbSpinner);
         p2pShortcutNodeProbabilitySpinner = nodeProbSpinner;
         shortcutRows++;
@@ -1738,17 +1792,33 @@ public class TaxiScenarioControl extends AbstractControl {
         shortcutGroup.setLayout(new GridLayout(shortcutRows, 2, GAP, GAP));
         algorithmInputs.add(shortcutGroup, fullWidthGbc());
 
-        shortcutStrategyBox.addActionListener(e -> {
-          Object sel = shortcutStrategyBox.getSelectedItem();
-          p2pShortcutKleinbergRSpinner.setEnabled(sel != null && "kleinberg".equalsIgnoreCase(sel.toString()));
-          System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, Objects.toString(sel, "kleinberg"));
-          System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) p2pShortcutKleinbergRSpinner.getValue()).doubleValue()));
-        });
-        rSpinner.addChangeListener(e -> System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) rSpinner.getValue()).doubleValue())));
-        nodeProbSpinner.addChangeListener(e -> {
-          Object v = nodeProbSpinner.getValue();
-          System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, String.valueOf((v instanceof Number n) ? n.doubleValue() : Double.parseDouble(String.valueOf(v))));
-        });
+        shortcutStrategyBox.addActionListener(
+            e -> {
+              Object sel = shortcutStrategyBox.getSelectedItem();
+              p2pShortcutKleinbergRSpinner.setEnabled(
+                  sel != null && "kleinberg".equalsIgnoreCase(sel.toString()));
+              System.setProperty(
+                  P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY,
+                  Objects.toString(sel, "kleinberg"));
+              System.setProperty(
+                  P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R,
+                  String.valueOf(((Number) p2pShortcutKleinbergRSpinner.getValue()).doubleValue()));
+            });
+        rSpinner.addChangeListener(
+            e ->
+                System.setProperty(
+                    P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R,
+                    String.valueOf(((Number) rSpinner.getValue()).doubleValue())));
+        nodeProbSpinner.addChangeListener(
+            e -> {
+              Object v = nodeProbSpinner.getValue();
+              System.setProperty(
+                  P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY,
+                  String.valueOf(
+                      (v instanceof Number n)
+                          ? n.doubleValue()
+                          : Double.parseDouble(String.valueOf(v))));
+            });
         p2pShortcutKleinbergRSpinner.setEnabled("kleinberg".equalsIgnoreCase(configuredStrategy));
       }
 
@@ -1756,7 +1826,8 @@ public class TaxiScenarioControl extends AbstractControl {
       if (MODE_P2P_LAN.equals(selectedMode)) {
         JPanel networkGroup = newGroupPanel("Network (LAN)");
         int networkRows = 0;
-        networkRows += addStandardParamRowIfPresent("p2pDiscoveryWaitMs", paramByName, networkGroup);
+        networkRows +=
+            addStandardParamRowIfPresent("p2pDiscoveryWaitMs", paramByName, networkGroup);
         networkRows += addPortParamRowIfPresent("p2pTcpPort", paramByName, networkGroup);
         networkRows += addPortParamRowIfPresent("p2pDiscoveryPort", paramByName, networkGroup);
         if (paramByName.containsKey("p2pMulticastA")) {
@@ -1779,10 +1850,157 @@ public class TaxiScenarioControl extends AbstractControl {
         }
       }
 
-      // === Remaining parameters not in any named group ===
+      // === Group 6: Vehicle Position Revision ===
+      JPanel positionRevisionGroup = newGroupPanel("Vehicle Position Revision");
+      int posRevisionRows = 0;
+
+      JLabel posThrottleLabel = new JLabel("Position revision throttle [ticks]");
+      posThrottleLabel.setName("p2pPosRevThrottleLabel");
+      positionRevisionGroup.add(posThrottleLabel);
+      int defaultThrottle =
+          Integer.parseInt(
+              System.getProperty(
+                  P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, "5"));
+      SpinnerModel throttleModel = new SpinnerNumberModel(defaultThrottle, 0, Integer.MAX_VALUE, 1);
+      p2pPositionRevisionThrottleSpinner = new JSpinner(throttleModel);
+      configureIntegerSpinner(p2pPositionRevisionThrottleSpinner);
+      p2pPositionRevisionThrottleSpinner.setName("p2pPositionRevisionThrottleTicks");
+      p2pPositionRevisionThrottleSpinner.setToolTipText(
+          "Throttle ticks before bumping vehicle position revision");
+      p2pPositionRevisionThrottleSpinner.addChangeListener(
+          e ->
+              System.setProperty(
+                  P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS,
+                  String.valueOf(
+                      ((Number) p2pPositionRevisionThrottleSpinner.getValue()).longValue())));
+      positionRevisionGroup.add(p2pPositionRevisionThrottleSpinner);
+      posRevisionRows++;
+
+      JLabel posMinMoveLabel = new JLabel("Position revision min move [m]");
+      posMinMoveLabel.setName("p2pPosRevMinMoveLabel");
+      positionRevisionGroup.add(posMinMoveLabel);
+      int defaultMinMove =
+          Integer.parseInt(
+              System.getProperty(
+                  P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, "50"));
+      SpinnerModel minMoveModel = new SpinnerNumberModel(defaultMinMove, 0, Integer.MAX_VALUE, 1);
+      p2pPositionRevisionMinMoveSpinner = new JSpinner(minMoveModel);
+      configureIntegerSpinner(p2pPositionRevisionMinMoveSpinner);
+      p2pPositionRevisionMinMoveSpinner.setName("p2pPositionRevisionMinMoveMeters");
+      p2pPositionRevisionMinMoveSpinner.setToolTipText(
+          "Minimum move in meters to bump position revision");
+      p2pPositionRevisionMinMoveSpinner.addChangeListener(
+          e ->
+              System.setProperty(
+                  P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS,
+                  String.valueOf(
+                      ((Number) p2pPositionRevisionMinMoveSpinner.getValue()).intValue())));
+      positionRevisionGroup.add(p2pPositionRevisionMinMoveSpinner);
+      posRevisionRows++;
+
+      if (posRevisionRows > 0) {
+        positionRevisionGroup.setLayout(new GridLayout(posRevisionRows, 2, GAP, GAP));
+        algorithmInputs.add(positionRevisionGroup, fullWidthGbc());
+      }
+
+      // === Group 7: Idle Vehicle Random Travel ===
+      JPanel idleTravelGroup = newGroupPanel("Idle Vehicle Random Travel");
+      int idleTravelRows = 0;
+
+      JLabel idleEnabledLabel = new JLabel("Enabled");
+      idleEnabledLabel.setName("p2pIdleRandomTravelLabel");
+      idleTravelGroup.add(idleEnabledLabel);
+      p2pIdleRandomTravelEnabledCheckBox = new JCheckBox();
+      p2pIdleRandomTravelEnabledCheckBox.setName("p2pIdleRandomTravelEnabled");
+      p2pIdleRandomTravelEnabledCheckBox.setToolTipText(
+          "Enable idle vehicles to start traveling randomly");
+      // Default to enabled so UI and JVM assume idle-random-travel on when no property provided
+      boolean idleRandomTravelDefault =
+          Boolean.parseBoolean(
+              System.getProperty(P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED, "true"));
+      p2pIdleRandomTravelEnabledCheckBox.setSelected(idleRandomTravelDefault);
+      p2pIdleRandomTravelEnabledCheckBox.addActionListener(
+          e ->
+              System.setProperty(
+                  P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
+                  String.valueOf(p2pIdleRandomTravelEnabledCheckBox.isSelected())));
+      idleTravelGroup.add(p2pIdleRandomTravelEnabledCheckBox);
+      idleTravelRows++;
+
+      JLabel idleThresholdLabel = new JLabel("Idle threshold [ticks]");
+      idleThresholdLabel.setName("p2pIdleThresholdLabel");
+      idleTravelGroup.add(idleThresholdLabel);
+      long defaultIdleThreshold =
+          Long.getLong(P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, 60L);
+      SpinnerModel idleThresholdModel =
+          new SpinnerNumberModel(defaultIdleThreshold, 1L, Long.MAX_VALUE, 10L);
+      p2pIdleThresholdSpinner = new JSpinner(idleThresholdModel);
+      configureIntegerSpinner(p2pIdleThresholdSpinner);
+      p2pIdleThresholdSpinner.setName("p2pIdleThresholdTicks");
+      p2pIdleThresholdSpinner.setToolTipText("Ticks of idleness before random travel is triggered");
+      p2pIdleThresholdSpinner.addChangeListener(
+          e ->
+              System.setProperty(
+                  P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS,
+                  String.valueOf(((Number) p2pIdleThresholdSpinner.getValue()).longValue())));
+      idleTravelGroup.add(p2pIdleThresholdSpinner);
+      idleTravelRows++;
+
+      JLabel idleCheckThrottleLabel = new JLabel("Idle check throttle [ticks]");
+      idleCheckThrottleLabel.setName("p2pIdleCheckThrottleLabel");
+      idleTravelGroup.add(idleCheckThrottleLabel);
+      long defaultIdleCheckThrottle =
+          Long.getLong(P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS, 5L);
+      SpinnerModel idleCheckThrottleModel =
+          new SpinnerNumberModel(defaultIdleCheckThrottle, 1L, Long.MAX_VALUE, 1L);
+      p2pIdleCheckThrottleSpinner = new JSpinner(idleCheckThrottleModel);
+      configureIntegerSpinner(p2pIdleCheckThrottleSpinner);
+      p2pIdleCheckThrottleSpinner.setName("p2pIdleCheckThrottleTicks");
+      p2pIdleCheckThrottleSpinner.setToolTipText(
+          "Throttle idle checks to avoid performance overhead");
+      p2pIdleCheckThrottleSpinner.addChangeListener(
+          e ->
+              System.setProperty(
+                  P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS,
+                  String.valueOf(((Number) p2pIdleCheckThrottleSpinner.getValue()).longValue())));
+      idleTravelGroup.add(p2pIdleCheckThrottleSpinner);
+      idleTravelRows++;
+
+      JLabel randomDistanceLabel = new JLabel("Random travel max distance [m]");
+      randomDistanceLabel.setName("p2pRandomTravelMaxDistanceLabel");
+      idleTravelGroup.add(randomDistanceLabel);
+      int defaultRandomTravelMaxDistance =
+          Integer.getInteger(P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS, 20000);
+      SpinnerModel randomTravelMaxDistanceModel =
+          new SpinnerNumberModel(defaultRandomTravelMaxDistance, 1, Integer.MAX_VALUE, 100);
+      p2pRandomTravelMaxDistanceSpinner = new JSpinner(randomTravelMaxDistanceModel);
+      configureIntegerSpinner(p2pRandomTravelMaxDistanceSpinner);
+      p2pRandomTravelMaxDistanceSpinner.setName("p2pRandomTravelMaxDistanceMeters");
+      p2pRandomTravelMaxDistanceSpinner.setToolTipText(
+          "Maximum distance for random travel from current position (meters)");
+      p2pRandomTravelMaxDistanceSpinner.addChangeListener(
+          e ->
+              System.setProperty(
+                  P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
+                  String.valueOf(
+                      ((Number) p2pRandomTravelMaxDistanceSpinner.getValue()).intValue())));
+      idleTravelGroup.add(p2pRandomTravelMaxDistanceSpinner);
+      idleTravelRows++;
+
+      if (idleTravelRows > 0) {
+        idleTravelGroup.setLayout(new GridLayout(idleTravelRows, 2, GAP, GAP));
+        algorithmInputs.add(idleTravelGroup, fullWidthGbc());
+      }
+
+      // === Group 8: Remaining parameters not in any named group ===
       Set<String> alreadyRendered = new HashSet<>(P2P_PARAMETER_DISPLAY_ORDER);
-      alreadyRendered.addAll(Set.of("p2pOverlayMaxDistanceFactor",
-          "p2pMulticastB", "p2pMulticastC", "p2pMulticastD", "p2pEmbeddedSimulation"));
+      alreadyRendered.addAll(
+          Set.of(
+              "p2pOverlayMaxDistanceFactor",
+              "p2pMulticastB",
+              "p2pMulticastC",
+              "p2pMulticastD",
+              "p2pEmbeddedSimulation"));
       JPanel otherGroup = newGroupPanel("Other");
       int otherRows = 0;
       for (AlgorithmParameter parameter : parameters) {
@@ -1836,8 +2054,8 @@ public class TaxiScenarioControl extends AbstractControl {
   }
 
   /**
-   * GridBagConstraints for a group panel that fills the full width of algorithmInputs.
-   * Each call creates a new instance (GBC is mutable).
+   * GridBagConstraints for a group panel that fills the full width of algorithmInputs. Each call
+   * creates a new instance (GBC is mutable).
    */
   private GridBagConstraints fullWidthGbc() {
     GridBagConstraints gbc = new GridBagConstraints();
@@ -1859,14 +2077,15 @@ public class TaxiScenarioControl extends AbstractControl {
   }
 
   /**
-   * Visits every component in {@code algorithmInputs} and its sub-panels depth-first,
-   * passing each to {@code visitor}. Used by initializeSimulation, copy/paste etc.
+   * Visits every component in {@code algorithmInputs} and its sub-panels depth-first, passing each
+   * to {@code visitor}. Used by initializeSimulation, copy/paste etc.
    */
   private void forEachAlgorithmComponent(java.util.function.Consumer<Component> visitor) {
     forEachComponent(algorithmInputs, visitor);
   }
 
-  private void forEachComponent(Container container, java.util.function.Consumer<Component> visitor) {
+  private void forEachComponent(
+      Container container, java.util.function.Consumer<Component> visitor) {
     for (Component comp : container.getComponents()) {
       visitor.accept(comp);
       if (comp instanceof Container child) {
@@ -1971,7 +2190,10 @@ public class TaxiScenarioControl extends AbstractControl {
         }
         if (component instanceof JSpinner spinner) {
           Object val = spinner.getValue();
-          int intVal = (val instanceof Number number) ? number.intValue() : Integer.parseInt(String.valueOf(val));
+          int intVal =
+              (val instanceof Number number)
+                  ? number.intValue()
+                  : Integer.parseInt(String.valueOf(val));
           allParameterMap.put(spinner.getName(), intVal);
         }
         if (component instanceof JComboBox<?> combo && combo.getName() != null) {
@@ -1979,31 +2201,35 @@ public class TaxiScenarioControl extends AbstractControl {
         }
       }
 
-      forEachAlgorithmComponent(component -> {
-        if (component instanceof JSpinner spinner) {
-          Object val = spinner.getValue();
-          int intVal = (val instanceof Number number) ? number.intValue() : Integer.parseInt(String.valueOf(val));
-          allParameterMap.put(spinner.getName(), intVal);
-          algorithmParameterMap.put(spinner.getName(), intVal);
-        }
-        if (component instanceof JTextField textField && isP2PPortField(textField.getName())) {
-          int port = parsePort(textField.getName(), textField.getText());
-          allParameterMap.put(textField.getName(), port);
-          algorithmParameterMap.put(textField.getName(), port);
-        }
-        if (component instanceof JTextField textField
-            && P2P_MULTICAST_GROUP_FIELD.equals(textField.getName())) {
-          int[] octets = parseMulticastGroup(textField.getText());
-          allParameterMap.put("p2pMulticastA", octets[0]);
-          allParameterMap.put("p2pMulticastB", octets[1]);
-          allParameterMap.put("p2pMulticastC", octets[2]);
-          allParameterMap.put("p2pMulticastD", octets[3]);
-          algorithmParameterMap.put("p2pMulticastA", octets[0]);
-          algorithmParameterMap.put("p2pMulticastB", octets[1]);
-          algorithmParameterMap.put("p2pMulticastC", octets[2]);
-          algorithmParameterMap.put("p2pMulticastD", octets[3]);
-        }
-      });
+      forEachAlgorithmComponent(
+          component -> {
+            if (component instanceof JSpinner spinner) {
+              Object val = spinner.getValue();
+              int intVal =
+                  (val instanceof Number number)
+                      ? number.intValue()
+                      : Integer.parseInt(String.valueOf(val));
+              allParameterMap.put(spinner.getName(), intVal);
+              algorithmParameterMap.put(spinner.getName(), intVal);
+            }
+            if (component instanceof JTextField textField && isP2PPortField(textField.getName())) {
+              int port = parsePort(textField.getName(), textField.getText());
+              allParameterMap.put(textField.getName(), port);
+              algorithmParameterMap.put(textField.getName(), port);
+            }
+            if (component instanceof JTextField textField
+                && P2P_MULTICAST_GROUP_FIELD.equals(textField.getName())) {
+              int[] octets = parseMulticastGroup(textField.getText());
+              allParameterMap.put("p2pMulticastA", octets[0]);
+              allParameterMap.put("p2pMulticastB", octets[1]);
+              allParameterMap.put("p2pMulticastC", octets[2]);
+              allParameterMap.put("p2pMulticastD", octets[3]);
+              algorithmParameterMap.put("p2pMulticastA", octets[0]);
+              algorithmParameterMap.put("p2pMulticastB", octets[1]);
+              algorithmParameterMap.put("p2pMulticastC", octets[2]);
+              algorithmParameterMap.put("p2pMulticastD", octets[3]);
+            }
+          });
 
       if (isP2PModeSelected()) {
         String selectedMode =
@@ -2019,29 +2245,77 @@ public class TaxiScenarioControl extends AbstractControl {
       // Apply UI-controlled P2P system properties for position revision throttling
       if (p2pPositionRevisionThrottleSpinner != null) {
         Object val = p2pPositionRevisionThrottleSpinner.getValue();
-        System.setProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, String.valueOf(((Number) val).longValue()));
+        System.setProperty(
+            P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS,
+            String.valueOf(((Number) val).longValue()));
       }
       if (p2pPositionRevisionMinMoveSpinner != null) {
         Object val = p2pPositionRevisionMinMoveSpinner.getValue();
-        System.setProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, String.valueOf(((Number) val).intValue()));
+        System.setProperty(
+            P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS,
+            String.valueOf(((Number) val).intValue()));
       }
       // Apply UI-controlled P2P overlay shortcut strategy and Kleinberg r
-        if (p2pShortcutStrategyBox != null) {
-         Object sel = p2pShortcutStrategyBox.getSelectedItem();
-          System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, Objects.toString(sel, "kleinberg"));
-       }
-       if (p2pShortcutKleinbergRSpinner != null) {
-         Object rval = p2pShortcutKleinbergRSpinner.getValue();
-         System.setProperty(
-              P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, String.valueOf(((Number) rval).doubleValue()));
-       }
-       if (p2pShortcutNodeProbabilitySpinner != null) {
-         Object nval = p2pShortcutNodeProbabilitySpinner.getValue();
-         double dval = (nval instanceof Number num) ? num.doubleValue() : Double.parseDouble(String.valueOf(nval));
-         System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, String.valueOf(Math.max(0.0, Math.min(1.0, dval))));
-       }
-      inputParameterMap.putAll(allParameterMap);
+      if (p2pShortcutStrategyBox != null) {
+        Object sel = p2pShortcutStrategyBox.getSelectedItem();
+        System.setProperty(
+            P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, Objects.toString(sel, "kleinberg"));
+      }
+      if (p2pShortcutKleinbergRSpinner != null) {
+        Object rval = p2pShortcutKleinbergRSpinner.getValue();
+        System.setProperty(
+            P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R,
+            String.valueOf(((Number) rval).doubleValue()));
+      }
+      if (p2pShortcutNodeProbabilitySpinner != null) {
+        Object nval = p2pShortcutNodeProbabilitySpinner.getValue();
+        double dval =
+            (nval instanceof Number num)
+                ? num.doubleValue()
+                : Double.parseDouble(String.valueOf(nval));
+        System.setProperty(
+            P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY,
+            String.valueOf(Math.max(0.0, Math.min(1.0, dval))));
+      }
 
+      // Apply UI-controlled idle vehicle random travel properties
+      if (p2pIdleRandomTravelEnabledCheckBox != null) {
+        System.setProperty(
+            P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
+            String.valueOf(p2pIdleRandomTravelEnabledCheckBox.isSelected()));
+      }
+      if (p2pIdleThresholdSpinner != null) {
+        Object val = p2pIdleThresholdSpinner.getValue();
+        System.setProperty(
+            P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS,
+            String.valueOf(((Number) val).longValue()));
+      }
+      if (p2pIdleCheckThrottleSpinner != null) {
+        Object val = p2pIdleCheckThrottleSpinner.getValue();
+        System.setProperty(
+            P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS,
+            String.valueOf(((Number) val).longValue()));
+      }
+      if (p2pRandomTravelMaxDistanceSpinner != null) {
+        Object val = p2pRandomTravelMaxDistanceSpinner.getValue();
+        System.setProperty(
+            P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
+            String.valueOf(((Number) val).intValue()));
+      }
+
+      if (p2pIdleRandomTravelEnabledCheckBox != null) {
+        int enabled = p2pIdleRandomTravelEnabledCheckBox.isSelected() ? 1 : 0;
+        allParameterMap.put("p2pIdleTravelEnabled", enabled);
+        algorithmParameterMap.put("p2pIdleTravelEnabled", enabled);
+      }
+      if (p2pIdleThresholdSpinner != null) {
+        Object v = p2pIdleThresholdSpinner.getValue();
+        int thresh = (int) Math.max(1L, ((Number) v).longValue());
+        allParameterMap.put("p2pIdleTravelThresholdTicks", thresh);
+        algorithmParameterMap.put("p2pIdleTravelThresholdTicks", thresh);
+      }
+
+      inputParameterMap.putAll(allParameterMap);
 
       Object ws = allParameterMap.getOrDefault("worldSeed", 0);
       System.setProperty("worldSeed", String.valueOf(ws));
@@ -2062,7 +2336,6 @@ public class TaxiScenarioControl extends AbstractControl {
     }
   }
 
-
   private void applySelectedP2PVehicleStrategy() {
     String selected =
         p2pVehicleStrategyBox != null
@@ -2075,7 +2348,6 @@ public class TaxiScenarioControl extends AbstractControl {
     String key = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     return P2P_STRATEGY_GREEDY.equals(key) ? P2P_STRATEGY_GREEDY : P2P_STRATEGY_NEAREST;
   }
-
 
   private boolean isP2PMulticastOctet(String parameterName) {
     return "p2pMulticastA".equals(parameterName)
@@ -2146,16 +2418,12 @@ public class TaxiScenarioControl extends AbstractControl {
           "Maximum primary overlay neighbors per node; minNeighbors is always respected. Shortcuts and pinned collector may exceed this cap.";
       case "p2pOverlayMaxDistanceFactor" ->
           "Maximum geo distance factor for neighbor selection (0 = unlimited).";
-      case "p2pOverlayShortcuts" ->
-          "Number of additional small-world shortcut links per node.";
-      case "p2pRequestForwardHops" ->
-          "TTL for flooding request forwarding in hops.";
+      case "p2pOverlayShortcuts" -> "Number of additional small-world shortcut links per node.";
+      case "p2pRequestForwardHops" -> "TTL for flooding request forwarding in hops.";
       case "p2pRequestRepublishTicks" ->
           "Minimum simulation ticks before an unaccepted client request is republished.";
-      case "p2pTopologyScanTicks" ->
-          "How many simulation ticks between automatic topology scans.";
-      case "p2pDiscoveryWaitMs" ->
-          "LAN mode only: waiting time for peer discovery during init.";
+      case "p2pTopologyScanTicks" -> "How many simulation ticks between automatic topology scans.";
+      case "p2pDiscoveryWaitMs" -> "LAN mode only: waiting time for peer discovery during init.";
       default -> isP2PPortField(parameterName) ? "Port (1-65535)" : parameterName;
     };
   }
@@ -2186,17 +2454,18 @@ public class TaxiScenarioControl extends AbstractControl {
     }
 
     // dynamic Algorithm Parameters (deep traversal for sub-panel/TitledBorder groups)
-    forEachAlgorithmComponent(comp -> {
-      if (comp instanceof JSpinner spinner && comp.getName() != null) {
-        props.setProperty(spinner.getName(), spinner.getValue().toString());
-      }
-      if (comp instanceof JTextField textField && comp.getName() != null) {
-        props.setProperty(textField.getName(), textField.getText());
-      }
-      if (comp instanceof JComboBox<?> combo && comp.getName() != null) {
-        props.setProperty(combo.getName(), Objects.toString(combo.getSelectedItem(), ""));
-      }
-    });
+    forEachAlgorithmComponent(
+        comp -> {
+          if (comp instanceof JSpinner spinner && comp.getName() != null) {
+            props.setProperty(spinner.getName(), spinner.getValue().toString());
+          }
+          if (comp instanceof JTextField textField && comp.getName() != null) {
+            props.setProperty(textField.getName(), textField.getText());
+          }
+          if (comp instanceof JComboBox<?> combo && comp.getName() != null) {
+            props.setProperty(combo.getName(), Objects.toString(combo.getSelectedItem(), ""));
+          }
+        });
 
     // Batch Processing Parameters
     for (Component comp : batchProcessing.getComponents()) {
@@ -2305,30 +2574,38 @@ public class TaxiScenarioControl extends AbstractControl {
           final String lookupName = effectiveName;
           final String lookupValue = valueStr;
           final boolean[] found = {false};
-          forEachAlgorithmComponent(compInAlgoPanel -> {
-            if (found[0]) return;
-            if (compInAlgoPanel instanceof JSpinner && lookupName.equals(compInAlgoPanel.getName())) {
-              ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
-              log.trace("Set ALGORITHM JSpinner '{}' to '{}'", lookupName, lookupValue);
-              found[0] = true;
-            } else if (compInAlgoPanel instanceof JTextField textField
-                && lookupName.equals(compInAlgoPanel.getName())) {
-              textField.setText(lookupValue);
-              found[0] = true;
-            } else if (compInAlgoPanel instanceof JComboBox<?> combo && lookupName.equals(compInAlgoPanel.getName())) {
-              try {
-                combo.setSelectedItem(lookupValue);
-                log.trace("Set ALGORITHM JComboBox '{}' to '{}'", lookupName, lookupValue);
-                found[0] = true;
-              } catch (Exception ex) {
-                log.warn("Could not set '{}' to '{}' for ALGORITHM combo '{}'", lookupValue, lookupName, ex.getMessage());
-              }
-            } else if (compInAlgoPanel instanceof JSlider && lookupName.equals(compInAlgoPanel.getName())) {
-              ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
-              log.trace("Set ALGORITHM JSlider '{}' to '{}'", lookupName, lookupValue);
-              found[0] = true;
-            }
-          });
+          forEachAlgorithmComponent(
+              compInAlgoPanel -> {
+                if (found[0]) return;
+                if (compInAlgoPanel instanceof JSpinner
+                    && lookupName.equals(compInAlgoPanel.getName())) {
+                  ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
+                  log.trace("Set ALGORITHM JSpinner '{}' to '{}'", lookupName, lookupValue);
+                  found[0] = true;
+                } else if (compInAlgoPanel instanceof JTextField textField
+                    && lookupName.equals(compInAlgoPanel.getName())) {
+                  textField.setText(lookupValue);
+                  found[0] = true;
+                } else if (compInAlgoPanel instanceof JComboBox<?> combo
+                    && lookupName.equals(compInAlgoPanel.getName())) {
+                  try {
+                    combo.setSelectedItem(lookupValue);
+                    log.trace("Set ALGORITHM JComboBox '{}' to '{}'", lookupName, lookupValue);
+                    found[0] = true;
+                  } catch (Exception ex) {
+                    log.warn(
+                        "Could not set '{}' to '{}' for ALGORITHM combo '{}'",
+                        lookupValue,
+                        lookupName,
+                        ex.getMessage());
+                  }
+                } else if (compInAlgoPanel instanceof JSlider
+                    && lookupName.equals(compInAlgoPanel.getName())) {
+                  ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
+                  log.trace("Set ALGORITHM JSlider '{}' to '{}'", lookupName, lookupValue);
+                  found[0] = true;
+                }
+              });
           valueSet = found[0];
         }
 
@@ -2459,7 +2736,9 @@ public class TaxiScenarioControl extends AbstractControl {
     private void setSnapshot(P2PNetworkSnapshot snapshot) {
       this.snapshot = snapshot == null ? P2PNetworkSnapshot.empty() : snapshot;
       Set<String> aliveIds =
-          this.snapshot.nodes().stream().map(P2PNetworkNodeSnapshot::id).collect(java.util.stream.Collectors.toSet());
+          this.snapshot.nodes().stream()
+              .map(P2PNetworkNodeSnapshot::id)
+              .collect(java.util.stream.Collectors.toSet());
       manualNodeOffsets.keySet().removeIf(id -> !aliveIds.contains(id));
       updateLegendToggleBounds();
       repaint();
@@ -2491,8 +2770,7 @@ public class TaxiScenarioControl extends AbstractControl {
 
     private Point panelCenter() {
       return new Point(
-          getWidth() / 2 + (int) Math.round(panX),
-          getHeight() / 2 + (int) Math.round(panY));
+          getWidth() / 2 + (int) Math.round(panX), getHeight() / 2 + (int) Math.round(panY));
     }
 
     private Point2D.Double toWorldOffset(Point point, Point center) {
@@ -2627,7 +2905,8 @@ public class TaxiScenarioControl extends AbstractControl {
       return snapshot != null && snapshot.nodes() != null && !snapshot.nodes().isEmpty();
     }
 
-    private void drawLegendAndCounts(Graphics2D g2, List<P2PNetworkNodeSnapshot> nodes, boolean drawLocal) {
+    private void drawLegendAndCounts(
+        Graphics2D g2, List<P2PNetworkNodeSnapshot> nodes, boolean drawLocal) {
       long vehicleCount = nodes.stream().filter(n -> "VEHICLE".equals(n.role())).count();
 
       int x = 12;
@@ -2640,7 +2919,8 @@ public class TaxiScenarioControl extends AbstractControl {
       if (drawLocal) {
         drawLegendEntry(g2, x, y, colorForRole("LOCAL", true), "Collector/local");
       }
-      drawLegendEntry(g2, x, y + (drawLocal ? 18 : 0), colorForRole("VEHICLE", false), "Vehicle peers");
+      drawLegendEntry(
+          g2, x, y + (drawLocal ? 18 : 0), colorForRole("VEHICLE", false), "Vehicle peers");
 
       g2.setColor(Color.DARK_GRAY);
       g2.drawString("Counts: VEHICLE=" + vehicleCount, x, y + 38);
@@ -2678,11 +2958,18 @@ public class TaxiScenarioControl extends AbstractControl {
           getHeight() - 12);
     }
 
-    private void drawEdge(Graphics2D g2, P2PNetworkEdgeSnapshot edge, int x1, int y1, int x2, int y2) {
+    private void drawEdge(
+        Graphics2D g2, P2PNetworkEdgeSnapshot edge, int x1, int y1, int x2, int y2) {
       Stroke previous = g2.getStroke();
       if (edge.shortcut()) {
         g2.setStroke(
-            new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 10f, new float[] {6f, 4f}, 0f));
+            new BasicStroke(
+                1.6f,
+                BasicStroke.CAP_ROUND,
+                BasicStroke.JOIN_ROUND,
+                10f,
+                new float[] {6f, 4f},
+                0f));
         g2.setColor(new Color(0, 220, 120));
       } else {
         g2.setStroke(new BasicStroke(1.2f));
@@ -2706,7 +2993,6 @@ public class TaxiScenarioControl extends AbstractControl {
       g2.setColor(Color.BLACK);
       String label = node.id();
       g2.drawString(label, x - 34, y + nodeRadius + 16);
-
     }
 
     private Color colorForRole(String role, boolean localNode) {

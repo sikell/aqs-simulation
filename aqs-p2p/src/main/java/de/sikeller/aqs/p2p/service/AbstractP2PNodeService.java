@@ -1,5 +1,6 @@
 package de.sikeller.aqs.p2p.service;
 
+import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.p2p.api.*;
 import de.sikeller.aqs.p2p.service.config.P2PConfig;
 import de.sikeller.aqs.p2p.service.config.SystemPropertyP2PConfig;
@@ -25,7 +26,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   // Cache expensive overlay selection results keyed by topic. The cache is keyed by
   // a revision value composed from vehiclePositionRevision and a checksum of current peers.
-  private final ConcurrentMap<String, CachedOverlay> overlaySelectionCache = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, CachedOverlay> overlaySelectionCache =
+      new ConcurrentHashMap<>();
 
   private final NodeDescriptor descriptor;
   private final P2PNetwork network;
@@ -44,7 +46,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   private P2PConfig configAdapter;
 
-  protected P2PConfig config() { return configAdapter; }
+  protected P2PConfig config() {
+    return configAdapter;
+  }
 
   protected AbstractP2PNodeService(NodeDescriptor descriptor, P2PNetwork network) {
     this.descriptor = descriptor;
@@ -54,10 +58,15 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       // create config first so dependent adapters can use it
       this.configAdapter = new SystemPropertyP2PConfig();
       this.positionManager = new PositionManagerImpl(this.configAdapter);
-      this.overlaySelector = new de.sikeller.aqs.p2p.service.overlay.OverlaySelectorImpl(descriptor, this.positionManager, this.configAdapter);
+      this.overlaySelector =
+          new de.sikeller.aqs.p2p.service.overlay.OverlaySelectorImpl(
+              descriptor, this.positionManager, this.configAdapter);
       this.messagePublisher = new MessagePublisherImpl(descriptor, network, this.overlaySelector);
     } catch (Throwable t) {
-      try { log.warn("Failed to initialise default P2P adapters", t); } catch (Throwable ignore) {}
+      try {
+        log.warn("Failed to initialise default P2P adapters", t);
+      } catch (Throwable ignore) {
+      }
     }
   }
 
@@ -109,7 +118,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     publishVehiclePosition(x, y, simulationTick);
   }
 
-  protected Map<String, int[]> vehiclePositionSnapshot() {
+  public Map<String, Position> vehiclePositionSnapshot() {
     // delegate to PositionManager (which applies TTL semantics)
     return positionManager.snapshot();
   }
@@ -138,11 +147,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   }
 
   protected void sendToMessage(
-      String targetNodeId,
-      String topic,
-      String payload,
-      String requestId,
-      String correlationId) {
+      String targetNodeId, String topic, String payload, String requestId, String correlationId) {
     messagePublisher.sendTo(targetNodeId, topic, payload, requestId, correlationId);
   }
 
@@ -151,9 +156,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return new ArrayList<>(inbox);
   }
 
-  /**
-   * Returns and clears the currently buffered inbox messages in arrival order.
-   */
+  /** Returns and clears the currently buffered inbox messages in arrival order. */
   public List<P2PMessage> drainInbox() {
     List<P2PMessage> drained = new ArrayList<>();
     P2PMessage next;
@@ -203,8 +206,10 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     Map<String, String> payload = new LinkedHashMap<>();
     payload.put(P2PPayloadKeys.ROLE, descriptor.role().name());
 
-    // overlaySelection cost can be expensive on cache miss: worst-case O(n_peers log n_peers) or dominated by distanceBoundOverlayPeers
-    OverlaySelection selection = overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE); // Worst-case O(n_peers log n_peers)
+    // overlaySelection cost can be expensive on cache miss: worst-case O(n_peers log n_peers) or
+    // dominated by distanceBoundOverlayPeers
+    OverlaySelection selection =
+        overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE); // Worst-case O(n_peers log n_peers)
 
     // Building neighbor string: sorting costs O(n_peers log n_peers)
     String neighbors =
@@ -216,7 +221,10 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     payload.put(P2PPayloadKeys.NEIGHBORS, neighbors);
 
     String shortcutNeighbors =
-        selection.shortcutPeerIds().stream().sorted().reduce((left, right) -> left + "," + right).orElse("");
+        selection.shortcutPeerIds().stream()
+            .sorted()
+            .reduce((left, right) -> left + "," + right)
+            .orElse("");
     payload.put(P2PPayloadKeys.SHORTCUT_NEIGHBORS, shortcutNeighbors);
 
     sendToMessage(
@@ -232,7 +240,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   private static final long OVERLAY_CACHE_TICK_BUCKET = 3L;
 
   private OverlaySelection overlaySelection(String topic) {
-    List<NodeDescriptor> peers = network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
+    List<NodeDescriptor> peers =
+        network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
     if (peers.isEmpty()) {
       return new OverlaySelection(List.of(), Set.of());
     }
@@ -257,7 +266,11 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     } catch (Throwable ex) {
       // Do NOT cache on exception – returning all peers as fallback would mask overlay bugs
       // and produce a spurious fully-connected topology view. Log and return empty instead.
-      log.warn("[P2P-OVERLAY] overlay selection failed for topic={} self={}: {}", topic, descriptor.id(), ex.toString());
+      log.warn(
+          "[P2P-OVERLAY] overlay selection failed for topic={} self={}: {}",
+          topic,
+          descriptor.id(),
+          ex.toString());
       return new OverlaySelection(List.of(), Set.of());
     }
   }
@@ -335,4 +348,3 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   protected abstract void onMessage(P2PMessage message);
 }
-

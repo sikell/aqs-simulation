@@ -2,6 +2,7 @@ package de.sikeller.aqs.p2p.service.position;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.p2p.service.config.P2PConfig;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -26,13 +27,13 @@ class PositionManagerTest {
     pm.updatePosition("v1", 0, 0, 10);
     pm.updatePosition("v2", 5, 5, 6);
     // maxTick should be 10
-    Map<String, int[]> snap = pm.snapshot();
+    Map<String, Position> snap = pm.snapshot();
     assertTrue(snap.containsKey("v1"));
     assertTrue(snap.containsKey("v2"));
 
     // advance tick beyond TTL for v2
     pm.updatePosition("v1", 0, 0, 20);
-    Map<String, int[]> snap2 = pm.snapshot();
+    Map<String, Position> snap2 = pm.snapshot();
     assertTrue(snap2.containsKey("v1"));
     // v2 tick 6 is now older than maxTick 20 by > TTL (14 > 5)
     assertFalse(snap2.containsKey("v2"));

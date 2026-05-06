@@ -1,8 +1,6 @@
 package de.sikeller.aqs.p2p.api;
 
-/**
- * Canonical topic names for the P2P ride and topology protocols.
- */
+/** Canonical topic names for the P2P ride and topology protocols. */
 public final class P2PTopics {
   private P2PTopics() {}
 
@@ -13,4 +11,3 @@ public final class P2PTopics {
   public static final String RIDE_ASSIGNED = "ride.assigned";
   public static final String VEHICLE_POSITION = "vehicle.position";
 }
-

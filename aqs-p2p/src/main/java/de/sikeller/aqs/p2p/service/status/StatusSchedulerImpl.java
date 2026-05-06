@@ -11,11 +11,13 @@ public class StatusSchedulerImpl implements StatusScheduler {
   @Override
   public void start(Runnable statusTask, long initialDelay, long period, TimeUnit unit) {
     stop();
-    scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-      Thread t = new Thread(r, "p2p-status");
-      t.setDaemon(true);
-      return t;
-    });
+    scheduler =
+        Executors.newSingleThreadScheduledExecutor(
+            r -> {
+              Thread t = new Thread(r, "p2p-status");
+              t.setDaemon(true);
+              return t;
+            });
     scheduler.scheduleAtFixedRate(statusTask, initialDelay, period, unit);
   }
 
@@ -27,6 +29,7 @@ public class StatusSchedulerImpl implements StatusScheduler {
   }
 
   @Override
-  public boolean isRunning() { return scheduler != null && !scheduler.isShutdown(); }
+  public boolean isRunning() {
+    return scheduler != null && !scheduler.isShutdown();
+  }
 }
-

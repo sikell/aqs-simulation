@@ -39,4 +39,3 @@ public final class KeyValuePayload {
     return joiner.toString();
   }
 }
-

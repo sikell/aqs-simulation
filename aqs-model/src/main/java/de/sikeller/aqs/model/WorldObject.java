@@ -220,6 +220,15 @@ public class WorldObject implements World {
     }
   }
 
+  @Override
+  public void setIdleTarget(Taxi taxi, Position target) {
+    if (target == null) {
+      return;
+    }
+    var taxiEntity = findTaxiEntity(taxi);
+    taxiEntity.setIdleTarget(clampToWorld(target));
+  }
+
   private TaxiEntity findTaxiEntity(Taxi taxi) {
     try {
       lock.readLock().lock();

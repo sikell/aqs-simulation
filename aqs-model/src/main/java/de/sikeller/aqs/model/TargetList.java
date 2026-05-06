@@ -71,6 +71,21 @@ public class TargetList {
     return new LinkedList<>(flattenedTargets);
   }
 
+  /**
+   * Set a single idle-travel waypoint directly, bypassing the Order/Client system.
+   * Only effective when there are no real client orders. The waypoint uses a null client,
+   * which the TaxiEntity handles gracefully (no boarding logic triggered).
+   * Called again each time a new idle target is generated to replace the old one.
+   */
+  public void setIdleTarget(Position target) {
+    if (!orders.isEmpty()) {
+      // Real client orders take priority – idle target is ignored
+      return;
+    }
+    flattenedTargets.clear();
+    flattenedTargets.add(new OrderNode(null, target));
+  }
+
   public boolean isEmpty() {
     return flattenedTargets.isEmpty();
   }

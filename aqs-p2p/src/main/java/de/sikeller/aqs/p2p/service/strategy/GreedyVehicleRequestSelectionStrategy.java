@@ -24,4 +24,3 @@ public class GreedyVehicleRequestSelectionStrategy implements VehicleRequestSele
     return candidates.stream().min(ORDER);
   }
 }
-

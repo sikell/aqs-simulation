@@ -39,7 +39,8 @@ public final class AliasSampler {
     double[] scaled = new double[m];
     for (int i = 0; i < m; i++) {
       scaled[i] = weights[i] * scale;
-      if (scaled[i] < 1.0) small.add(i); else large.add(i);
+      if (scaled[i] < 1.0) small.add(i);
+      else large.add(i);
     }
     while (!small.isEmpty() && !large.isEmpty()) {
       int less = small.removeLast();
@@ -47,7 +48,8 @@ public final class AliasSampler {
       prob[less] = scaled[less];
       alias[less] = more;
       scaled[more] = (scaled[more] + scaled[less]) - 1.0;
-      if (scaled[more] < 1.0) small.add(more); else large.add(more);
+      if (scaled[more] < 1.0) small.add(more);
+      else large.add(more);
     }
     while (!large.isEmpty()) prob[large.removeLast()] = 1.0;
     while (!small.isEmpty()) prob[small.removeLast()] = 1.0;
@@ -61,4 +63,3 @@ public final class AliasSampler {
     return (u < table.prob[k]) ? k : table.alias[k];
   }
 }
-

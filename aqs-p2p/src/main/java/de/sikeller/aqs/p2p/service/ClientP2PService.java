@@ -29,12 +29,8 @@ public class ClientP2PService extends AbstractP2PNodeService {
     return requestRide(from, to, node -> !node.id().equals(descriptor().id()), 0);
   }
 
-
   public String requestRide(
-      String from,
-      String to,
-      Predicate<NodeDescriptor> targetFilter,
-      int maxForwardHops) {
+      String from, String to, Predicate<NodeDescriptor> targetFilter, int maxForwardHops) {
     return requestRide(from, to, targetFilter, maxForwardHops, Map.of());
   }
 
@@ -63,14 +59,9 @@ public class ClientP2PService extends AbstractP2PNodeService {
           });
     }
     publishMessage(
-        P2PTopics.RIDE_REQUEST,
-        KeyValuePayload.write(payload),
-        requestId,
-        "",
-        targetFilter);
+        P2PTopics.RIDE_REQUEST, KeyValuePayload.write(payload), requestId, "", targetFilter);
     return requestId;
   }
-
 
   /**
    * Announces the winning vehicle for a committed ride request to all vehicle peers. Losers can
@@ -125,10 +116,6 @@ public class ClientP2PService extends AbstractP2PNodeService {
     }
 
     log.info(
-        "Client node {} received: {} -> {}",
-        descriptor().id(),
-        message.topic(),
-        message.payload());
+        "Client node {} received: {} -> {}", descriptor().id(), message.topic(), message.payload());
   }
 }
-

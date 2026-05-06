@@ -15,4 +15,3 @@ public final class P2PGeoUtils {
     return Math.max(1, (int) Math.round(distance / safeSpeed));
   }
 }
-

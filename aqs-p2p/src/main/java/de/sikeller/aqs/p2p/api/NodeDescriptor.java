@@ -17,4 +17,3 @@ public record NodeDescriptor(String id, NodeRole role) {
     }
   }
 }
-

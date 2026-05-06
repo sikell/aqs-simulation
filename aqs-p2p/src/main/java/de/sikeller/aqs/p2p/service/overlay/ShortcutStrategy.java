@@ -1,13 +1,11 @@
 package de.sikeller.aqs.p2p.service.overlay;
 
 import de.sikeller.aqs.p2p.api.NodeDescriptor;
+import de.sikeller.aqs.p2p.service.position.PositionManager;
 import java.util.List;
 import java.util.Set;
-import de.sikeller.aqs.p2p.service.position.PositionManager;
 
-/**
- * Strategy interface to select shortcut peers for the overlay.
- */
+/** Strategy interface to select shortcut peers for the overlay. */
 public interface ShortcutStrategy {
   List<NodeDescriptor> selectShortcuts(
       NodeDescriptor self,
@@ -17,4 +15,3 @@ public interface ShortcutStrategy {
       int limit,
       PositionManager positionManager);
 }
-

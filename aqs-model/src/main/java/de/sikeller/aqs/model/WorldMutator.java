@@ -31,4 +31,14 @@ public interface WorldMutator {
    * @param taxi to be cleared
    */
   void clearTaxi(Taxi taxi);
+
+  /**
+   * Set a temporary idle-travel target for an empty taxi so it moves in the world while waiting
+   * for requests. The target is automatically dropped when the taxi is assigned a real client.
+   * Has no effect if the taxi is not empty.
+   *
+   * @param taxi  the idle taxi to move
+   * @param target the destination position to travel toward
+   */
+  void setIdleTarget(Taxi taxi, Position target);
 }

@@ -13,8 +13,7 @@ public final class VehicleRequestSelectionStrategies {
               new GreedyVehicleRequestSelectionStrategy(),
               new NearestVehicleRequestSelectionStrategy())
           .collect(
-              Collectors.toUnmodifiableMap(
-                  s -> s.key().trim().toLowerCase(Locale.ROOT), s -> s));
+              Collectors.toUnmodifiableMap(s -> s.key().trim().toLowerCase(Locale.ROOT), s -> s));
 
   public static VehicleRequestSelectionStrategy resolve(String key) {
     if (key == null || key.isBlank()) {

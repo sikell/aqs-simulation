@@ -1,9 +1,6 @@
 package de.sikeller.aqs.p2p.api;
 
-
-/**
- * Lebenszyklus- und Publish-API fuer einen lokalen P2P-Knotenservice.
- */
+/** Lebenszyklus- und Publish-API fuer einen lokalen P2P-Knotenservice. */
 public interface P2PNodeService extends AutoCloseable {
   /** Liefert die statische Beschreibung dieses Knotens (ID/Rolle). */
   NodeDescriptor descriptor();
@@ -22,4 +19,3 @@ public interface P2PNodeService extends AutoCloseable {
     stop();
   }
 }
-

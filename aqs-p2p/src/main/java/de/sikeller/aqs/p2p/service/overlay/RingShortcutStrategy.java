@@ -7,9 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Deterministic ring-based shortcut strategy: evenly spaced offsets on the ring.
- */
+/** Deterministic ring-based shortcut strategy: evenly spaced offsets on the ring. */
 public class RingShortcutStrategy implements ShortcutStrategy {
   @Override
   public List<NodeDescriptor> selectShortcuts(
@@ -27,7 +25,8 @@ public class RingShortcutStrategy implements ShortcutStrategy {
     if (excludedPeerIds != null) usedIds.addAll(excludedPeerIds);
     List<NodeDescriptor> shortcuts = new ArrayList<>();
     for (int slot = 1; slot <= limit; slot++) {
-      int suggestedOffset = Math.max(1, (int) Math.round((double) slot * maxOffset / (limit + 1.0)));
+      int suggestedOffset =
+          Math.max(1, (int) Math.round((double) slot * maxOffset / (limit + 1.0)));
       for (int shift = 0; shift < maxOffset; shift++) {
         int offset = ((suggestedOffset - 1 + shift) % maxOffset) + 1;
         NodeDescriptor candidate = sortedPeers.get((startIndex + offset - 1) % maxOffset);
@@ -40,4 +39,3 @@ public class RingShortcutStrategy implements ShortcutStrategy {
     return shortcuts;
   }
 }
-

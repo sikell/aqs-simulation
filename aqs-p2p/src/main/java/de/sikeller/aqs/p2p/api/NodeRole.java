@@ -9,4 +9,3 @@ public enum NodeRole {
   /** Generischer/technischer Knoten ohne konkrete Client- oder Vehicle-Rolle. */
   NODE
 }
-

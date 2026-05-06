@@ -1,6 +1,7 @@
 package de.sikeller.aqs.taxi.algorithm.collector;
 
 import de.sikeller.aqs.model.Client;
+import de.sikeller.aqs.model.Taxi;
 import de.sikeller.aqs.model.World;
 import de.sikeller.aqs.p2p.api.NodeDescriptor;
 import de.sikeller.aqs.p2p.api.NodeRole;
@@ -20,8 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Low-risk extraction of request publication / retrigger logic from the collector.
- * This class holds no independent state; it operates on the shared {@link TaxiCollectorRuntimeState}.
+ * Low-risk extraction of request publication / retrigger logic from the collector. This class holds
+ * no independent state; it operates on the shared {@link TaxiCollectorRuntimeState}.
  */
 final class RequestCoordinator {
 
@@ -74,7 +75,8 @@ final class RequestCoordinator {
       }
 
       double searchRadius = resolveSearchRadius();
-      Set<String> seedVehicleNodeIds = resolveInitialSeedVehicleNodeIds(world, client, searchRadius);
+      Set<String> seedVehicleNodeIds =
+          resolveInitialSeedVehicleNodeIds(world, client, searchRadius);
       if (seedVehicleNodeIds.isEmpty()) {
         log.info(
             "[P2P-COLLECTOR] skipped publish client={} reason=no-seed-vehicles searchRadius={}",
@@ -82,15 +84,19 @@ final class RequestCoordinator {
             Math.round(searchRadius));
         continue;
       }
-      seedVehicleNodeIds.forEach(vehicleNodeId -> registerTaxiKnowledgeCallback.accept(vehicleNodeId, client.getName()));
-      Predicate<NodeDescriptor> effectiveFilter = node -> node.role() == NodeRole.VEHICLE && seedVehicleNodeIds.contains(node.id());
-      int requestForwardHops = Math.max(0, parametersSupplier.get().getOrDefault(KEY_P2P_REQUEST_FORWARD_HOPS, 2));
+      seedVehicleNodeIds.forEach(
+          vehicleNodeId -> registerTaxiKnowledgeCallback.accept(vehicleNodeId, client.getName()));
+      Predicate<NodeDescriptor> effectiveFilter =
+          node -> node.role() == NodeRole.VEHICLE && seedVehicleNodeIds.contains(node.id());
+      int requestForwardHops =
+          Math.max(0, parametersSupplier.get().getOrDefault(KEY_P2P_REQUEST_FORWARD_HOPS, 2));
 
       Map<String, String> extraPayload = new java.util.LinkedHashMap<>();
       extraPayload.put(P2PPayloadKeys.CLIENT_NAME, client.getName());
       extraPayload.put(P2PPayloadKeys.REQUEST_X, String.valueOf(client.getPosition().getX()));
       extraPayload.put(P2PPayloadKeys.REQUEST_Y, String.valueOf(client.getPosition().getY()));
-      extraPayload.put(P2PPayloadKeys.SEARCH_RADIUS, String.valueOf((int) Math.round(searchRadius)));
+      extraPayload.put(
+          P2PPayloadKeys.SEARCH_RADIUS, String.valueOf((int) Math.round(searchRadius)));
 
       String requestId =
           clientNode.requestRide(
@@ -98,7 +104,7 @@ final class RequestCoordinator {
               client.getTarget().toString(),
               effectiveFilter,
               requestForwardHops,
-                  extraPayload);
+              extraPayload);
       runtimeState.putPendingRequest(requestId, client.getName(), stepCounter);
       log.info(
           "[P2P-COLLECTOR] published requestId={} client={} scope=rqs-seeded searchRadius={} seededVehicles={} forwardHops={}",
@@ -113,9 +119,11 @@ final class RequestCoordinator {
 
   public void retriggerRequestsIfNeeded(Collection<Client> waitingClients) {
     long stepCounter = stepCounterSupplier.getAsLong();
-    int republishTicks = Math.max(1, parametersSupplier.get().getOrDefault(KEY_P2P_REQUEST_REPUBLISH_TICKS, 3));
+    int republishTicks =
+        Math.max(1, parametersSupplier.get().getOrDefault(KEY_P2P_REQUEST_REPUBLISH_TICKS, 3));
     for (Client client : waitingClients) {
-      TaxiCollectorRuntimeState.PendingRequest pending = runtimeState.pendingForClient(client.getName());
+      TaxiCollectorRuntimeState.PendingRequest pending =
+          runtimeState.pendingForClient(client.getName());
       if (pending == null || pending.isCommitted()) {
         continue;
       }
@@ -136,21 +144,24 @@ final class RequestCoordinator {
     return Math.max(1, parametersSupplier.get().getOrDefault(KEY_P2P_FIXED_SEARCH_RADIUS, 5000));
   }
 
-  private Set<String> resolveInitialSeedVehicleNodeIds(World world, Client client, double searchRadius) {
-    if (world == null || (parametersSupplier.get().getOrDefault(KEY_P2P_EMBEDDED, 1) == 1 && taxiNameToVehicleNodeId.isEmpty())) {
+  private Set<String> resolveInitialSeedVehicleNodeIds(
+      World world, Client client, double searchRadius) {
+    if (world == null
+        || (parametersSupplier.get().getOrDefault(KEY_P2P_EMBEDDED, 1) == 1
+            && taxiNameToVehicleNodeId.isEmpty())) {
       return Set.of();
     }
 
-    Set<de.sikeller.aqs.model.Taxi> taxisInRange =
-        rangeQuerySystem.findTaxisInRange(world, client.getPosition(), client.getTarget(), searchRadius);
+    Set<Taxi> taxisInRange =
+        rangeQuerySystem.findTaxisInRange(
+            world, client.getPosition(), client.getTarget(), searchRadius);
     if (taxisInRange.isEmpty()) {
       return Set.of();
     }
     return taxisInRange.stream()
-        .map(de.sikeller.aqs.model.Taxi::getName)
+        .map(Taxi::getName)
         .map(taxiNameToVehicleNodeId::get)
         .filter(s -> s != null && !s.isBlank())
         .collect(Collectors.toSet());
   }
 }
-

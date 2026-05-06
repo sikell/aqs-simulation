@@ -10,9 +10,9 @@ import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Advanced overlay selector ported from previous in-class implementation.
- * This implementation is self-contained and uses {@link PositionManager} and {@link P2PConfig}
- * for tunables and position snapshots.
+ * Advanced overlay selector ported from previous in-class implementation. This implementation is
+ * self-contained and uses {@link PositionManager} and {@link P2PConfig} for tunables and position
+ * snapshots.
  */
 @Slf4j
 public class OverlaySelectorImpl implements OverlaySelector {
@@ -21,15 +21,21 @@ public class OverlaySelectorImpl implements OverlaySelector {
   private final P2PConfig config;
   private final ShortcutStrategy shortcutStrategy;
 
-  public OverlaySelectorImpl(NodeDescriptor self, PositionManager positionManager, P2PConfig config) {
+  public OverlaySelectorImpl(
+      NodeDescriptor self, PositionManager positionManager, P2PConfig config) {
     this(self, positionManager, config, null);
   }
 
-  public OverlaySelectorImpl(NodeDescriptor self, PositionManager positionManager, P2PConfig config, ShortcutStrategy shortcutStrategy) {
+  public OverlaySelectorImpl(
+      NodeDescriptor self,
+      PositionManager positionManager,
+      P2PConfig config,
+      ShortcutStrategy shortcutStrategy) {
     this.self = Objects.requireNonNull(self);
     this.positionManager = Objects.requireNonNull(positionManager);
     this.config = Objects.requireNonNull(config);
-    this.shortcutStrategy = shortcutStrategy == null ? createDefaultShortcutStrategy() : shortcutStrategy;
+    this.shortcutStrategy =
+        shortcutStrategy == null ? createDefaultShortcutStrategy() : shortcutStrategy;
   }
 
   private ShortcutStrategy createDefaultShortcutStrategy() {
@@ -44,8 +50,12 @@ public class OverlaySelectorImpl implements OverlaySelector {
   public OverlaySelection select(String topic, List<NodeDescriptor> peers) {
     if (peers == null || peers.isEmpty()) return new OverlaySelection(List.of(), Set.of());
 
-    log.debug("OverlaySelector.select self={} topic={} peersIds={} peerCount={}", self.id(), topic,
-        peers.stream().map(NodeDescriptor::id).toList(), peers.size());
+    log.debug(
+        "OverlaySelector.select self={} topic={} peersIds={} peerCount={}",
+        self.id(),
+        topic,
+        peers.stream().map(NodeDescriptor::id).toList(),
+        peers.size());
 
     // Special-case: topology scan requests should reach all peers
     if (P2PTopics.TOPOLOGY_SCAN_REQUEST.equals(topic)) {
@@ -69,15 +79,24 @@ public class OverlaySelectorImpl implements OverlaySelector {
     double maxDistance = config.overlayMaxDistance();
 
     List<NodeDescriptor> routingPeers = resolveRoutingPeers(peers, topic);
-    log.debug("OverlaySelector.select routingPeersIds={}", routingPeers.stream().map(NodeDescriptor::id).toList());
-    boolean vehicleRelevant = self.role() == NodeRole.VEHICLE
-        && (P2PTopics.RIDE_REQUEST.equals(topic) || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic));
+    log.debug(
+        "OverlaySelector.select routingPeersIds={}",
+        routingPeers.stream().map(NodeDescriptor::id).toList());
+    boolean vehicleRelevant =
+        self.role() == NodeRole.VEHICLE
+            && (P2PTopics.RIDE_REQUEST.equals(topic)
+                || P2PTopics.TOPOLOGY_SCAN_RESPONSE.equals(topic));
 
     int maxNeighbors = config.overlayMaxNeighbors();
-    OverlaySelection smallWorld = distanceBoundOverlayPeers(routingPeers, minNeighbors, maxNeighbors, shortcuts, vehicleRelevant, maxDistance);
+    OverlaySelection smallWorld =
+        distanceBoundOverlayPeers(
+            routingPeers, minNeighbors, maxNeighbors, shortcuts, vehicleRelevant, maxDistance);
     List<NodeDescriptor> selected = smallWorld.peers();
-    OverlaySelection out = new OverlaySelection(includeCollectorPeers(selected, peers), smallWorld.shortcutPeerIds());
-    log.debug("OverlaySelector.select resultPeersIds={}", out.peers().stream().map(NodeDescriptor::id).toList());
+    OverlaySelection out =
+        new OverlaySelection(includeCollectorPeers(selected, peers), smallWorld.shortcutPeerIds());
+    log.debug(
+        "OverlaySelector.select resultPeersIds={}",
+        out.peers().stream().map(NodeDescriptor::id).toList());
     return out;
   }
 
@@ -88,13 +107,16 @@ public class OverlaySelectorImpl implements OverlaySelector {
     return peers;
   }
 
-  private List<NodeDescriptor> includeCollectorPeers(List<NodeDescriptor> selected, List<NodeDescriptor> allPeers) {
-    List<NodeDescriptor> collectorPeers = allPeers.stream().filter(peer -> isCollectorNodeId(peer.id())).toList();
+  private List<NodeDescriptor> includeCollectorPeers(
+      List<NodeDescriptor> selected, List<NodeDescriptor> allPeers) {
+    List<NodeDescriptor> collectorPeers =
+        allPeers.stream().filter(peer -> isCollectorNodeId(peer.id())).toList();
     if (collectorPeers.isEmpty()) return selected;
     Map<String, NodeDescriptor> byId = new LinkedHashMap<>();
     selected.forEach(peer -> byId.put(peer.id(), peer));
     collectorPeers.forEach(peer -> byId.put(peer.id(), peer));
-    return new ArrayList<>(byId.values()).stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
+    return new ArrayList<>(byId.values())
+        .stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
   }
 
   private boolean isCollectorNodeId(String nodeId) {
@@ -112,7 +134,8 @@ public class OverlaySelectorImpl implements OverlaySelector {
       boolean preferNearestVehicles,
       double maxDistance) {
     if (peers.isEmpty()) return new OverlaySelection(List.of(), Set.of());
-    List<NodeDescriptor> sortedPeers = peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
+    List<NodeDescriptor> sortedPeers =
+        peers.stream().sorted(Comparator.comparing(NodeDescriptor::id)).toList();
     int startIndex = insertionIndex(sortedPeers, self.id());
     List<NodeDescriptor> selected = new ArrayList<>();
     Set<String> selectedIds = new HashSet<>();
@@ -122,12 +145,21 @@ public class OverlaySelectorImpl implements OverlaySelector {
       // absolute-nearest vehicles (regardless of distance) so the overlay stays connected
       // when nodes are sparse. Set minNeighbors=0 in the UI to disable this fallback
       // and get a pure distance-based neighbourhood (recommended for geo-local small-world).
-      int limitInRange = Math.max(1, maxNeighbors);
-      List<NodeDescriptor> inRange = DistancePeerSelector.vehiclePeersWithinDistance(self, sortedPeers, positionManager, maxDistance, limitInRange, selectedIds);
+      // If maxNeighbors is left at its default (Integer.MAX_VALUE) treat it as "unspecified"
+      // and use minNeighbors as the effective in-range limit. This keeps behavior intuitive
+      // for tests and typical usage where only a small neighborhood is desired unless a
+      // specific max is configured.
+      int limitInRange =
+          (maxNeighbors == Integer.MAX_VALUE) ? Math.max(1, minNeighbors) : Math.max(1, maxNeighbors);
+      List<NodeDescriptor> inRange =
+          DistancePeerSelector.vehiclePeersWithinDistance(
+              self, sortedPeers, positionManager, maxDistance, limitInRange, selectedIds);
       selected.addAll(inRange);
       inRange.forEach(peer -> selectedIds.add(peer.id()));
       if (minNeighbors > 0 && selected.size() < minNeighbors) {
-        List<NodeDescriptor> nearestFallback = DistancePeerSelector.nearestVehiclePeers(self, sortedPeers, positionManager, minNeighbors - selected.size(), selectedIds);
+        List<NodeDescriptor> nearestFallback =
+            DistancePeerSelector.nearestVehiclePeers(
+                self, sortedPeers, positionManager, minNeighbors - selected.size(), selectedIds);
         selected.addAll(nearestFallback);
         nearestFallback.forEach(peer -> selectedIds.add(peer.id()));
       }
@@ -141,9 +173,14 @@ public class OverlaySelectorImpl implements OverlaySelector {
 
     int shortcutSlots = Math.max(0, shortcuts);
     if (shortcutSlots == 0) return new OverlaySelection(selected, Set.of());
-    List<NodeDescriptor> shortcutsByStableHash = shortcutStrategy.selectShortcuts(self, sortedPeers, startIndex, selectedIds, shortcutSlots, positionManager);
+    List<NodeDescriptor> shortcutsByStableHash =
+        shortcutStrategy.selectShortcuts(
+            self, sortedPeers, startIndex, selectedIds, shortcutSlots, positionManager);
     selected.addAll(shortcutsByStableHash);
-    Set<String> shortcutPeerIds = shortcutsByStableHash.stream().map(NodeDescriptor::id).collect(java.util.stream.Collectors.toSet());
+    Set<String> shortcutPeerIds =
+        shortcutsByStableHash.stream()
+            .map(NodeDescriptor::id)
+            .collect(java.util.stream.Collectors.toSet());
     return new OverlaySelection(selected, shortcutPeerIds);
   }
 
@@ -152,9 +189,9 @@ public class OverlaySelectorImpl implements OverlaySelector {
     int high = sortedPeers.size();
     while (low < high) {
       int mid = (low + high) >>> 1;
-      if (sortedPeers.get(mid).id().compareTo(selfId) < 0) low = mid + 1; else high = mid;
+      if (sortedPeers.get(mid).id().compareTo(selfId) < 0) low = mid + 1;
+      else high = mid;
     }
     return low;
   }
 }
-

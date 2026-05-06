@@ -6,8 +6,13 @@ import java.util.function.Predicate;
 public interface MessagePublisher {
   void publish(String topic, String payload);
 
-  void publish(String topic, String payload, String requestId, String correlationId, Predicate<de.sikeller.aqs.p2p.api.NodeDescriptor> targetFilter);
+  void publish(
+      String topic,
+      String payload,
+      String requestId,
+      String correlationId,
+      Predicate<de.sikeller.aqs.p2p.api.NodeDescriptor> targetFilter);
 
-  void sendTo(String targetNodeId, String topic, String payload, String requestId, String correlationId);
+  void sendTo(
+      String targetNodeId, String topic, String payload, String requestId, String correlationId);
 }
-

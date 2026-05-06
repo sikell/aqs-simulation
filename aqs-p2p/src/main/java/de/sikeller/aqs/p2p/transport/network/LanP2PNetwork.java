@@ -26,9 +26,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Minimales LAN-P2P-Netzwerk mit UDP-Multicast-Discovery und TCP-Nachrichtenkanal.
- */
+/** Minimales LAN-P2P-Netzwerk mit UDP-Multicast-Discovery und TCP-Nachrichtenkanal. */
 @Slf4j
 public class LanP2PNetwork implements P2PNetwork {
   private static final String DISCOVERY_TYPE_ANNOUNCE = "ANNOUNCE";
@@ -132,7 +130,8 @@ public class LanP2PNetwork implements P2PNetwork {
     try (Socket socket = new Socket()) {
       socket.connect(new InetSocketAddress(peer.address(), peer.tcpPort()), 1000);
       try (var writer =
-          new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8))) {
+          new BufferedWriter(
+              new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8))) {
         writer.write(P2PMessageWireCodec.encode(message));
         writer.newLine();
         writer.flush();
@@ -146,7 +145,8 @@ public class LanP2PNetwork implements P2PNetwork {
           peersById.size(),
           sent);
     } catch (IOException e) {
-      log.warn("Could not send message to {} at {}:{}", targetNodeId, peer.address(), peer.tcpPort());
+      log.warn(
+          "Could not send message to {} at {}:{}", targetNodeId, peer.address(), peer.tcpPort());
     }
   }
 
@@ -161,16 +161,15 @@ public class LanP2PNetwork implements P2PNetwork {
 
   @Override
   public Set<NodeDescriptor> peers() {
-    return peersById.values().stream().map(RemotePeer::node).collect(java.util.stream.Collectors.toSet());
+    return peersById.values().stream()
+        .map(RemotePeer::node)
+        .collect(java.util.stream.Collectors.toSet());
   }
 
   private void startDiscovery() {
     executor.submit(this::discoveryReceiveLoop);
     executor.scheduleAtFixedRate(
-        this::announceAndCleanup,
-        0,
-        announceIntervalMillis,
-        TimeUnit.MILLISECONDS);
+        this::announceAndCleanup, 0, announceIntervalMillis, TimeUnit.MILLISECONDS);
   }
 
   private void startTcpServer() {
@@ -204,8 +203,7 @@ public class LanP2PNetwork implements P2PNetwork {
   private void awaitTcpServerStartup() {
     try {
       if (!tcpServerStartupLatch.await(TCP_SERVER_START_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
-        throw new IllegalStateException(
-            "Timed out while starting TCP server on port " + tcpPort);
+        throw new IllegalStateException("Timed out while starting TCP server on port " + tcpPort);
       }
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -216,15 +214,15 @@ public class LanP2PNetwork implements P2PNetwork {
     IOException startupError = tcpServerStartupError.getAndSet(null);
     if (startupError != null) {
       throw new IllegalStateException(
-          "Could not start TCP server on port " + tcpPort,
-          startupError);
+          "Could not start TCP server on port " + tcpPort, startupError);
     }
   }
 
   private void handleIncomingConnection(Socket socket) {
     try (socket;
         var reader =
-            new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8))) {
+            new BufferedReader(
+                new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8))) {
       String line = reader.readLine();
       if (line == null || line.isBlank()) {
         return;
@@ -259,7 +257,8 @@ public class LanP2PNetwork implements P2PNetwork {
         socket.receive(packet);
 
         String payload =
-            new String(packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8);
+            new String(
+                packet.getData(), packet.getOffset(), packet.getLength(), StandardCharsets.UTF_8);
         handleDiscoveryPacket(payload, packet.getAddress());
       }
     } catch (SocketException e) {
@@ -297,7 +296,8 @@ public class LanP2PNetwork implements P2PNetwork {
 
       NodeDescriptor descriptor = new NodeDescriptor(nodeId, role);
       boolean known = peersById.containsKey(nodeId);
-      peersById.put(nodeId, new RemotePeer(descriptor, sourceAddress, peerPort, System.currentTimeMillis()));
+      peersById.put(
+          nodeId, new RemotePeer(descriptor, sourceAddress, peerPort, System.currentTimeMillis()));
       if (!known) {
         log.info(
             "[P2P-DISCOVERY] peer-found id={} role={} host={} tcpPort={} peers={}",
@@ -345,10 +345,7 @@ public class LanP2PNetwork implements P2PNetwork {
     try (MulticastSocket sender = new MulticastSocket()) {
       DatagramPacket packet =
           new DatagramPacket(
-              bytes,
-              bytes.length,
-              InetAddress.getByName(multicastGroup),
-              discoveryPort);
+              bytes, bytes.length, InetAddress.getByName(multicastGroup), discoveryPort);
       sender.send(packet);
     } catch (IOException e) {
       log.debug("Could not send discovery packet {}", type);
@@ -363,9 +360,6 @@ public class LanP2PNetwork implements P2PNetwork {
     return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
   }
 
-
   private record RemotePeer(
       NodeDescriptor node, InetAddress address, int tcpPort, long lastSeenMillis) {}
 }
-
-

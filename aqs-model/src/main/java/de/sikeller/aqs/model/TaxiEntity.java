@@ -141,6 +141,17 @@ class TaxiEntity implements Taxi {
     targets.planOrders(flattenFunction);
   }
 
+  /**
+   * Set an idle-travel waypoint. Only effective when the taxi is empty (no passengers or planned
+   * clients). The waypoint is automatically discarded when a real client order is added.
+   */
+  public void setIdleTarget(Position target) {
+    if (!isEmpty()) {
+      return;
+    }
+    targets.setIdleTarget(target);
+  }
+
   private OrderNode checkTargetReached(Position position) {
     if (!targets.isEmpty() && position.equals(getTarget())) {
       var target = targets.getAnRemoveFirst();
@@ -162,9 +173,10 @@ class TaxiEntity implements Taxi {
 
   private void checkClientEntering(OrderNode currentTarget, long currentTime) {
     if (currentTarget.getClient() == null) {
-      errorHandler.error("Taxi reached a target but client in order node is empty!");
+      // Idle-travel waypoint reached – no client boarding logic needed
       return;
     }
+    // ...existing code...
     var client =
         plannedPassengers.stream()
             .filter(c -> c.isSame(currentTarget.getClient()))

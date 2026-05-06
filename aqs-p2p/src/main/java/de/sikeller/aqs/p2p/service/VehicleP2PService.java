@@ -1,5 +1,6 @@
 package de.sikeller.aqs.p2p.service;
 
+import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.p2p.api.NodeDescriptor;
 import de.sikeller.aqs.p2p.api.NodeRole;
 import de.sikeller.aqs.p2p.api.P2PMessage;
@@ -16,9 +17,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,6 +49,25 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private volatile Integer simulationX;
   private volatile Integer simulationY;
   private volatile long lastCleanupTick = 0L;
+  // Idle vehicle random travel tracking
+  private volatile long lastActivityTick = -1L; // -1 = not yet initialized
+  private volatile long lastIdleCheckTick = 0L;
+  private volatile long lastIdleTravelPublishTick = 0L;
+  private final Random randomTravelGenerator = new Random();
+
+  /** Pending idle travel target, consumed by the collector to move the taxi in the World. */
+  private final AtomicReference<Position> pendingIdleTravelTarget = new AtomicReference<>();
+  /** Persistent idle target while taxi remains idle; reused until reached or cancelled. */
+  private final AtomicReference<Position> currentIdleTarget = new AtomicReference<>();
+
+  private volatile int mapMaxX = 100_000;
+  private volatile int mapMaxY = 100_000;
+
+  /** Called by the collector to provide the authoritative World map bounds for idle travel. */
+  public synchronized void setMapBounds(int maxX, int maxY) {
+    this.mapMaxX = Math.max(1, maxX);
+    this.mapMaxY = Math.max(1, maxY);
+  }
 
   public VehicleP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.VEHICLE), network);
@@ -67,18 +89,15 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         P2PPayloadKeys.TAXI_NAME,
         nodeId.startsWith("vehicle-") ? nodeId.substring("vehicle-".length()) : nodeId);
     sendToMessage(
-        targetNodeId,
-        P2PTopics.RIDE_COMMIT,
-        KeyValuePayload.write(payload),
-        requestId,
-        requestId);
+        targetNodeId, P2PTopics.RIDE_COMMIT, KeyValuePayload.write(payload), requestId, requestId);
   }
 
   public synchronized void setSimulationState(boolean available, int positionX, int positionY) {
     setSimulationState(available, positionX, positionY, currentSimulationTick + 1);
   }
 
-  public synchronized void setSimulationState(boolean available, int positionX, int positionY, long simulationTick) {
+  public synchronized void setSimulationState(
+      boolean available, int positionX, int positionY, long simulationTick) {
     currentSimulationTick = Math.max(currentSimulationTick, simulationTick);
     boolean becameAvailable = !externallyAvailable && available;
     boolean movedEnough = movedEnoughForRetrigger(positionX, positionY);
@@ -86,13 +105,41 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     simulationX = positionX;
     simulationY = positionY;
     updateVehiclePositionSnapshot(positionX, positionY, currentSimulationTick);
-    // updateVehiclePositionSnapshot -> vehiclePositions.put + publishVehiclePosition (O(1) map update + O(n_peers) publish overlay selection)
+    // If we reached the persistent idle target, clear it so a new one may be chosen later
+    Position persistent = currentIdleTarget.get();
+    if (persistent != null && simulationX != null && simulationY != null
+        && simulationX == persistent.getX() && simulationY == persistent.getY()) {
+      currentIdleTarget.set(null);
+      pendingIdleTravelTarget.set(null);
+      lastIdleTravelPublishTick = 0L;
+    }
+    // updateVehiclePositionSnapshot -> vehiclePositions.put + publishVehiclePosition (O(1) map
+    // update + O(n_peers) publish overlay selection)
+
+    // Initialize activity tracker once on first availability
+    if (available && lastActivityTick < 0L) {
+      lastActivityTick = currentSimulationTick;
+    }
+
+    // Reset activity tracker only on actual state changes (became available or moved enough)
+    if (lastActivityTick >= 0L && (becameAvailable || movedEnough)) {
+      lastActivityTick = currentSimulationTick;
+    }
+
+    // If taxi became unavailable or is now busy, cancel any persistent idle target
+    if (!available || isVehicleBusy()) {
+      currentIdleTarget.set(null);
+      pendingIdleTravelTarget.set(null);
+      lastIdleTravelPublishTick = 0L;
+    }
 
     if (becameAvailable) {
       retriggerOpenRequests(TRIGGER_AVAILABILITY);
       return;
     }
     if (available && movedEnough) {
+      // movement resets idle intent
+      currentIdleTarget.set(null);
       retriggerOpenRequests(TRIGGER_MOVEMENT);
     }
   }
@@ -123,7 +170,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     String winnerVehicleId = payload.get(P2PPayloadKeys.WINNER_VEHICLE);
 
     // Mark as committed so we never re-offer this request
-    committedByRequest.putIfAbsent(requestId, winnerVehicleId != null ? winnerVehicleId : "assigned");
+    committedByRequest.putIfAbsent(
+        requestId, winnerVehicleId != null ? winnerVehicleId : "assigned");
     openRideRequests.remove(requestId);
 
     boolean iWon = descriptor().id().equals(winnerVehicleId);
@@ -136,6 +184,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           requestId,
           winnerVehicleId);
     } else {
+      // Winner: clear any pending idle target – taxi is now serving a real ride
+      pendingIdleTravelTarget.set(null);
+      currentIdleTarget.set(null);
       log.debug(
           "Vehicle {} received own win announcement requestId={}", descriptor().id(), requestId);
     }
@@ -146,7 +197,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (requestId == null || requestId.isBlank()) {
       return;
     }
-    log.debug("Vehicle {} handling ride request requestId={} sender={} payload={}", descriptor().id(), requestId, message.senderId(), message.payload());
+    log.debug(
+        "Vehicle {} handling ride request requestId={} sender={} payload={}",
+        descriptor().id(),
+        requestId,
+        message.senderId(),
+        message.payload());
     if (!seenRideRequests.add(requestId)) {
       log.debug("Ignoring duplicate ride request {} from {}", requestId, message.senderId());
       return;
@@ -154,7 +210,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
     cleanupStaleOpenRequestsIfNeeded();
     Map<String, String> requestPayload = KeyValuePayload.parse(message.payload());
-    String originNodeId = requestPayload.getOrDefault(P2PPayloadKeys.ORIGIN_NODE, message.senderId());
+    String originNodeId =
+        requestPayload.getOrDefault(P2PPayloadKeys.ORIGIN_NODE, message.senderId());
 
     openRideRequests.compute(
         requestId,
@@ -167,7 +224,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           existing.payload = requestPayload;
           return existing;
         });
-    log.debug("Vehicle {} queued openRideRequest requestId={} origin={} payload={}", descriptor().id(), requestId, originNodeId, requestPayload);
+    log.debug(
+        "Vehicle {} queued openRideRequest requestId={} origin={} payload={}",
+        descriptor().id(),
+        requestId,
+        originNodeId,
+        requestPayload);
     commitForRequestIfPossible(requestId);
 
     // Forward first-seen requests regardless of local offer to improve decentralized visibility.
@@ -216,7 +278,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
 
     // Autonomously commit: mark busy with a lease (protects against race in embedded mode)
-    String existingWinner = committedByRequest.putIfAbsent(openRequest.requestId, descriptor().id());
+    String existingWinner =
+        committedByRequest.putIfAbsent(openRequest.requestId, descriptor().id());
     if (existingWinner != null) {
       return; // another local thread already committed
     }
@@ -224,10 +287,17 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         Math.max(
             1L,
             Long.getLong(
-                P2PSystemProperties.VEHICLE_COMMIT_LEASE_TICKS, DEFAULT_VEHICLE_COMMIT_LEASE_TICKS));
+                P2PSystemProperties.VEHICLE_COMMIT_LEASE_TICKS,
+                DEFAULT_VEHICLE_COMMIT_LEASE_TICKS));
     busyUntilTick = currentSimulationTick + leaseTicks;
     openRideRequests.remove(openRequest.requestId);
     openRequest.lastOfferAtTick = currentSimulationTick;
+    // Discard any pending idle travel target – the taxi is now committed to a real ride.
+    // Also clear persistent idle intent so no further idle targets are generated while busy.
+    // The World-side idle waypoint is automatically cleared when planClientForTaxi adds
+    // a real Order, which triggers TargetList.planOrders() and clears flattenedTargets.
+    pendingIdleTravelTarget.set(null);
+    currentIdleTarget.set(null);
     sendDirectCommit(openRequest.originNodeId, openRequest.requestId);
     log.info(
         "Vehicle {} autonomously committed requestId={} to origin={} trigger={} etaSeconds={}",
@@ -253,8 +323,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return true;
     }
 
-    Set<String> overlayNeighbors = overlayNeighborIdsSnapshot(); // Worst-case O(n_peers) (overlaySelection + list copy)
-    Map<String, int[]> knownVehiclePositions = vehiclePositionSnapshot(); // Worst-case O(n_vehicles) (iterate vehiclePositions map)
+    Set<String> overlayNeighbors =
+        overlayNeighborIdsSnapshot(); // Worst-case O(n_peers) (overlaySelection + list copy)
+    Map<String, Position> knownVehiclePositions =
+        vehiclePositionSnapshot(); // Worst-case O(n_vehicles) (iterate vehiclePositions map)
     String bestNodeId = descriptor().id();
     int bestEtaSeconds = selfEtaSeconds;
 
@@ -266,12 +338,14 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         continue;
       }
 
-      int[] peerPosition = knownVehiclePositions.get(peer.id()); // O(1) map lookup
-      if (peerPosition == null || peerPosition.length < 2) {
+      Position peerPosition = knownVehiclePositions.get(peer.id()); // O(1) map lookup
+      if (peerPosition == null) {
         continue;
       }
 
-      int peerEtaSeconds = estimateEtaSecondsFromPosition(peerPosition[0], peerPosition[1], reqX, reqY); // O(1) math
+      int peerEtaSeconds =
+          estimateEtaSecondsFromPosition(
+              peerPosition.getX(), peerPosition.getY(), reqX, reqY); // O(1) math
       if (peerEtaSeconds < bestEtaSeconds
           || (peerEtaSeconds == bestEtaSeconds && peer.id().compareTo(bestNodeId) < 0)) {
         bestEtaSeconds = peerEtaSeconds;
@@ -305,7 +379,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    OpenRideRequest selected = selectOpenRequest(); // Worst-case O(m log m) (strategy.select may sort); m = eligibleRequests
+    OpenRideRequest selected =
+        selectOpenRequest(); // Worst-case O(m log m) (strategy.select may sort); m =
+    // eligibleRequests
     if (selected == null) {
       return;
     }
@@ -327,24 +403,30 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     long nowTick = currentSimulationTick;
     Set<OpenRideRequest> eligibleRequests =
         openRideRequests.values().stream() // Worst-case O(n_openRequests) scan
-        .filter(request -> !committedByRequest.containsKey(request.requestId))
-        .filter(
-            request -> {
-              if (!shouldOffer(request.payload)) {
-                return false;
-              }
-              return shouldReoffer(request, nowTick); // O(1)
-            })
-        .collect(Collectors.toCollection(LinkedHashSet::new));
+            .filter(request -> !committedByRequest.containsKey(request.requestId))
+            .filter(
+                request -> {
+                  if (!shouldOffer(request.payload)) {
+                    return false;
+                  }
+                  return shouldReoffer(request, nowTick); // O(1)
+                })
+            .collect(Collectors.toCollection(LinkedHashSet::new));
     if (eligibleRequests.isEmpty()) {
       return null;
     }
 
-    String strategyKey = System.getProperty(P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY, NearestVehicleRequestSelectionStrategy.KEY); // O(1)
+    String strategyKey =
+        System.getProperty(
+            P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY,
+            NearestVehicleRequestSelectionStrategy.KEY); // O(1)
     var strategy = VehicleRequestSelectionStrategies.resolve(strategyKey); // O(1) map lookup
 
     Optional<VehicleRequestCandidate> selectedCandidate =
-        strategy.select(eligibleRequests.stream().map(this::toCandidate).toList()); // Worst-case O(m log m) (sorting) or O(m) if linear
+        strategy.select(
+            eligibleRequests.stream()
+                .map(this::toCandidate)
+                .toList()); // Worst-case O(m log m) (sorting) or O(m) if linear
     if (selectedCandidate.isEmpty()) {
       return null;
     }
@@ -386,7 +468,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return true;
     }
     int minMoveDistance = Math.max(1, resolveReofferMoveDistanceMeters()); // O(1)
-    return P2PGeoUtils.distance(simulationX, simulationY, positionX, positionY) >= minMoveDistance; // O(1)
+    return P2PGeoUtils.distance(simulationX, simulationY, positionX, positionY)
+        >= minMoveDistance; // O(1)
   }
 
   private void cleanupStaleOpenRequests() {
@@ -397,7 +480,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
                 P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
                 DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS)); // O(1)
     long nowTick = currentSimulationTick;
-    openRideRequests.entrySet().removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks); // O(n_openRequests)
+    openRideRequests
+        .entrySet()
+        .removeIf(
+            entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks); // O(n_openRequests)
   }
 
   private void cleanupStaleOpenRequestsIfNeeded() {
@@ -416,7 +502,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (requestPayload == null) {
       return true;
     }
-    if (Boolean.parseBoolean(System.getProperty(P2PSystemProperties.VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE, "false"))) {
+    if (Boolean.parseBoolean(
+        System.getProperty(P2PSystemProperties.VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE, "false"))) {
       return true;
     }
 
@@ -426,15 +513,20 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return true;
     }
 
-
     Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X)); // O(1)
     Integer reqY = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_Y)); // O(1)
-    Integer searchRadius = parseNonNegativeIntOrNull(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS)); // O(1)
-    if (reqX == null || reqY == null || searchRadius == null || simulationX == null || simulationY == null) {
+    Integer searchRadius =
+        parseNonNegativeIntOrNull(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS)); // O(1)
+    if (reqX == null
+        || reqY == null
+        || searchRadius == null
+        || simulationX == null
+        || simulationY == null) {
       return true;
     }
 
-    boolean inRange = P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY) <= searchRadius; // O(1)
+    boolean inRange =
+        P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY) <= searchRadius; // O(1)
     if (!inRange) {
       log.debug(
           "Vehicle {} skips offer for out-of-range request (requestId? unknown req=({}, {}) radius={} vehicle=({}, {}))",
@@ -447,7 +539,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
     return inRange;
   }
-
 
   private int estimateEtaSeconds(Map<String, String> requestPayload) {
     Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X)); // O(1)
@@ -462,8 +553,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private int estimateEtaSecondsFromPosition(int startX, int startY, int reqX, int reqY) {
     double speedMps =
         Math.max(
-            0.1,
-            parseDouble(System.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS)));
+            0.1, parseDouble(System.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS)));
     return P2PGeoUtils.etaSeconds(startX, startY, reqX, reqY, speedMps);
   }
 
@@ -487,13 +577,19 @@ public class VehicleP2PService extends AbstractP2PNodeService {
             .filter(node -> !node.id().equals(message.senderId()))
             .filter(node -> overlayNeighbors.contains(node.id()))
             .count(); // O(n_peers)
-    log.debug("Vehicle {} forwarding requestId={} overlayNeighbors={} targetCount={}", descriptor().id(), message.requestId(), overlayNeighbors, targetCount);
+    log.debug(
+        "Vehicle {} forwarding requestId={} overlayNeighbors={} targetCount={}",
+        descriptor().id(),
+        message.requestId(),
+        overlayNeighbors,
+        targetCount);
 
     // ensure the forwarded payload preserves the original origin information
     // (origin node id) so downstream vehicles and the collector can always
     // resolve who originally published the request. Also keep VEHICLE/TAXI
     // fields if present.
-    String originNodeId = requestPayload.getOrDefault(P2PPayloadKeys.ORIGIN_NODE, message.senderId());
+    String originNodeId =
+        requestPayload.getOrDefault(P2PPayloadKeys.ORIGIN_NODE, message.senderId());
     String cacheKey = message.requestId() + ":" + nextHops + ":" + originNodeId;
     String forwardedPayloadStr = forwardedPayloadCache.get(cacheKey);
     if (forwardedPayloadStr == null) {
@@ -513,11 +609,16 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         forwardedPayloadStr,
         message.requestId(),
         message.correlationId(),
-        node -> node.role() == NodeRole.VEHICLE
-            && !node.id().equals(descriptor().id())
-            && !node.id().equals(message.senderId())
-            && forwardTargets.contains(node.id()));
-    log.debug("Vehicle {} forwarded requestId={} payloadToForward={}", descriptor().id(), message.requestId(), forwardedPayloadStr);
+        node ->
+            node.role() == NodeRole.VEHICLE
+                && !node.id().equals(descriptor().id())
+                && !node.id().equals(message.senderId())
+                && forwardTargets.contains(node.id()));
+    log.debug(
+        "Vehicle {} forwarded requestId={} payloadToForward={}",
+        descriptor().id(),
+        message.requestId(),
+        forwardedPayloadStr);
 
     log.info(
         "Vehicle {} forwarded requestId={} to vehicle peers (incomingHops={} nextHops={} targets={})",
@@ -527,7 +628,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         nextHops,
         targetCount);
   }
-
 
   private double parseDouble(String value) {
     if (value == null || value.isBlank()) {
@@ -562,16 +662,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M);
   }
 
-
   private Integer parseCoordinate(String value) {
     if (value == null || value.isBlank()) {
       return null;
     }
     return Integer.parseInt(value.trim());
   }
-
-
-
 
   public Set<String> knownClientIdsSnapshot() {
     cleanupStaleOpenRequests(); // O(n_openRequests)
@@ -588,6 +684,147 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     return knownClientIds;
   }
 
+  /**
+   * Public method to trigger idle travel check independently of position updates. Called by the
+   * collector during each simulation step to check if vehicles should travel randomly. This allows
+   * idle travel to happen autonomously even when the vehicle position hasn't changed.
+   */
+  public synchronized void checkIdleTravelAtStep(long simulationTick) {
+    currentSimulationTick = Math.max(currentSimulationTick, simulationTick);
+    checkAndTriggerIdleTravel();
+  }
+
+  /**
+   * Check if vehicle should trigger random travel due to idleness. Throttled to avoid performance
+   * impact. Only triggers when feature is enabled, vehicle is available, and idle threshold
+   * exceeded.
+   *
+   * <p>This publishes a position to the P2P network to simulate autonomous movement, but does not
+   * change the vehicle's position in the World simulator. The actual movement is controlled by the
+   * collector/World, which will see this vehicle's P2P-published position via the overlay.
+   *
+   * <p>While idle, continuously publishes new random positions to the network.
+   */
+  private void checkAndTriggerIdleTravel() {
+    // Default to enabled when no JVM property present so UI and services behave consistently
+    boolean enabled =
+        Boolean.parseBoolean(
+            System.getProperty(P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED, "true"));
+    if (!enabled) {
+      return;
+    }
+
+    // Throttle idle checks to avoid overhead: O(1) comparison
+    long idleCheckThrottleTicks =
+        Math.max(1L, Long.getLong(P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS, 5L));
+    if (currentSimulationTick - lastIdleCheckTick < idleCheckThrottleTicks) {
+      return;
+    }
+    lastIdleCheckTick = currentSimulationTick;
+
+    // Skip if vehicle is busy or unavailable
+    if (isVehicleBusy() || !externallyAvailable) {
+      lastIdleTravelPublishTick = 0L; // Reset so next idle period publishes immediately
+      return;
+    }
+
+    // Skip until activity tracker is initialized (first availability event not yet received)
+    if (lastActivityTick < 0L) {
+      return;
+    }
+
+    // Check idle duration threshold
+    long idleThresholdTicks =
+        Math.max(1L, Long.getLong(P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, 10L));
+    long idleDurationTicks = currentSimulationTick - lastActivityTick;
+    if (idleDurationTicks < idleThresholdTicks) {
+      return; // Not idle yet
+    }
+
+    // Vehicle is idle - publish a new position periodically while idle
+    // This allows continuous movement in the P2P network during idleness
+    long publishIntervalTicks =
+        Math.max(1L, idleCheckThrottleTicks); // Publish as often as we check
+    if (lastIdleTravelPublishTick > 0
+        && currentSimulationTick - lastIdleTravelPublishTick < publishIntervalTicks) {
+      return; // Not yet time for next publish
+    }
+
+    // Vehicle is idle and threshold exceeded: reuse existing idle target while idle, create if absent
+    if (simulationX == null || simulationY == null) {
+      return;
+    }
+
+    Position target = currentIdleTarget.get();
+    if (target == null) {
+      target = generateRandomTargetWithinRadius(simulationX, simulationY);
+      currentIdleTarget.set(target);
+      if (lastIdleTravelPublishTick == 0L) {
+        // First idle travel for this idle period - log the start
+        log.info(
+            "Vehicle {} selected idle random travel target ({}, {}) after {} ticks of idleness",
+            descriptor().id(),
+            target.getX(),
+            target.getY(),
+            idleDurationTicks);
+      }
+    }
+
+    // Publish same target repeatedly while idle so overlay shows consistent intent
+    updateVehiclePositionSnapshot(target.getX(), target.getY(), currentSimulationTick);
+
+    // Ensure collector can consume idle target at least once per idle period
+    pendingIdleTravelTarget.compareAndSet(null, new Position(target.getX(), target.getY(), currentSimulationTick));
+
+    lastIdleTravelPublishTick = currentSimulationTick;
+  }
+
+  /**
+   * Atomically poll and clear any pending idle travel target generated by this vehicle. Collector
+   * (embedded) should call this to obtain one-time idle waypoint to apply to World.
+   */
+  public Optional<Position> pollIdleTravelTarget() {
+    Position p = pendingIdleTravelTarget.getAndSet(null);
+    return Optional.ofNullable(p);
+  }
+
+  /**
+   * Generate a random target position within a specified radius and map bounds. Uses seeded Random
+   * for reproducibility. O(1) operation.
+   *
+   * @param currentX current X coordinate
+   * @param currentY current Y coordinate
+   * @return Position of target
+   */
+  private Position generateRandomTargetWithinRadius(int currentX, int currentY) {
+    int maxDistanceMeters =
+        Math.max(
+            1,
+            Integer.getInteger(
+                P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS, 20000));
+
+    int minBound = 0;
+
+    // Generate random angle and distance
+    double angle = randomTravelGenerator.nextDouble() * 2 * Math.PI;
+    double distance = randomTravelGenerator.nextDouble() * maxDistanceMeters;
+
+    // Calculate target using polar coordinates
+    int targetX = (int) Math.round(currentX + distance * Math.cos(angle));
+    int targetY = (int) Math.round(currentY + distance * Math.sin(angle));
+
+    // Clamp to map bounds
+    targetX = Math.max(minBound, Math.min(mapMaxX, targetX));
+    targetY = Math.max(minBound, Math.min(mapMaxY, targetY));
+
+    // Ensure we actually moved (avoid publishing same position)
+    if (targetX == currentX && targetY == currentY) {
+      targetX = Math.min(mapMaxX, currentX + 10);
+    }
+
+    return new Position(targetX, targetY);
+  }
+
   private static class OpenRideRequest {
     private final String requestId;
     private volatile String originNodeId;
@@ -596,16 +833,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     private volatile long lastOfferAtTick;
 
     private OpenRideRequest(
-        String requestId,
-        String originNodeId,
-        Map<String, String> payload,
-        long firstSeenAtTick) {
+        String requestId, String originNodeId, Map<String, String> payload, long firstSeenAtTick) {
       this.requestId = requestId;
       this.originNodeId = originNodeId;
       this.payload = payload;
       this.firstSeenAtTick = firstSeenAtTick;
     }
   }
-
 }
-

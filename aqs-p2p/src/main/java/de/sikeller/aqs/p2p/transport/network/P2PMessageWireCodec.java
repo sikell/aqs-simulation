@@ -25,9 +25,7 @@ final class P2PMessageWireCodec {
         ObjectOutputStream oos = new ObjectOutputStream(bos)) {
       oos.writeObject(message);
       oos.flush();
-      return MESSAGE_TYPE_SER1
-          + "|"
-          + Base64.getUrlEncoder().encodeToString(bos.toByteArray());
+      return MESSAGE_TYPE_SER1 + "|" + Base64.getUrlEncoder().encodeToString(bos.toByteArray());
     } catch (IOException e) {
       throw new IllegalStateException("Could not encode P2P message", e);
     }
@@ -52,10 +50,7 @@ final class P2PMessageWireCodec {
       // Restrict deserialization to our envelope to avoid unexpected gadget/object graphs.
       ObjectInputFilter filter =
           ObjectInputFilter.Config.createFilter(
-              "maxbytes="
-                  + MAX_WIRE_BYTES
-                  + ";de.sikeller.aqs.p2p.api.P2PMessage;java.base/*;!*"
-                  );
+              "maxbytes=" + MAX_WIRE_BYTES + ";de.sikeller.aqs.p2p.api.P2PMessage;java.base/*;!*");
       ois.setObjectInputFilter(filter);
 
       Object deserialized = ois.readObject();
@@ -68,4 +63,3 @@ final class P2PMessageWireCodec {
     }
   }
 }
-

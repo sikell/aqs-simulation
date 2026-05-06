@@ -8,4 +8,3 @@ public interface VehicleRequestSelectionStrategy {
 
   Optional<VehicleRequestCandidate> select(Collection<VehicleRequestCandidate> candidates);
 }
-

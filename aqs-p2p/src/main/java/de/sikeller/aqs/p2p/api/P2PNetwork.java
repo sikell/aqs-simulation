@@ -25,4 +25,3 @@ public interface P2PNetwork {
   /** Liefert den aktuell bekannten Peer-Snapshot. */
   Set<NodeDescriptor> peers();
 }
-

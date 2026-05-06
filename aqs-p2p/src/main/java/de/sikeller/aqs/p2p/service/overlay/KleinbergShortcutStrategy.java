@@ -1,19 +1,19 @@
 package de.sikeller.aqs.p2p.service.overlay;
 
+import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.p2p.api.NodeDescriptor;
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.service.position.PositionManager;
-import de.sikeller.aqs.p2p.service.position.Position;
 import de.sikeller.aqs.p2p.service.util.AliasSampler;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.Comparator;
 
 /**
  * Kleinberg-inspired probabilistic long-range shortcut selection.
@@ -51,7 +51,8 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
     if (excludedPeerIds != null) usedIds.addAll(excludedPeerIds);
 
     long globalSeed = Long.getLong("worldSeed", 0L);
-    String nodeProbabilityStr = System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "1.0").trim();
+    String nodeProbabilityStr =
+        System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "1.0").trim();
     double nodeProbability = clamp(parseDoubleOrDefault(nodeProbabilityStr, 1.0), 0.0, 1.0);
     if (nodeProbability < 1.0) {
       List<String> allIds = new ArrayList<>();
@@ -61,13 +62,18 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
       int selectCount = (int) Math.round(nodeProbability * total);
       if (selectCount <= 0) return List.of();
       allIds.sort(Comparator.naturalOrder());
-      allIds.sort((a, b) -> Long.compareUnsigned(Integer.toUnsignedLong(Objects.hash(b, globalSeed)), Integer.toUnsignedLong(Objects.hash(a, globalSeed))));
+      allIds.sort(
+          (a, b) ->
+              Long.compareUnsigned(
+                  Integer.toUnsignedLong(Objects.hash(b, globalSeed)),
+                  Integer.toUnsignedLong(Objects.hash(a, globalSeed))));
       Set<String> selected = new HashSet<>();
       for (int i = 0; i < Math.min(selectCount, allIds.size()); i++) selected.add(allIds.get(i));
       if (!selected.contains(self.id())) return List.of();
     }
 
-    String rStr = System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0").trim();
+    String rStr =
+        System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0").trim();
     double r = Math.max(0.0, parseDoubleOrDefault(rStr, 2.0));
     long seed = globalSeed ^ (long) Objects.hash(self.id());
     Random rnd = new Random(seed);
@@ -87,7 +93,7 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
       Position other = positionsSnapshot.get(candidate.id());
       Position selfPos = positionsSnapshot.get(self.id());
       if (selfPos != null && other != null) {
-        dist = P2PGeoUtils.distance(selfPos.x(), selfPos.y(), other.x(), other.y());
+        dist = P2PGeoUtils.distance(selfPos.getX(), selfPos.getY(), other.getX(), other.getY());
       } else {
         int ringOffset = Math.abs(idx - startIndex);
         ringOffset = Math.min(ringOffset, maxOffset - ringOffset);
@@ -112,7 +118,8 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
     return shortcuts;
   }
 
-  private List<Integer> buildCandidateIndices(List<NodeDescriptor> sortedPeers, Set<String> excluded, String selfId) {
+  private List<Integer> buildCandidateIndices(
+      List<NodeDescriptor> sortedPeers, Set<String> excluded, String selfId) {
     List<Integer> candidateIndices = new ArrayList<>();
     for (int idx = 0; idx < sortedPeers.size(); idx++) {
       NodeDescriptor candidate = sortedPeers.get(idx);
@@ -138,4 +145,3 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
     return Math.max(min, Math.min(max, v));
   }
 }
-

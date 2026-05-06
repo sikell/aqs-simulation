@@ -47,4 +47,3 @@ public class InMemoryP2PNetwork implements P2PNetwork {
     return Set.copyOf(peersById.values());
   }
 }
-

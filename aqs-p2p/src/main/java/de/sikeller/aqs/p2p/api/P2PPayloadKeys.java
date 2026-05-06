@@ -27,4 +27,3 @@ public final class P2PPayloadKeys {
   public static final String POSITION_Y = "y";
   public static final String POSITION_TICK = "tick";
 }
-

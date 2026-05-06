@@ -1,16 +1,18 @@
 package de.sikeller.aqs.p2p.service.position;
 
+import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.p2p.service.config.P2PConfig;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Default PositionManager: concurrent map and a revision counter with throttling.
- * Uses {@link P2PConfig} for tunables so tests can override behaviour.
+ * Default PositionManager: concurrent map and a revision counter with throttling. Uses {@link
+ * P2PConfig} for tunables so tests can override behaviour.
  */
 public class PositionManagerImpl implements PositionManager {
   private final ConcurrentHashMap<String, Position> positions = new ConcurrentHashMap<>();
@@ -33,15 +35,16 @@ public class PositionManagerImpl implements PositionManager {
   }
 
   @Override
-  public Map<String, int[]> snapshot() {
-    var map = new java.util.LinkedHashMap<String, int[]>();
+  public Map<String, Position> snapshot() {
+    var map = new LinkedHashMap<String, Position>();
     long ttl = Math.max(1L, config.positionTtlTicks());
     long now = maxTick.get();
-    positions.forEach((id, pos) -> {
-      if (pos != null && now - pos.tick() <= ttl) {
-        map.put(id, new int[] {pos.x(), pos.y()});
-      }
-    });
+    positions.forEach(
+        (id, pos) -> {
+          if (pos != null && now - pos.getTick() <= ttl) {
+            map.put(id, pos);
+          }
+        });
     return map;
   }
 
@@ -67,8 +70,8 @@ public class PositionManagerImpl implements PositionManager {
     }
     long throttleTicks = Math.max(1L, config.positionRevisionThrottleTicks());
     int minMove = Math.max(0, config.positionRevisionMinMoveMeters());
-    long tickDelta = next.tick() - prev.tick();
-    double dist = P2PGeoUtils.distance(prev.x(), prev.y(), next.x(), next.y());
+    long tickDelta = next.getTick() - prev.getTick();
+    double dist = P2PGeoUtils.distance(prev.getX(), prev.getY(), next.getX(), next.getY());
     if (tickDelta >= throttleTicks) {
       revision.incrementAndGet();
       return;
@@ -78,4 +81,3 @@ public class PositionManagerImpl implements PositionManager {
     }
   }
 }
-

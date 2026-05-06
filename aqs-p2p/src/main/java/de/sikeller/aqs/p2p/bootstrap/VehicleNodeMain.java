@@ -103,5 +103,3 @@ public class VehicleNodeMain {
     System.setProperty(key, value.trim());
   }
 }
-
-

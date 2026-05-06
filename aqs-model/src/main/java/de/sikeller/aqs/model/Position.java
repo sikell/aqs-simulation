@@ -9,6 +9,25 @@ public class Position {
   int y;
 
   /**
+   * The tick at which this position was recorded. This is used for determining the freshness of the
+   * position data. It is not used for any calculations within the Position class itself, but can be
+   * used by external components to manage and filter position data based on its age.
+   */
+  Long tick;
+
+  public Position(int x, int y) {
+    this.x = x;
+    this.y = y;
+    this.tick = 0L; // compatible when not using tick based checks
+  }
+
+  public Position(int x, int y, long tick) {
+    this.x = x;
+    this.y = y;
+    this.tick = tick;
+  }
+
+  /**
    * Calculate the Euclidean distance between this and another position.
    *
    * @param other the other position

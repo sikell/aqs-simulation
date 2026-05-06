@@ -1,8 +1,8 @@
 package de.sikeller.aqs.p2p.api;
 
-import java.time.Instant;
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -59,4 +59,3 @@ public record P2PMessage(
         SCHEMA_VERSION, requestId, correlationId, senderId, topic, payload, Instant.now());
   }
 }
-

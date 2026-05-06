@@ -25,4 +25,3 @@ public class NearestVehicleRequestSelectionStrategy implements VehicleRequestSel
     return candidates.stream().min(ORDER);
   }
 }
-

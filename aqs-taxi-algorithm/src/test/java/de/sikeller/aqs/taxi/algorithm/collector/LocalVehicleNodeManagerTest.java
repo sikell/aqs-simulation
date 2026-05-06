@@ -235,6 +235,9 @@ class LocalVehicleNodeManagerTest {
 
     @Override
     public void clearTaxi(Taxi taxi) {}
+
+    @Override
+    public void setIdleTarget(Taxi taxi, Position target) {}
   }
 
   private static final class StubTaxi implements Taxi {
