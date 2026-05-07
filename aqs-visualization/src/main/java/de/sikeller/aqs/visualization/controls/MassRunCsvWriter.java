@@ -81,7 +81,41 @@ final class MassRunCsvWriter {
 
     writeRunCsv(runFile, runRows);
     writeAggregateCsv(aggregateFile, aggregateRows);
-    return new OutputFiles(runFile, aggregateFile);
+    return new OutputFiles(runFile, aggregateFile, null);
+  }
+
+  static Path writeConfig(String outputDir, MassRunDialog.MassRunConfig config) throws IOException {
+    Path directory = Paths.get(outputDir);
+    Files.createDirectories(directory);
+    Path configFile = directory.resolve("mass-run-config.properties");
+    java.util.Properties props = new java.util.Properties();
+    props.setProperty("algorithms", String.join(",", config.algorithms()));
+    props.setProperty("p2pStrategies", String.join(",", config.p2pStrategies()));
+    props.setProperty("spawnScenarios", String.join(",", config.spawnScenarios()));
+    props.setProperty("kHops", config.kHops().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("rqsRadius", config.rqsRadiusValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("overlayMinNeighbors", config.overlayMinNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("overlayMaxNeighbors", config.overlayMaxNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("overlayShortcuts", config.overlayShortcutsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("idleRoamingEnabled", String.valueOf(config.idleRoamingEnabled()));
+    props.setProperty("idleThresholdTicks", String.valueOf(config.idleThresholdTicks()));
+    props.setProperty("idleCheckThrottleTicks", String.valueOf(config.idleCheckThrottleTicks()));
+    props.setProperty("randomTravelMaxDistanceMeters", String.valueOf(config.randomTravelMaxDistanceMeters()));
+    props.setProperty("runs", String.valueOf(config.runs()));
+    props.setProperty("baseSeed", String.valueOf(config.baseSeed()));
+    props.setProperty("outputDir", config.outputDir());
+    props.setProperty("taxiCounts", config.taxiCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("clientCounts", config.clientCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("clientSpawnWindow", String.valueOf(config.clientSpawnWindow()));
+    props.setProperty("clientSpeed", String.valueOf(config.clientSpeed()));
+    props.setProperty("taxiSeatCounts", config.taxiSeatCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("taxiSpeed", String.valueOf(config.taxiSpeed()));
+    props.setProperty("simulationSpeed", String.valueOf(config.simulationSpeed()));
+    props.setProperty("mapSize", String.valueOf(config.mapSize()));
+    try (java.io.Writer w = Files.newBufferedWriter(configFile, StandardCharsets.UTF_8)) {
+      props.store(w, "Mass Run Config – generated " + java.time.Instant.now());
+    }
+    return configFile;
   }
 
   private static List<AggregateMetricRow> aggregate(List<RunMetricRow> rows) {
@@ -331,10 +365,10 @@ final class MassRunCsvWriter {
       double minSpread,
       double maxSpread) {}
 
-  record OutputFiles(Path runCsv, Path aggregateCsv) {
+  record OutputFiles(Path runCsv, Path aggregateCsv, Path configFile) {
     @Override
     public String toString() {
-      return String.format(Locale.ROOT, "%s | %s", runCsv, aggregateCsv);
+      return String.format(Locale.ROOT, "%s | %s | %s", runCsv, aggregateCsv, configFile != null ? configFile : "no config");
     }
   }
 }

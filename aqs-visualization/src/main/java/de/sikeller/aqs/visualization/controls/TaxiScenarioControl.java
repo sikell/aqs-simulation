@@ -867,7 +867,12 @@ public class TaxiScenarioControl extends AbstractControl {
     int taxiSeatCount = readSpinnerValue("taxiSeatCount", 2);
     int taxiSpeed = readSpinnerValue("taxiSpeed", 80);
     int simulationSpeed = 100;
+    int mapSize = readSpinnerValue("mapSize", 40000);
     int defaultOverlayMaxNeighbors = readSpinnerValue("p2pOverlayMaxNeighbors", 5);
+    boolean idleRoamingEnabled = readCheckboxValue("p2pIdleRandomTravelEnabled", true);
+    int idleThresholdTicks = readSpinnerValue("p2pIdleThresholdTicks", 60);
+    int idleCheckThrottleTicks = readSpinnerValue("p2pIdleCheckThrottleTicks", 5);
+    int randomTravelMaxDistance = readSpinnerValue("p2pRandomTravelMaxDistanceMeters", 20000);
     return new MassRunDialog.Defaults(
         resolveDefaultMassRunAlgorithmsCsv(availableAlgorithms),
         String.valueOf(defaultKHops),
@@ -886,7 +891,12 @@ public class TaxiScenarioControl extends AbstractControl {
         clientSpeed,
         String.valueOf(taxiSeatCount),
         taxiSpeed,
-        simulationSpeed);
+        simulationSpeed,
+        mapSize,
+        idleRoamingEnabled,
+        idleThresholdTicks,
+        idleCheckThrottleTicks,
+        randomTravelMaxDistance);
   }
 
   private String resolveDefaultMassRunAlgorithmsCsv(List<String> availableAlgorithms) {
@@ -1028,7 +1038,10 @@ public class TaxiScenarioControl extends AbstractControl {
               }
             }
 
-            return MassRunCsvWriter.write(config.outputDir(), runRows);
+            // write config file for reproducibility
+            MassRunCsvWriter.OutputFiles csvOutput = MassRunCsvWriter.write(config.outputDir(), runRows);
+            java.nio.file.Path configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
+            return new MassRunCsvWriter.OutputFiles(csvOutput.runCsv(), csvOutput.aggregateCsv(), configFile);
           }
 
           @Override
@@ -1100,6 +1113,7 @@ public class TaxiScenarioControl extends AbstractControl {
               setSpinnerValueIfPresent("clientSpeed", config.clientSpeed());
               setSpinnerValueIfPresent("taxiSeatCount", taxiSeatCount);
               setSpinnerValueIfPresent("taxiSpeed", config.taxiSpeed());
+              setSpinnerValueIfPresent("mapSize", config.mapSize());
               setComboIndexIfPresent(
                   "spawnScenario",
                   de.sikeller.aqs.model.SpawnScenario.fromLabel(spawnScenario).ordinal());
@@ -1115,6 +1129,26 @@ public class TaxiScenarioControl extends AbstractControl {
                 setSpinnerValueIfPresent("p2pOverlayMinNeighbors", overlayMinNeighbors);
                 setSpinnerValueIfPresent("p2pOverlayMaxNeighbors", overlayMaxNeighbors);
                 setSpinnerValueIfPresent("p2pOverlayShortcuts", overlayShortcuts);
+                // Apply idle roaming system properties for this iteration
+                System.setProperty(
+                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
+                    String.valueOf(config.idleRoamingEnabled()));
+                System.setProperty(
+                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS,
+                    String.valueOf(config.idleThresholdTicks()));
+                System.setProperty(
+                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS,
+                    String.valueOf(config.idleCheckThrottleTicks()));
+                System.setProperty(
+                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
+                    String.valueOf(config.randomTravelMaxDistanceMeters()));
+                // Sync UI checkboxes/spinners so they reflect the applied values
+                if (p2pIdleRandomTravelEnabledCheckBox != null) {
+                  p2pIdleRandomTravelEnabledCheckBox.setSelected(config.idleRoamingEnabled());
+                }
+                setSpinnerValueIfPresent("p2pIdleThresholdTicks", config.idleThresholdTicks());
+                setSpinnerValueIfPresent("p2pIdleCheckThrottleTicks", config.idleCheckThrottleTicks());
+                setSpinnerValueIfPresent("p2pRandomTravelMaxDistanceMeters", config.randomTravelMaxDistanceMeters());
                 // Mass-runs: keep topology scan ticks as configured to ensure proper protocol
                 // behavior.
                 executedRqsRadius = rqsRadius;
@@ -1275,6 +1309,17 @@ public class TaxiScenarioControl extends AbstractControl {
             if (val instanceof Number number) {
               result[0] = number.intValue();
             }
+          }
+        });
+    return result[0];
+  }
+
+  private boolean readCheckboxValue(String name, boolean defaultValue) {
+    final boolean[] result = {defaultValue};
+    forEachAlgorithmComponent(
+        comp -> {
+          if (comp instanceof JCheckBox cb && name.equals(cb.getName())) {
+            result[0] = cb.isSelected();
           }
         });
     return result[0];

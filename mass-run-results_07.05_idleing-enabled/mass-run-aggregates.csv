@@ -1,0 +1,61 @@
+algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,spawnScenario,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,BASELINE,Taxi Travel Distance [km],4,187.45499999999998,58.82481342936839,89.67,245.37,321.79499999999996,208.04,486.10999999999996
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,BASELINE,Client Waiting Time [min],4,76.15,24.089858862185142,45.6,108.9,329.47749999999996,160.96,509.47999999999996
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,BASELINE,Client Travel Time [min],4,7246.950000000001,2487.165203258521,5161.88,11494.04,26282.25,19805.0,30356.0
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,BASELINE,Calculation Time [millis],4,0.0425,0.010897247358851683,0.03,0.06,37.5,27.0,43.0
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,BASELINE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,BASELINE,Taxi Travel Distance [km],4,226.245,6.477146362403745,215.13,230.77,426.2175,264.93,608.71
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,BASELINE,Client Waiting Time [min],4,46.9375,13.819561091076661,28.79,66.63,296.115,227.45000000000002,447.28
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,BASELINE,Client Travel Time [min],4,3998.0299999999997,1088.1935258491478,2470.58,5140.48,17662.75,13497.0,26520.0
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,BASELINE,Calculation Time [millis],4,0.10250000000000001,0.0043301270189221915,0.1,0.11,52.5,37.0,75.0
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,BASELINE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Taxi Travel Distance [km],4,141.8375,56.65072125533797,54.76,207.03,240.4025,124.52,368.87
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Client Waiting Time [min],4,81.32249999999999,49.20252045119234,29.7,157.21,314.38,102.47,518.28
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Client Travel Time [min],4,8889.83,2277.0911650392923,5497.24,11844.76,26595.75,18965.0,34953.0
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Calculation Time [millis],4,0.0325,0.004330127018922195,0.03,0.04,35.25,14.0,67.0
+TaxiAlgorithmP2PCollector,0,5000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Taxi Travel Distance [km],4,125.52749999999997,40.44918440154263,58.45,165.14,301.24,183.84,415.21
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Client Waiting Time [min],4,74.08500000000001,22.430464217220294,55.09,112.36,293.905,234.6,358.5
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Client Travel Time [min],4,7840.134999999999,1907.8725915204614,6309.6,11091.84,24921.75,21369.0,32795.0
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Calculation Time [millis],4,0.105,0.0049999999999999975,0.1,0.11,80.5,54.0,113.0
+TaxiAlgorithmP2PCollector,0,5000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,BASELINE,Taxi Travel Distance [km],4,194.885,27.40197118821928,162.24,232.64,255.7025,176.96999999999997,368.0
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,BASELINE,Client Waiting Time [min],4,43.64,15.238279102313356,26.78,67.49,233.4425,168.82,374.1
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,BASELINE,Client Travel Time [min],4,4245.82,1576.7758733567684,2450.68,6735.96,18955.25,9785.0,29898.0
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,BASELINE,Calculation Time [millis],4,0.03,0.0,0.03,0.03,30.0,0.0,40.0
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,BASELINE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,BASELINE,Taxi Travel Distance [km],4,195.72,8.939521799291054,185.52,210.03,161.35750000000002,69.66,248.11999999999998
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,BASELINE,Client Waiting Time [min],4,14.9175,1.988521749943912,11.72,17.04,69.92999999999999,51.7,84.5
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,BASELINE,Client Travel Time [min],4,1769.62,126.98586063022924,1623.06,1961.26,4689.75,3383.0,5610.0
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,BASELINE,Calculation Time [millis],4,0.0775,0.004330127018922191,0.07,0.08,33.0,32.0,35.0
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,BASELINE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Taxi Travel Distance [km],4,154.0,29.491852264650994,116.89,183.76,258.205,147.20999999999998,369.84999999999997
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Client Waiting Time [min],4,58.70249999999999,21.57833911008908,36.86,92.02,207.01,185.43,242.79
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Client Travel Time [min],4,4886.66,965.1637061141491,3840.96,6435.4,15101.25,14646.0,15284.0
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Calculation Time [millis],4,0.03,0.0,0.03,0.03,12.5,0.0,31.0
+TaxiAlgorithmP2PCollector,0,10000,5,25,1,nearest,1,4,1,SPATIAL_IMBALANCE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Taxi Travel Distance [km],4,165.115,6.9306763739190735,153.69,172.05,286.505,155.06,425.63
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Client Waiting Time [min],4,33.3575,11.106611488208273,14.34,42.43,210.36249999999998,105.75,275.09999999999997
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Client Travel Time [min],4,2958.475,745.6838254079272,1709.92,3657.42,12987.0,6330.0,18149.0
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Calculation Time [millis],4,0.09000000000000001,0.007071067811865477,0.08,0.1,35.5,4.0,61.0
+TaxiAlgorithmP2PCollector,0,10000,10,50,1,nearest,1,4,1,SPATIAL_IMBALANCE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,BASELINE,Taxi Travel Distance [km],4,177.125,21.563128831410346,148.17,207.1,63.22999999999999,35.75,80.75
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,BASELINE,Client Waiting Time [min],4,22.722499999999997,4.453029165635455,15.19,26.33,72.9325,52.830000000000005,84.85000000000001
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,BASELINE,Client Travel Time [min],4,2167.01,460.9433148446781,1510.28,2659.84,4227.75,2765.0,4875.0
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,BASELINE,Calculation Time [millis],4,0.0275,0.010897247358851685,0.01,0.04,47.25,14.0,95.0
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,BASELINE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,BASELINE,Taxi Travel Distance [km],4,154.5525,10.688913356838476,140.87,170.56,114.89249999999998,82.86000000000001,146.57999999999998
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,BASELINE,Client Waiting Time [min],4,18.455,1.8516276623554748,15.77,21.0,66.8875,43.550000000000004,105.19
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,BASELINE,Client Travel Time [min],4,1687.7749999999999,191.2271436668969,1460.78,1989.64,3788.5,2442.0,5863.0
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,BASELINE,Calculation Time [millis],4,0.10250000000000001,0.02861380785564899,0.08,0.15,68.0,44.0,95.0
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,BASELINE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Taxi Travel Distance [km],4,154.3225,10.28482225174552,140.55,168.14,115.5625,70.1,192.44
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Client Waiting Time [min],4,17.4575,3.0090145812209013,15.35,22.65,59.62249999999999,44.6,87.41999999999999
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Client Travel Time [min],4,1704.3999999999999,233.06812566286283,1521.2,2101.92,3357.25,2380.0,4718.0
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Calculation Time [millis],4,0.015000000000000001,0.008660254037844387,0.01,0.03,22.25,9.0,48.0
+TaxiAlgorithmVehicleRouting,0,-1,5,25,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Taxi Travel Distance [km],4,147.615,7.2689837666622905,139.27,156.26,122.9525,67.96,198.19
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Client Waiting Time [min],4,16.4875,1.204872918610092,14.75,18.1,61.24250000000001,52.14,68.35000000000001
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Client Travel Time [min],4,1593.815,113.7959528058885,1477.06,1767.98,3482.5,3004.0,4006.0
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Calculation Time [millis],4,0.10250000000000001,0.02277608394786075,0.08,0.14,73.75,48.0,119.0
+TaxiAlgorithmVehicleRouting,0,-1,10,50,1,n/a,-1,-1,-1,SPATIAL_IMBALANCE,Custom Time [micros],4,0.0,0.0,0.0,0.0,0.0,0.0,0.0

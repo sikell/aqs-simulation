@@ -5,11 +5,18 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -42,6 +49,12 @@ final class MassRunDialog extends JDialog {
   private final JTextField taxiSeatCountsField;
   private final JTextField taxiSpeedField;
   private final JTextField simulationSpeedField;
+  private final JTextField mapSizeField;
+  // P2P Collector Options
+  private final JCheckBox idleRoamingEnabledCheck;
+  private final JTextField idleThresholdField;
+  private final JTextField idleCheckThrottleField;
+  private final JTextField randomTravelMaxDistanceField;
   private MassRunConfig result;
 
   private MassRunDialog(Component parent, List<String> availableAlgorithms, Defaults defaults) {
@@ -60,19 +73,9 @@ final class MassRunDialog extends JDialog {
 
     JPanel runPanel = new JPanel(new GridLayout(0, 2, 8, 8));
     runPanel.setBorder(BorderFactory.createTitledBorder("Run Setup"));
-    kHopsField = new JTextField(defaults.kHopsCsv());
-    rqsRadiusField = new JTextField(defaults.rqsRadiusCsv());
-    overlayMinNeighborsField = new JTextField(defaults.overlayMinNeighborsCsv());
-    overlayMaxNeighborsField = new JTextField(defaults.overlayMaxNeighborsCsv());
-    overlayShortcutsField = new JTextField(defaults.overlayShortcutsCsv());
     runsField = new JTextField(String.valueOf(defaults.runs()));
     baseSeedField = new JTextField(String.valueOf(defaults.baseSeed()));
     outputDirField = new JTextField(defaults.outputDir());
-    addRow(runPanel, "k-Hops (CSV)", kHopsField);
-    addRow(runPanel, "RQS radius (CSV)", rqsRadiusField);
-    addRow(runPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
-    addRow(runPanel, "Overlay max neighbors (CSV)", overlayMaxNeighborsField);
-    addRow(runPanel, "Overlay shortcuts (CSV)", overlayShortcutsField);
     addRow(runPanel, "Runs", runsField);
     addRow(runPanel, "Base seed", baseSeedField);
     addRow(runPanel, "Output dir", outputDirField);
@@ -86,6 +89,7 @@ final class MassRunDialog extends JDialog {
     taxiSeatCountsField = new JTextField(defaults.taxiSeatCountsCsv());
     taxiSpeedField = new JTextField(String.valueOf(defaults.taxiSpeed()));
     simulationSpeedField = new JTextField(String.valueOf(defaults.simulationSpeed()));
+    mapSizeField = new JTextField(String.valueOf(defaults.mapSize()));
     addRow(worldPanel, "Taxi counts (CSV)", taxiCountsField);
     addRow(worldPanel, "Client counts (CSV, pairwise with taxi counts)", clientCountsField);
     addRow(worldPanel, "Client spawn window", clientSpawnWindowField);
@@ -93,22 +97,55 @@ final class MassRunDialog extends JDialog {
     addRow(worldPanel, "Taxi seat counts (CSV)", taxiSeatCountsField);
     addRow(worldPanel, "Taxi speed", taxiSpeedField);
     addRow(worldPanel, "Simulation speed", simulationSpeedField);
+    addRow(worldPanel, "Map size [m]", mapSizeField);
+
+    JPanel collectorPanel = new JPanel(new GridLayout(0, 2, 8, 8));
+    collectorPanel.setBorder(BorderFactory.createTitledBorder("P2P Collector Options"));
+    kHopsField = new JTextField(defaults.kHopsCsv());
+    rqsRadiusField = new JTextField(defaults.rqsRadiusCsv());
+    overlayMinNeighborsField = new JTextField(defaults.overlayMinNeighborsCsv());
+    overlayMaxNeighborsField = new JTextField(defaults.overlayMaxNeighborsCsv());
+    overlayShortcutsField = new JTextField(defaults.overlayShortcutsCsv());
+    idleRoamingEnabledCheck = new JCheckBox();
+    idleRoamingEnabledCheck.setSelected(defaults.idleRoamingEnabled());
+    idleThresholdField = new JTextField(String.valueOf(defaults.idleThresholdTicks()));
+    idleCheckThrottleField = new JTextField(String.valueOf(defaults.idleCheckThrottleTicks()));
+    randomTravelMaxDistanceField = new JTextField(String.valueOf(defaults.randomTravelMaxDistanceMeters()));
+    addRow(collectorPanel, "k-Hops (CSV)", kHopsField);
+    addRow(collectorPanel, "RQS radius (CSV)", rqsRadiusField);
+    addRow(collectorPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
+    addRow(collectorPanel, "Overlay max neighbors (CSV)", overlayMaxNeighborsField);
+    addRow(collectorPanel, "Overlay shortcuts (CSV)", overlayShortcutsField);
+    addRow(collectorPanel, "Idle roaming enabled", idleRoamingEnabledCheck);
+    addRow(collectorPanel, "Idle threshold [ticks]", idleThresholdField);
+    addRow(collectorPanel, "Idle check throttle [ticks]", idleCheckThrottleField);
+    addRow(collectorPanel, "Random travel max distance [m]", randomTravelMaxDistanceField);
 
     content.add(selectionPanel);
     content.add(runPanel);
     content.add(worldPanel);
+    content.add(collectorPanel);
 
     JButton runButton = new JButton("Run");
     runButton.addActionListener(e -> onRun());
     JButton cancelButton = new JButton("Cancel");
     cancelButton.addActionListener(e -> dispose());
+    JButton copyConfigButton = new JButton("Copy Config");
+    copyConfigButton.addActionListener(e -> copyConfigToClipboard());
+    JButton pasteConfigButton = new JButton("Paste Config");
+    pasteConfigButton.addActionListener(e -> pasteConfigFromClipboard());
 
     JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    actions.add(copyConfigButton);
+    actions.add(pasteConfigButton);
     actions.add(cancelButton);
     actions.add(runButton);
 
     setLayout(new BorderLayout(8, 8));
-    add(new JScrollPane(content), BorderLayout.CENTER);
+    JScrollPane scrollPane = new JScrollPane(content);
+    scrollPane.getVerticalScrollBar().setUnitIncrement(20);
+    scrollPane.getVerticalScrollBar().setBlockIncrement(80);
+    add(scrollPane, BorderLayout.CENTER);
     add(actions, BorderLayout.SOUTH);
     setPreferredSize(new Dimension(920, 700));
     setMinimumSize(new Dimension(820, 620));
@@ -202,6 +239,11 @@ final class MassRunDialog extends JDialog {
       List<Integer> taxiSeatCounts = parseCsvInts(taxiSeatCountsField.getText(), 1, "taxi seat count");
       int taxiSpeed = parseInt(taxiSpeedField.getText(), 1);
       int simulationSpeed = parseInt(simulationSpeedField.getText(), 1);
+      int mapSize = parseInt(mapSizeField.getText(), 1);
+      boolean idleRoamingEnabled = idleRoamingEnabledCheck.isSelected();
+      int idleThresholdTicks = parseInt(idleThresholdField.getText(), 1);
+      int idleCheckThrottleTicks = parseInt(idleCheckThrottleField.getText(), 1);
+      int randomTravelMaxDistance = parseInt(randomTravelMaxDistanceField.getText(), 1);
 
       if (outputDir.isBlank()) {
         throw new IllegalArgumentException("Output dir must not be blank");
@@ -230,70 +272,158 @@ final class MassRunDialog extends JDialog {
               clientSpeed,
               taxiSeatCounts,
               taxiSpeed,
-              simulationSpeed);
+              simulationSpeed,
+              mapSize,
+              idleRoamingEnabled,
+              idleThresholdTicks,
+              idleCheckThrottleTicks,
+              randomTravelMaxDistance);
       dispose();
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(this, ex.getMessage(), "Invalid mass run config", JOptionPane.ERROR_MESSAGE);
     }
   }
 
+  private void copyConfigToClipboard() {
+    try {
+      String text = serializeConfig();
+      Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
+    } catch (Exception ex) {
+      JOptionPane.showMessageDialog(this, "Failed to copy config: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+  }
+
+  private void pasteConfigFromClipboard() {
+    try {
+      String text = (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
+      applyConfig(text);
+    } catch (Exception ex) {
+      JOptionPane.showMessageDialog(this, "Failed to paste config: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+  }
+
+  String serializeConfig() {
+    Properties props = new Properties();
+    List<String> checkedAlgos = new ArrayList<>();
+    algorithmChecks.forEach((k, v) -> { if (v.isSelected()) checkedAlgos.add(k); });
+    props.setProperty("algorithms", String.join(",", checkedAlgos));
+    List<String> checkedStrategies = new ArrayList<>();
+    strategyChecks.forEach((k, v) -> { if (v.isSelected()) checkedStrategies.add(k); });
+    props.setProperty("p2pStrategies", String.join(",", checkedStrategies));
+    List<String> checkedScenarios = new ArrayList<>();
+    spawnScenarioChecks.forEach((k, v) -> { if (v.isSelected()) checkedScenarios.add(k); });
+    props.setProperty("spawnScenarios", String.join(",", checkedScenarios));
+    props.setProperty("kHops", kHopsField.getText());
+    props.setProperty("rqsRadius", rqsRadiusField.getText());
+    props.setProperty("overlayMinNeighbors", overlayMinNeighborsField.getText());
+    props.setProperty("overlayMaxNeighbors", overlayMaxNeighborsField.getText());
+    props.setProperty("overlayShortcuts", overlayShortcutsField.getText());
+    props.setProperty("idleRoamingEnabled", String.valueOf(idleRoamingEnabledCheck.isSelected()));
+    props.setProperty("idleThresholdTicks", idleThresholdField.getText());
+    props.setProperty("idleCheckThrottleTicks", idleCheckThrottleField.getText());
+    props.setProperty("randomTravelMaxDistanceMeters", randomTravelMaxDistanceField.getText());
+    props.setProperty("runs", runsField.getText());
+    props.setProperty("baseSeed", baseSeedField.getText());
+    props.setProperty("outputDir", outputDirField.getText());
+    props.setProperty("taxiCounts", taxiCountsField.getText());
+    props.setProperty("clientCounts", clientCountsField.getText());
+    props.setProperty("clientSpawnWindow", clientSpawnWindowField.getText());
+    props.setProperty("clientSpeed", clientSpeedField.getText());
+    props.setProperty("taxiSeatCounts", taxiSeatCountsField.getText());
+    props.setProperty("taxiSpeed", taxiSpeedField.getText());
+    props.setProperty("simulationSpeed", simulationSpeedField.getText());
+    props.setProperty("mapSize", mapSizeField.getText());
+    StringWriter sw = new StringWriter();
+    try {
+      props.store(sw, "Mass Run Config");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return sw.toString();
+  }
+
+  void applyConfig(String configText) {
+    Properties props = new Properties();
+    try {
+      props.load(new StringReader(configText));
+    } catch (IOException e) {
+      JOptionPane.showMessageDialog(this, "Failed to parse config: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+      return;
+    }
+    Set<String> algos = parseCsvStringsOrEmpty(props.getProperty("algorithms", ""));
+    algorithmChecks.forEach((k, v) -> v.setSelected(algos.contains(k)));
+    Set<String> strategies = parseCsvStringsOrEmpty(props.getProperty("p2pStrategies", ""));
+    strategyChecks.forEach((k, v) -> v.setSelected(strategies.contains(k)));
+    Set<String> scenarios = parseCsvStringsOrEmpty(props.getProperty("spawnScenarios", ""));
+    spawnScenarioChecks.forEach((k, v) -> v.setSelected(scenarios.contains(k)));
+    setFieldIfPresent(kHopsField, props, "kHops");
+    setFieldIfPresent(rqsRadiusField, props, "rqsRadius");
+    setFieldIfPresent(overlayMinNeighborsField, props, "overlayMinNeighbors");
+    setFieldIfPresent(overlayMaxNeighborsField, props, "overlayMaxNeighbors");
+    setFieldIfPresent(overlayShortcutsField, props, "overlayShortcuts");
+    if (props.containsKey("idleRoamingEnabled")) {
+      idleRoamingEnabledCheck.setSelected(Boolean.parseBoolean(props.getProperty("idleRoamingEnabled")));
+    }
+    setFieldIfPresent(idleThresholdField, props, "idleThresholdTicks");
+    setFieldIfPresent(idleCheckThrottleField, props, "idleCheckThrottleTicks");
+    setFieldIfPresent(randomTravelMaxDistanceField, props, "randomTravelMaxDistanceMeters");
+    setFieldIfPresent(runsField, props, "runs");
+    setFieldIfPresent(baseSeedField, props, "baseSeed");
+    setFieldIfPresent(outputDirField, props, "outputDir");
+    setFieldIfPresent(taxiCountsField, props, "taxiCounts");
+    setFieldIfPresent(clientCountsField, props, "clientCounts");
+    setFieldIfPresent(clientSpawnWindowField, props, "clientSpawnWindow");
+    setFieldIfPresent(clientSpeedField, props, "clientSpeed");
+    setFieldIfPresent(taxiSeatCountsField, props, "taxiSeatCounts");
+    setFieldIfPresent(taxiSpeedField, props, "taxiSpeed");
+    setFieldIfPresent(simulationSpeedField, props, "simulationSpeed");
+    setFieldIfPresent(mapSizeField, props, "mapSize");
+  }
+
+  private static void setFieldIfPresent(JTextField field, Properties props, String key) {
+    if (props.containsKey(key)) {
+      field.setText(props.getProperty(key));
+    }
+  }
+
   private List<String> selectedAlgorithms() {
     List<String> selected = new ArrayList<>();
     for (Map.Entry<String, JCheckBox> entry : algorithmChecks.entrySet()) {
-      if (entry.getValue().isSelected()) {
-        selected.add(entry.getKey());
-      }
+      if (entry.getValue().isSelected()) selected.add(entry.getKey());
     }
-    if (selected.isEmpty()) {
-      throw new IllegalArgumentException("Select at least one algorithm");
-    }
+    if (selected.isEmpty()) throw new IllegalArgumentException("Select at least one algorithm");
     return selected;
   }
 
   private List<String> selectedSpawnScenarios() {
     List<String> selected = new ArrayList<>();
     for (Map.Entry<String, JCheckBox> entry : spawnScenarioChecks.entrySet()) {
-      if (entry.getValue().isSelected()) {
-        selected.add(entry.getKey());
-      }
+      if (entry.getValue().isSelected()) selected.add(entry.getKey());
     }
-    if (selected.isEmpty()) {
-      throw new IllegalArgumentException("Select at least one spawn scenario");
-    }
+    if (selected.isEmpty()) throw new IllegalArgumentException("Select at least one spawn scenario");
     return selected;
   }
 
   private List<String> selectedStrategies() {
     List<String> selected = new ArrayList<>();
     for (Map.Entry<String, JCheckBox> entry : strategyChecks.entrySet()) {
-      if (entry.getValue().isSelected()) {
-        selected.add(entry.getKey());
-      }
+      if (entry.getValue().isSelected()) selected.add(entry.getKey());
     }
-    if (selected.isEmpty()) {
-      throw new IllegalArgumentException("Select at least one strategy");
-    }
+    if (selected.isEmpty()) throw new IllegalArgumentException("Select at least one strategy");
     return selected;
   }
 
   private static int parseInt(String text, int min) {
-    int value = Integer.parseInt(text.trim());
-    return Math.max(min, value);
+    return Math.max(min, Integer.parseInt(text.trim()));
   }
 
   private static List<Integer> parseCsvInts(String text, int min, String label) {
     Set<Integer> values = new LinkedHashSet<>();
     for (String part : text.split(",")) {
       String trimmed = part.trim();
-      if (trimmed.isBlank()) {
-        continue;
-      }
-      int value = parseIntToken(trimmed, label);
-      values.add(Math.max(min, value));
+      if (!trimmed.isBlank()) values.add(Math.max(min, parseIntToken(trimmed, label)));
     }
-    if (values.isEmpty()) {
-      throw new IllegalArgumentException("At least one " + label + " value is required");
-    }
+    if (values.isEmpty()) throw new IllegalArgumentException("At least one " + label + " value is required");
     return new ArrayList<>(values);
   }
 
@@ -301,41 +431,26 @@ final class MassRunDialog extends JDialog {
     List<Integer> values = new ArrayList<>();
     for (String part : text.split(",")) {
       String trimmed = part.trim();
-      if (trimmed.isBlank()) {
-        continue;
-      }
-      int value = parseIntToken(trimmed, label);
-      values.add(Math.max(min, value));
+      if (!trimmed.isBlank()) values.add(Math.max(min, parseIntToken(trimmed, label)));
     }
-    if (values.isEmpty()) {
-      throw new IllegalArgumentException("At least one " + label + " value is required");
-    }
+    if (values.isEmpty()) throw new IllegalArgumentException("At least one " + label + " value is required");
     return values;
   }
 
   private static int parseIntToken(String token, String label) {
-    if (token == null) {
-      throw new IllegalArgumentException("Invalid " + label + " value: null");
-    }
-    String normalized = token.trim();
-    if (normalized.equalsIgnoreCase("INF")
-        || normalized.equalsIgnoreCase("MAX")
-        || normalized.equalsIgnoreCase("Integer.MAX_VALUE")) {
+    if (token == null) throw new IllegalArgumentException("Invalid " + label + " value: null");
+    String n = token.trim();
+    if (n.equalsIgnoreCase("INF") || n.equalsIgnoreCase("MAX") || n.equalsIgnoreCase("Integer.MAX_VALUE"))
       return Integer.MAX_VALUE;
-    }
-    return Integer.parseInt(normalized);
+    return Integer.parseInt(n);
   }
 
   private static Set<String> parseCsvStringsOrEmpty(String text) {
     Set<String> values = new LinkedHashSet<>();
-    if (text == null || text.isBlank()) {
-      return values;
-    }
+    if (text == null || text.isBlank()) return values;
     for (String part : text.split(",")) {
       String trimmed = part.trim();
-      if (!trimmed.isBlank()) {
-        values.add(trimmed);
-      }
+      if (!trimmed.isBlank()) values.add(trimmed);
     }
     return values;
   }
@@ -358,7 +473,12 @@ final class MassRunDialog extends JDialog {
       int clientSpeed,
       String taxiSeatCountsCsv,
       int taxiSpeed,
-      int simulationSpeed) {}
+      int simulationSpeed,
+      int mapSize,
+      boolean idleRoamingEnabled,
+      int idleThresholdTicks,
+      int idleCheckThrottleTicks,
+      int randomTravelMaxDistanceMeters) {}
 
   record MassRunConfig(
       List<String> algorithms,
@@ -378,5 +498,10 @@ final class MassRunDialog extends JDialog {
       int clientSpeed,
       List<Integer> taxiSeatCounts,
       int taxiSpeed,
-      int simulationSpeed) {}
+      int simulationSpeed,
+      int mapSize,
+      boolean idleRoamingEnabled,
+      int idleThresholdTicks,
+      int idleCheckThrottleTicks,
+      int randomTravelMaxDistanceMeters) {}
 }
