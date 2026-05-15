@@ -892,7 +892,7 @@ public class TaxiScenarioControl extends AbstractControl {
         String.valueOf(taxiSeatCount),
         taxiSpeed,
         simulationSpeed,
-        mapSize,
+        String.valueOf(mapSize),
         idleRoamingEnabled,
         idleThresholdTicks,
         idleCheckThrottleTicks,
@@ -980,6 +980,9 @@ public class TaxiScenarioControl extends AbstractControl {
                                 pairIndex++) {
                               int taxiCount = config.taxiCounts().get(pairIndex);
                               int clientCount = config.clientCounts().get(pairIndex);
+                              int mapSize = config.mapSizes().size() == 1
+                                  ? config.mapSizes().get(0)
+                                  : config.mapSizes().get(pairIndex);
                               for (int taxiSeatCount : config.taxiSeatCounts()) {
                                 for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
                                   int seed = config.baseSeed() + (runIndex - 1);
@@ -997,6 +1000,7 @@ public class TaxiScenarioControl extends AbstractControl {
                                           taxiCount,
                                           clientCount,
                                           taxiSeatCount,
+                                          mapSize,
                                           seed);
                                   String timestamp = java.time.Instant.now().toString();
                                   runRows.addAll(
@@ -1100,6 +1104,7 @@ public class TaxiScenarioControl extends AbstractControl {
       int taxiCount,
       int clientCount,
       int taxiSeatCount,
+      int mapSize,
       int seed)
       throws Exception {
     MassRunIterationResult result =
@@ -1113,7 +1118,7 @@ public class TaxiScenarioControl extends AbstractControl {
               setSpinnerValueIfPresent("clientSpeed", config.clientSpeed());
               setSpinnerValueIfPresent("taxiSeatCount", taxiSeatCount);
               setSpinnerValueIfPresent("taxiSpeed", config.taxiSpeed());
-              setSpinnerValueIfPresent("mapSize", config.mapSize());
+              setSpinnerValueIfPresent("mapSize", mapSize);
               setComboIndexIfPresent(
                   "spawnScenario",
                   de.sikeller.aqs.model.SpawnScenario.fromLabel(spawnScenario).ordinal());

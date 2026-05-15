@@ -89,7 +89,7 @@ final class MassRunDialog extends JDialog {
     taxiSeatCountsField = new JTextField(defaults.taxiSeatCountsCsv());
     taxiSpeedField = new JTextField(String.valueOf(defaults.taxiSpeed()));
     simulationSpeedField = new JTextField(String.valueOf(defaults.simulationSpeed()));
-    mapSizeField = new JTextField(String.valueOf(defaults.mapSize()));
+    mapSizeField = new JTextField(defaults.mapSizeCsv());
     addRow(worldPanel, "Taxi counts (CSV)", taxiCountsField);
     addRow(worldPanel, "Client counts (CSV, pairwise with taxi counts)", clientCountsField);
     addRow(worldPanel, "Client spawn window", clientSpawnWindowField);
@@ -97,7 +97,7 @@ final class MassRunDialog extends JDialog {
     addRow(worldPanel, "Taxi seat counts (CSV)", taxiSeatCountsField);
     addRow(worldPanel, "Taxi speed", taxiSpeedField);
     addRow(worldPanel, "Simulation speed", simulationSpeedField);
-    addRow(worldPanel, "Map size [m]", mapSizeField);
+    addRow(worldPanel, "Map size [m] (CSV, pairwise with taxi/client or single)", mapSizeField);
 
     JPanel collectorPanel = new JPanel(new GridLayout(0, 2, 8, 8));
     collectorPanel.setBorder(BorderFactory.createTitledBorder("P2P Collector Options"));
@@ -239,7 +239,7 @@ final class MassRunDialog extends JDialog {
       List<Integer> taxiSeatCounts = parseCsvInts(taxiSeatCountsField.getText(), 1, "taxi seat count");
       int taxiSpeed = parseInt(taxiSpeedField.getText(), 1);
       int simulationSpeed = parseInt(simulationSpeedField.getText(), 1);
-      int mapSize = parseInt(mapSizeField.getText(), 1);
+      List<Integer> mapSizes = parseCsvIntList(mapSizeField.getText(), 1, "map size");
       boolean idleRoamingEnabled = idleRoamingEnabledCheck.isSelected();
       int idleThresholdTicks = parseInt(idleThresholdField.getText(), 1);
       int idleCheckThrottleTicks = parseInt(idleCheckThrottleField.getText(), 1);
@@ -251,6 +251,11 @@ final class MassRunDialog extends JDialog {
       if (taxiCounts.size() != clientCounts.size()) {
         throw new IllegalArgumentException(
             "Taxi counts and client counts must have the same number of entries for pairwise runs");
+      }
+      if (mapSizes.size() != 1 && mapSizes.size() != taxiCounts.size()) {
+        throw new IllegalArgumentException(
+            "Map sizes must be either a single value (used for all pairs) or pairwise with taxi/client counts ("
+                + taxiCounts.size() + " entries expected)");
       }
 
       result =
@@ -273,7 +278,7 @@ final class MassRunDialog extends JDialog {
               taxiSeatCounts,
               taxiSpeed,
               simulationSpeed,
-              mapSize,
+              mapSizes,
               idleRoamingEnabled,
               idleThresholdTicks,
               idleCheckThrottleTicks,
@@ -474,7 +479,7 @@ final class MassRunDialog extends JDialog {
       String taxiSeatCountsCsv,
       int taxiSpeed,
       int simulationSpeed,
-      int mapSize,
+      String mapSizeCsv,
       boolean idleRoamingEnabled,
       int idleThresholdTicks,
       int idleCheckThrottleTicks,
@@ -499,7 +504,7 @@ final class MassRunDialog extends JDialog {
       List<Integer> taxiSeatCounts,
       int taxiSpeed,
       int simulationSpeed,
-      int mapSize,
+      List<Integer> mapSizes,
       boolean idleRoamingEnabled,
       int idleThresholdTicks,
       int idleCheckThrottleTicks,

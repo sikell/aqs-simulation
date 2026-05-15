@@ -111,7 +111,7 @@ final class MassRunCsvWriter {
     props.setProperty("taxiSeatCounts", config.taxiSeatCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     props.setProperty("taxiSpeed", String.valueOf(config.taxiSpeed()));
     props.setProperty("simulationSpeed", String.valueOf(config.simulationSpeed()));
-    props.setProperty("mapSize", String.valueOf(config.mapSize()));
+    props.setProperty("mapSize", config.mapSizes().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     try (java.io.Writer w = Files.newBufferedWriter(configFile, StandardCharsets.UTF_8)) {
       props.store(w, "Mass Run Config – generated " + java.time.Instant.now());
     }
