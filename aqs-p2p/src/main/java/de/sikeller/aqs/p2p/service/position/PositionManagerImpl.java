@@ -25,13 +25,15 @@ public class PositionManagerImpl implements PositionManager {
   }
 
   @Override
-  public void updatePosition(String nodeId, int x, int y, long tick) {
-    if (nodeId == null || nodeId.isBlank()) return;
+  public boolean updatePosition(String nodeId, int x, int y, long tick) {
+    if (nodeId == null || nodeId.isBlank()) return false;
     Position prev = positions.get(nodeId);
     Position next = new Position(x, y, tick);
     positions.put(nodeId, next);
     maybeBumpRevision(prev, next);
     maxTick.updateAndGet(cur -> Math.max(cur, tick));
+    // Signal "changed" when the position (x,y) is new or different from the previous one
+    return prev == null || prev.getX() != x || prev.getY() != y;
   }
 
   @Override

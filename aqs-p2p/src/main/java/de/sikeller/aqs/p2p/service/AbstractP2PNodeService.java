@@ -105,10 +105,12 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     if (descriptor.role() != NodeRole.VEHICLE) {
       return;
     }
-    // delegate storage and revision handling to PositionManager
-    positionManager.updatePosition(descriptor.id(), x, y, simulationTick);
-    // publish position as before
-    publishVehiclePosition(x, y, simulationTick);
+    boolean changed = positionManager.updatePosition(descriptor.id(), x, y, simulationTick);
+    // Only broadcast position when it actually changed - avoids flooding all peers
+    // every tick when a taxi is stationary (e.g. waiting at map edge)
+    if (changed) {
+      publishVehiclePosition(x, y, simulationTick);
+    }
   }
 
   public Map<String, Position> vehiclePositionSnapshot() {
@@ -178,10 +180,13 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   public record OverlayNeighborSnapshot(Set<String> neighborIds, Set<String> shortcutIds) {}
 
   protected void handleIncoming(P2PMessage message) {
-    inbox.add(message);
-    inboxSize.incrementAndGet();
     messagesReceived.incrementAndGet();
 
+    // VEHICLE_POSITION and TOPOLOGY_SCAN_REQUEST are handled entirely inline.
+    // Do NOT add them to the inbox: vehicle nodes never drain their inbox, so these
+    // messages would accumulate unboundedly (100M+ objects over a long simulation run)
+    // causing severe GC pressure. Only messages that a consumer will actually drain
+    // belong in the inbox.
     if (P2PTopics.VEHICLE_POSITION.equals(message.topic())) {
       handleVehiclePosition(message);
       return;
@@ -192,6 +197,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return;
     }
 
+    inbox.add(message);
+    inboxSize.incrementAndGet();
     onMessage(message);
   }
 

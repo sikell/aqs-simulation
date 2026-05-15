@@ -39,7 +39,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final int MAX_FORWARDED_PAYLOAD_CACHE_SIZE = 200;
 
   private final ConcurrentMap<String, String> committedByRequest = new ConcurrentHashMap<>();
-  private final Set<String> seenRideRequests = ConcurrentHashMap.newKeySet();
+  // Track first-seen tick per requestId so we can evict stale entries along with openRideRequests
+  private final ConcurrentMap<String, Long> seenRideRequests = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, OpenRideRequest> openRideRequests = new ConcurrentHashMap<>();
   // cache for previously computed forwarded payload strings to avoid repeated parsing/serialization
   private final ConcurrentMap<String, String> forwardedPayloadCache = new ConcurrentHashMap<>();
@@ -201,7 +202,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         requestId,
         message.senderId(),
         message.payload());
-    if (!seenRideRequests.add(requestId)) {
+    if (seenRideRequests.putIfAbsent(requestId, currentSimulationTick) != null) {
       log.debug("Ignoring duplicate ride request {} from {}", requestId, message.senderId());
       return;
     }
@@ -482,6 +483,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         .entrySet()
         .removeIf(
             entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks);
+    // Also evict stale seenRideRequests entries to prevent unbounded growth over long runs
+    seenRideRequests.entrySet().removeIf(entry -> nowTick - entry.getValue() > ttlTicks);
     // Evict forwarded payload cache if too large
     if (forwardedPayloadCache.size() > MAX_FORWARDED_PAYLOAD_CACHE_SIZE) {
       forwardedPayloadCache.clear();

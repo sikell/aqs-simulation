@@ -8,8 +8,13 @@ import java.util.Map;
  * thread-safe.
  */
 public interface PositionManager {
-  /** Update the position for a node. */
-  void updatePosition(String nodeId, int x, int y, long tick);
+  /**
+   * Update the position for a node.
+   *
+   * @return {@code true} if the position actually changed (moved or first seen), {@code false} if
+   *     the position is identical to the previously stored one.
+   */
+  boolean updatePosition(String nodeId, int x, int y, long tick);
 
   /** Snapshot for external callers: id -> [x, y] */
   Map<String, Position> snapshot();
