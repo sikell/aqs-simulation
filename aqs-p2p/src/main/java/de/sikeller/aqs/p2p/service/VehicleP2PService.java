@@ -62,8 +62,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   /** Persistent idle target while taxi remains idle; reused until reached or cancelled. */
   private final AtomicReference<Position> currentIdleTarget = new AtomicReference<>();
 
-  private volatile int mapMaxX = 100_000;
-  private volatile int mapMaxY = 100_000;
+  private volatile int mapMaxX = 0;  // 0 = not yet initialized from world
+  private volatile int mapMaxY = 0;
 
   /** Called by the collector to provide the authoritative World map bounds for idle travel. */
   public synchronized void setMapBounds(int maxX, int maxY) {
@@ -733,6 +733,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (simulationX == null || simulationY == null) {
       return;
     }
+    // Skip if map bounds are not yet initialized (setMapBounds not called yet)
+    if (mapMaxX <= 0 || mapMaxY <= 0) {
+      return;
+    }
 
     Position target = currentIdleTarget.get();
     if (target == null) {
@@ -769,8 +773,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   }
 
   /**
-   * Generate a random target position within a specified radius and map bounds. Uses seeded Random
-   * for reproducibility. O(1) operation.
+   * Generate a random target position within the map. Uses a polar-coordinate offset from the
+   * current position, clamped to map bounds. If the result equals the current position (e.g. taxi
+   * is at a corner and all random angles go outside), falls back to the map center.
    *
    * @param currentX current X coordinate
    * @param currentY current Y coordinate
@@ -783,23 +788,28 @@ public class VehicleP2PService extends AbstractP2PNodeService {
             Integer.getInteger(
                 P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS, 20000));
 
-    int minBound = 0;
+    // Guard: map bounds must be initialized via setMapBounds before generating targets.
+    // If not set yet, return current position - checkAndTriggerIdleTravel will retry later.
+    if (mapMaxX <= 0 || mapMaxY <= 0) {
+      return new Position(currentX, currentY);
+    }
 
     // Generate random angle and distance
     double angle = randomTravelGenerator.nextDouble() * 2 * Math.PI;
     double distance = randomTravelGenerator.nextDouble() * maxDistanceMeters;
 
-    // Calculate target using polar coordinates
-    int targetX = (int) Math.round(currentX + distance * Math.cos(angle));
-    int targetY = (int) Math.round(currentY + distance * Math.sin(angle));
+    // Clamp to map bounds with a small 2% margin so taxis can never target the exact edge.
+    // This prevents the "sliding along the boundary" problem where ~50% of random angles
+    // from an edge position produce out-of-bounds targets that clamp back to the same edge.
+    int marginX = Math.max(1, mapMaxX / 50);
+    int marginY = Math.max(1, mapMaxY / 50);
+    int targetX = Math.max(marginX, Math.min(mapMaxX - marginX, (int) Math.round(currentX + distance * Math.cos(angle))));
+    int targetY = Math.max(marginY, Math.min(mapMaxY - marginY, (int) Math.round(currentY + distance * Math.sin(angle))));
 
-    // Clamp to map bounds
-    targetX = Math.max(minBound, Math.min(mapMaxX, targetX));
-    targetY = Math.max(minBound, Math.min(mapMaxY, targetY));
-
-    // Ensure we actually moved (avoid publishing same position)
+    // Final fallback: if both axes equal current position, aim for the map center.
     if (targetX == currentX && targetY == currentY) {
-      targetX = Math.min(mapMaxX, currentX + 10);
+      targetX = mapMaxX / 2;
+      targetY = mapMaxY / 2;
     }
 
     return new Position(targetX, targetY);

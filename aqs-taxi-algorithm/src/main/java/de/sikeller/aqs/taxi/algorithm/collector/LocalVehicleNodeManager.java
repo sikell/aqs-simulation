@@ -59,6 +59,7 @@ public class LocalVehicleNodeManager {
               String vehicleNodeId = vehicleNodePrefix + taxi.getName();
               VehicleP2PService vehicleNode = vehicleNodeFactory.create(vehicleNodeId, network);
               vehicleNode.start();
+              vehicleNode.setMapBounds(world.getMaxX(), world.getMaxY());
               localVehicleNodesByTaxiName.put(taxi.getName(), vehicleNode);
               vehicleNodeToTaxiName.put(vehicleNodeId, taxi.getName());
               taxiNameToVehicleNodeId.put(taxi.getName(), vehicleNodeId);
