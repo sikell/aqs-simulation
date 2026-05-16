@@ -1,0 +1,25 @@
+metric,variant_k,spawnScenario,count,mean,median,std,min,max
+Calculation Time [millis],P2PCollector+nearest (k=0),BASELINE,200,0.1679,0.09,0.13125444237516717,0.02,0.4
+Calculation Time [millis],P2PCollector+nearest (k=1),BASELINE,200,0.15395,0.09,0.1269823613755175,0.02,0.38
+Calculation Time [millis],P2PCollector+nearest (k=2),BASELINE,200,0.15475,0.09,0.12959518532839676,0.02,0.4
+Calculation Time [millis],P2PCollector+nearest (k=5),BASELINE,200,0.1624,0.09,0.139900323453924,0.01,0.52
+Calculation Time [millis],SinglePassenger,BASELINE,50,0.0,0.0,0.0,0.0,0.0
+Calculation Time [millis],VehicleRouting,BASELINE,50,3.338,0.42500000000000004,6.188289467260905,0.05,24.84
+Client Travel Time [min],P2PCollector+nearest (k=0),BASELINE,200,6918.0013,3751.21,5797.670006354728,1189.08,19504.16
+Client Travel Time [min],P2PCollector+nearest (k=1),BASELINE,200,6844.7510999999995,3703.95,5797.780796462986,1324.92,19504.16
+Client Travel Time [min],P2PCollector+nearest (k=2),BASELINE,200,6885.4358999999995,3913.93,5767.953623084925,1406.68,19504.16
+Client Travel Time [min],P2PCollector+nearest (k=5),BASELINE,200,6886.97275,3541.6899999999996,5744.380832515526,1465.56,19504.16
+Client Travel Time [min],SinglePassenger,BASELINE,50,2355.7924,2638.37,856.8285798544227,1168.08,3850.68
+Client Travel Time [min],VehicleRouting,BASELINE,50,2399.8144,2527.77,787.5322191715753,1220.12,3954.48
+Client Waiting Time [min],P2PCollector+nearest (k=0),BASELINE,200,67.19245,40.34,67.47207104687293,0.0,491.45
+Client Waiting Time [min],P2PCollector+nearest (k=1),BASELINE,200,66.71995,40.455,67.99085815357677,0.0,491.45
+Client Waiting Time [min],P2PCollector+nearest (k=2),BASELINE,200,67.15984999999999,38.105000000000004,67.76045593426589,0.0,491.45
+Client Waiting Time [min],P2PCollector+nearest (k=5),BASELINE,200,67.4902,36.364999999999995,67.19185133174209,0.0,491.45
+Client Waiting Time [min],SinglePassenger,BASELINE,50,24.523600000000002,29.685000000000002,14.563538306332015,5.18,49.49
+Client Waiting Time [min],VehicleRouting,BASELINE,50,20.2868,20.450000000000003,5.334506246876014,11.29,30.74
+Taxi Travel Distance [km],P2PCollector+nearest (k=0),BASELINE,200,70.54,66.61,45.23666231150821,0.0,151.82
+Taxi Travel Distance [km],P2PCollector+nearest (k=1),BASELINE,200,75.6725,74.745,49.15212921923037,0.0,166.42
+Taxi Travel Distance [km],P2PCollector+nearest (k=2),BASELINE,200,78.10205,75.265,51.257432252337956,0.0,180.06
+Taxi Travel Distance [km],P2PCollector+nearest (k=5),BASELINE,200,81.2511,79.635,53.83615524765161,0.0,173.9
+Taxi Travel Distance [km],SinglePassenger,BASELINE,50,143.0322,178.19,55.389990191627334,64.96,223.51
+Taxi Travel Distance [km],VehicleRouting,BASELINE,50,127.40459999999999,152.225,45.45675613600429,62.06,185.47

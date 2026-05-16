@@ -1,0 +1,60 @@
+{
+  "rows": 4500,
+  "algorithms": [
+    "TaxiAlgorithmP2PCollector",
+    "TaxiAlgorithmSinglePassenger",
+    "TaxiAlgorithmVehicleRouting"
+  ],
+  "variants": [
+    "TaxiAlgorithmP2PCollector+nearest",
+    "TaxiAlgorithmSinglePassenger",
+    "TaxiAlgorithmVehicleRouting"
+  ],
+  "metrics": [
+    "Calculation Time [millis]",
+    "Client Travel Time [min]",
+    "Client Waiting Time [min]",
+    "Custom Time [micros]",
+    "Taxi Travel Distance [km]"
+  ],
+  "spawnScenarios": [
+    "BASELINE"
+  ],
+  "varying_dims": {
+    "kHops": [
+      "0",
+      "1",
+      "2",
+      "5"
+    ],
+    "p2pRqsRadius": [
+      "1000",
+      "5000",
+      "10000",
+      "20000"
+    ],
+    "taxiCount": [
+      "5",
+      "10",
+      "20"
+    ],
+    "clientCount": [
+      "25",
+      "50",
+      "100"
+    ],
+    "algorithm": [
+      "TaxiAlgorithmP2PCollector",
+      "TaxiAlgorithmSinglePassenger",
+      "TaxiAlgorithmVehicleRouting"
+    ],
+    "p2pStrategy": [
+      "nan",
+      "nearest"
+    ]
+  },
+  "runIndex_range": [
+    1,
+    10
+  ]
+}

@@ -59,17 +59,17 @@ NUMERIC_DIMS = [
 CATEGORICAL_DIMS = ["algorithm", "p2pStrategy", "spawnScenario"]
 
 DIM_LABELS: dict[str, str] = {
-    "kHops":                  "k-Hops",
-    "p2pRqsRadius":           "RQS-Radius",
-    "taxiCount":              "Taxi-Anzahl",
-    "clientCount":            "Client-Anzahl",
-    "taxiSeatCount":          "Taxi-Sitze",
+    "kHops": "k-Hops",
+    "p2pRqsRadius": "RQS-Radius",
+    "taxiCount": "Taxi-Anzahl",
+    "clientCount": "Client-Anzahl",
+    "taxiSeatCount": "Taxi-Sitze",
     "p2pOverlayMinNeighbors": "Overlay Min-Nachbarn",
     "p2pOverlayMaxNeighbors": "Overlay Max-Nachbarn",
-    "p2pOverlayShortcuts":    "Overlay Shortcuts",
-    "spawnScenario":          "Spawn-Szenario",
-    "algorithm":              "Algorithmus",
-    "p2pStrategy":            "P2P-Strategie",
+    "p2pOverlayShortcuts": "Overlay Shortcuts",
+    "spawnScenario": "Spawn-Szenario",
+    "algorithm": "Algorithmus",
+    "p2pStrategy": "P2P-Strategie",
 }
 
 _ZERO_THR = 1e-9
@@ -88,9 +88,9 @@ class AnalysisConfig:
 
 def parse_args() -> AnalysisConfig:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--input-csv",  default="mass-run-results/mass-run-results.csv", type=Path)
-    p.add_argument("--output-dir", default="mass-run-results/analysis",             type=Path)
-    p.add_argument("--metrics",    default="", help="Comma-separated metric filter (default: all)")
+    p.add_argument("--input-csv", default="mass-run-results/mass-run-results.csv", type=Path)
+    p.add_argument("--output-dir", default="mass-run-results/analysis", type=Path)
+    p.add_argument("--metrics", default="", help="Comma-separated metric filter (default: all)")
     a = p.parse_args()
     return AnalysisConfig(
         input_csv=a.input_csv,
@@ -196,7 +196,8 @@ def _enrich(df: pd.DataFrame) -> pd.DataFrame:
     )
     df["kHopsLabel"] = df["kHops"].apply(_fmt_khops)
     df["variant_k"] = df.apply(
-        lambda r: f"{r['variant_short']} (k={r['kHopsLabel']})" if _is_collector(r["algorithm_base"]) else r["variant_short"],
+        lambda r: f"{r['variant_short']} (k={r['kHopsLabel']})" if _is_collector(r["algorithm_base"]) else r[
+            "variant_short"],
         axis=1,
     )
     return df
@@ -275,7 +276,8 @@ def _annotate_bars(ax: plt.Axes, bars, values: pd.Series) -> None:
 def plot_algorithm_overview(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics: list[str]) -> None:
     """Bar chart comparing algorithm variants – one separate plot per scenario."""
     sns.set_theme(style="whitegrid")
-    scenarios = vdims.get("spawnScenario", [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
+    scenarios = vdims.get("spawnScenario",
+                          [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
 
     for metric in metrics:
         mdf = df[df["metric"] == metric]
@@ -317,7 +319,8 @@ def plot_dim_effect(df: pd.DataFrame, dim: str, vdims: dict, plots_dir: Path, me
     single-point "lines" that look empty.
     """
     sns.set_theme(style="whitegrid")
-    scenarios = vdims.get("spawnScenario", [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
+    scenarios = vdims.get("spawnScenario",
+                          [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
     dim_label = DIM_LABELS.get(dim, dim)
 
     # Choose grouping key: for kHops use variant_short so multiple k values
@@ -480,7 +483,8 @@ def plot_scaling_overview(df: pd.DataFrame, vdims: dict, plots_dir: Path, metric
         return
     sns.set_theme(style="whitegrid")
 
-    scenarios = vdims.get("spawnScenario", [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
+    scenarios = vdims.get("spawnScenario",
+                          [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
     has_scenarios = "spawnScenario" in vdims
     n_rows = len(numeric_varying)
 
@@ -510,7 +514,8 @@ def plot_scaling_overview(df: pd.DataFrame, vdims: dict, plots_dir: Path, metric
                     vd = agg[agg[gcol] == var].sort_values(dim)
                     if vd.empty or vd[dim].dropna().nunique() < 2:
                         continue
-                    ax.plot(vd[dim], vd["mean"], marker="o", linewidth=1.8, label=var, color=cmap.get(var, cmap.get(list(cmap)[0])))
+                    ax.plot(vd[dim], vd["mean"], marker="o", linewidth=1.8, label=var,
+                            color=cmap.get(var, cmap.get(list(cmap)[0])))
                     ax.fill_between(vd[dim], vd["mean"] - vd["ci95"], vd["mean"] + vd["ci95"],
                                     alpha=0.12, color=cmap.get(var, cmap.get(list(cmap)[0])))
                 ax.set_xlabel(DIM_LABELS.get(dim, dim), fontsize=9)
@@ -536,7 +541,8 @@ def plot_distributions(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics: 
         return
     sns.set_theme(style="whitegrid")
 
-    scenarios = vdims.get("spawnScenario", [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
+    scenarios = vdims.get("spawnScenario",
+                          [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
 
     for metric in metrics:
         mdf = df[df["metric"] == metric].copy()
@@ -631,7 +637,7 @@ def plot_3d_taxi_client(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics:
         palette = _palette(n_v)
 
         # Divide available cell width among variants; arrange them in a row along X
-        group_width_x = taxi_step * 0.7   # total width occupied by all variant bars at one grid point
+        group_width_x = taxi_step * 0.7  # total width occupied by all variant bars at one grid point
         group_width_y = client_step * 0.3  # fixed depth per bar
         bar_dx = group_width_x / max(n_v, 1)
         bar_dy = group_width_y
@@ -647,6 +653,8 @@ def plot_3d_taxi_client(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics:
             ax = fig.add_subplot(1, 1, 1, projection="3d")
 
             legend_handles = []
+            bar_x, bar_y, bar_h, bar_colors = [], [], [], []
+            annotations = []
             for vi, var in enumerate(variants):
                 vdata = sub[sub["variant_k"] == var]
                 agg = (
@@ -660,36 +668,47 @@ def plot_3d_taxi_client(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics:
                 xs = agg["taxiCount"].to_numpy(dtype=float)
                 ys = agg["clientCount"].to_numpy(dtype=float)
                 zs = agg["avg"].to_numpy(dtype=float)
-                zfloor = np.zeros_like(zs)
                 color = palette[vi]
 
-                ax.bar3d(
-                    xs + x_offsets[vi] - bar_dx / 2,
-                    ys - bar_dy / 2,
-                    zfloor,
-                    bar_dx * 0.88,
-                    bar_dy * 0.88,
-                    zs,
-                    color=[(*color, 0.78)],
-                    edgecolor="white",
-                    linewidth=0.3,
-                    shade=True,
-                )
-
-                # annotate top of each bar (only if few variants to avoid clutter)
-                if n_v <= 4:
-                    for x, y, z in zip(xs, ys, zs):
-                        if not np.isnan(z):
-                            ax.text(
-                                x + x_offsets[vi], y, z * 1.015,
-                                f"{z:.1f}", ha="center", va="bottom", fontsize=6.5,
-                                color=[c * 0.6 for c in color],
-                            )
+                # Collect bars first; draw all of them in one bar3d() call.
+                # This lets mplot3d z-sort globally instead of per-variant collection.
+                for x, y, z in zip(xs, ys, zs):
+                    if np.isnan(z):
+                        continue
+                    bar_x.append(x + x_offsets[vi] - bar_dx / 2)
+                    bar_y.append(y - bar_dy / 2)
+                    bar_h.append(z)
+                    bar_colors.append((*color, 0.78))
+                    if n_v <= 4:
+                        annotations.append((x + x_offsets[vi], y, z, color))
 
                 legend_handles.append(
                     plt.Rectangle((0, 0), 1, 1, fc=(*color, 0.78), ec="white", linewidth=0.5,
                                   label=var)
                 )
+
+            if bar_x:
+                n_bars = len(bar_x)
+                ax.bar3d(
+                    np.asarray(bar_x, dtype=float),
+                    np.asarray(bar_y, dtype=float),
+                    np.zeros(n_bars, dtype=float),
+                    np.full(n_bars, bar_dx * 0.72, dtype=float),
+                    np.full(n_bars, bar_dy * 0.72, dtype=float),
+                    np.asarray(bar_h, dtype=float),
+                    color=bar_colors,
+                    edgecolor="white",
+                    linewidth=0.3,
+                    shade=True,
+                    zsort="average",
+                )
+
+                for x, y, z, color in annotations:
+                    ax.text(
+                        x, y, z * 1.015,
+                        f"{z:.1f}", ha="center", va="bottom", fontsize=6.5,
+                        color=[c * 0.6 for c in color],
+                    )
 
             ax.set_xlabel(DIM_LABELS.get("taxiCount", "taxiCount"), fontsize=10, labelpad=8)
             ax.set_ylabel(DIM_LABELS.get("clientCount", "clientCount"), fontsize=10, labelpad=8)
@@ -715,8 +734,6 @@ def plot_3d_taxi_client(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics:
             )
 
 
-
-
 def write_stats(df: pd.DataFrame, dirs: dict, metrics: list[str]) -> pd.DataFrame:
     records = []
     for metric in metrics:
@@ -726,7 +743,7 @@ def write_stats(df: pd.DataFrame, dirs: dict, metrics: list[str]) -> pd.DataFram
             try:
                 f, p = stats.f_oneway(*groups)
                 records.append({"metric": metric, "test": "ANOVA(avg ~ variant_k)",
-                                 "F": float(f), "p_value": float(p)})
+                                "F": float(f), "p_value": float(p)})
             except Exception:
                 pass
 
@@ -744,8 +761,8 @@ def write_stats(df: pd.DataFrame, dirs: dict, metrics: list[str]) -> pd.DataFram
     summary.to_csv(dirs["tables"] / "summary.csv", index=False)
 
     pivot_cols = [c for c in ["variant_k", "kHops", "spawnScenario", "taxiCount", "taxiSeatCount",
-                               "p2pRqsRadius", "p2pOverlayMinNeighbors", "p2pOverlayMaxNeighbors",
-                               "p2pOverlayShortcuts"] if c in df.columns]
+                              "p2pRqsRadius", "p2pOverlayMinNeighbors", "p2pOverlayMaxNeighbors",
+                              "p2pOverlayShortcuts"] if c in df.columns]
     pivot = (
         df[df["metric"].isin(metrics)]
         .pivot_table(index=pivot_cols, columns="metric", values="avg", aggfunc="mean")
@@ -847,7 +864,7 @@ def build_report(dirs: dict, overview: dict, tests_df: pd.DataFrame) -> None:
     # JSON array for JS lightbox
     import json as _json
     images_json = _json.dumps(
-        [{"src": f"plots/{n}", "caption": n.replace(".png","").replace("_"," ")} for n in all_images]
+        [{"src": f"plots/{n}", "caption": n.replace(".png", "").replace("_", " ")} for n in all_images]
     )
 
     sig = 0
@@ -864,12 +881,12 @@ def build_report(dirs: dict, overview: dict, tests_df: pd.DataFrame) -> None:
     cards = "".join(
         f"<div class='card'><div class='ct'>{html.escape(t)}</div><div class='cv'>{html.escape(v)}</div></div>"
         for t, v in [
-            ("Zeilen",           str(overview.get("rows", "–"))),
-            ("Metriken",         str(len(overview.get("metrics", [])))),
-            ("Varianten",        str(len(overview.get("variants", [])))),
-            ("Spawn-Szenarien",  str(len(overview.get("spawnScenarios", [])))),
+            ("Zeilen", str(overview.get("rows", "–"))),
+            ("Metriken", str(len(overview.get("metrics", [])))),
+            ("Varianten", str(len(overview.get("variants", [])))),
+            ("Spawn-Szenarien", str(len(overview.get("spawnScenarios", [])))),
             ("Var. Dimensionen", str(len(overview.get("varying_dims", {})))),
-            ("Signif. ANOVA",    str(sig)),
+            ("Signif. ANOVA", str(sig)),
         ]
     )
     vdims_list = "".join(
@@ -1146,13 +1163,13 @@ def main() -> None:
 
     # 5. Multi-dim facet plots for the most informative 2-dim combinations
     _facet_pairs = [
-        ("taxiCount",            "spawnScenario"),
-        ("kHops",                "spawnScenario"),
-        ("taxiCount",            "taxiSeatCount"),
-        ("kHops",                "taxiSeatCount"),
-        ("p2pRqsRadius",         "spawnScenario"),
+        ("taxiCount", "spawnScenario"),
+        ("kHops", "spawnScenario"),
+        ("taxiCount", "taxiSeatCount"),
+        ("kHops", "taxiSeatCount"),
+        ("p2pRqsRadius", "spawnScenario"),
         ("p2pOverlayMinNeighbors", "spawnScenario"),
-        ("taxiCount",            "p2pStrategy"),
+        ("taxiCount", "p2pStrategy"),
     ]
     for dim_x, dim_facet in _facet_pairs:
         if dim_x in vdims and dim_facet in vdims:
@@ -1173,4 +1190,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
