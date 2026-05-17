@@ -98,6 +98,7 @@ final class MassRunCsvWriter {
     props.setProperty("overlayMaxNeighbors", config.overlayMaxNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     props.setProperty("overlayShortcuts", config.overlayShortcutsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     props.setProperty("idleRoamingEnabled", String.valueOf(config.idleRoamingEnabled()));
+    props.setProperty("idleRoamingStrategy", String.valueOf(config.idleRoamingStrategy()));
     props.setProperty("idleThresholdTicks", String.valueOf(config.idleThresholdTicks()));
     props.setProperty("idleCheckThrottleTicks", String.valueOf(config.idleCheckThrottleTicks()));
     props.setProperty("randomTravelMaxDistanceMeters", String.valueOf(config.randomTravelMaxDistanceMeters()));

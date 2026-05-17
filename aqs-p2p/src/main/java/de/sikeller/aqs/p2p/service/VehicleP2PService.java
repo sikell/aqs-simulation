@@ -1,6 +1,7 @@
 package de.sikeller.aqs.p2p.service;
 
 import de.sikeller.aqs.model.Position;
+import de.sikeller.aqs.model.SpawnScenario;
 import de.sikeller.aqs.p2p.api.NodeDescriptor;
 import de.sikeller.aqs.p2p.api.NodeRole;
 import de.sikeller.aqs.p2p.api.P2PMessage;
@@ -11,17 +12,16 @@ import de.sikeller.aqs.p2p.api.P2PTopics;
 import de.sikeller.aqs.p2p.service.strategy.NearestVehicleRequestSelectionStrategy;
 import de.sikeller.aqs.p2p.service.strategy.VehicleRequestCandidate;
 import de.sikeller.aqs.p2p.service.strategy.VehicleRequestSelectionStrategies;
+import de.sikeller.aqs.p2p.util.IdleRoamingController;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,7 +37,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final long DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 600L;
   private static final long DEFAULT_CLEANUP_INTERVAL_TICKS = 10L;
   private static final int MAX_FORWARDED_PAYLOAD_CACHE_SIZE = 200;
-
   private final ConcurrentMap<String, String> committedByRequest = new ConcurrentHashMap<>();
   // Track first-seen tick per requestId so we can evict stale entries along with openRideRequests
   private final ConcurrentMap<String, Long> seenRideRequests = new ConcurrentHashMap<>();
@@ -50,17 +49,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private volatile Integer simulationX;
   private volatile Integer simulationY;
   private volatile long lastCleanupTick = 0L;
-  // Idle vehicle random travel tracking
   private volatile long lastActivityTick = -1L; // -1 = not yet initialized
-  private volatile long lastIdleCheckTick = 0L;
-  private volatile long lastIdleTravelPublishTick = 0L;
-  private final Random randomTravelGenerator = new Random();
-
-  /** Pending idle travel target, consumed by the collector to move the taxi in the World. */
-  private final AtomicReference<Position> pendingIdleTravelTarget = new AtomicReference<>();
-
-  /** Persistent idle target while taxi remains idle; reused until reached or cancelled. */
-  private final AtomicReference<Position> currentIdleTarget = new AtomicReference<>();
+  private final IdleRoamingController idleRoamingController = new IdleRoamingController();
 
   private volatile int mapMaxX = 0;  // 0 = not yet initialized from world
   private volatile int mapMaxY = 0;
@@ -69,6 +59,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   public synchronized void setMapBounds(int maxX, int maxY) {
     this.mapMaxX = Math.max(1, maxX);
     this.mapMaxY = Math.max(1, maxY);
+  }
+
+  /** Global simulation scenario propagated by collector (same scenario used by world generator). */
+  public synchronized void setSpawnScenario(SpawnScenario scenario) {
+    idleRoamingController.setSpawnScenario(scenario);
   }
 
   public VehicleP2PService(String nodeId, P2PNetwork network) {
@@ -101,17 +96,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     simulationX = positionX;
     simulationY = positionY;
     updateVehiclePositionSnapshot(positionX, positionY, currentSimulationTick);
-    // If we reached the persistent idle target, clear it so a new one may be chosen later
-    Position persistent = currentIdleTarget.get();
-    if (persistent != null
-        && simulationX != null
-        && simulationY != null
-        && simulationX == persistent.getX()
-        && simulationY == persistent.getY()) {
-      currentIdleTarget.set(null);
-      pendingIdleTravelTarget.set(null);
-      lastIdleTravelPublishTick = 0L;
-    }
+    idleRoamingController.clearIfReached(simulationX, simulationY);
     // updateVehiclePositionSnapshot -> vehiclePositions.put + publishVehiclePosition (O(1) map
     // update + O(n_peers) publish overlay selection)
 
@@ -127,9 +112,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
     // If taxi became unavailable or is now busy, cancel any persistent idle target
     if (!available || isVehicleBusy()) {
-      currentIdleTarget.set(null);
-      pendingIdleTravelTarget.set(null);
-      lastIdleTravelPublishTick = 0L;
+      idleRoamingController.clearAll();
     }
 
     if (becameAvailable) {
@@ -138,7 +121,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
     if (available && movedEnough) {
       // movement resets idle intent
-      currentIdleTarget.set(null);
+      idleRoamingController.clearCurrentTarget();
       retriggerOpenRequests(TRIGGER_MOVEMENT);
     }
   }
@@ -184,8 +167,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           winnerVehicleId);
     } else {
       // Winner: clear any pending idle target – taxi is now serving a real ride
-      pendingIdleTravelTarget.set(null);
-      currentIdleTarget.set(null);
+      idleRoamingController.clearAll();
       log.debug(
           "Vehicle {} received own win announcement requestId={}", descriptor().id(), requestId);
     }
@@ -295,8 +277,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     // Also clear persistent idle intent so no further idle targets are generated while busy.
     // The World-side idle waypoint is automatically cleared when planClientForTaxi adds
     // a real Order, which triggers TargetList.planOrders() and clears flattenedTargets.
-    pendingIdleTravelTarget.set(null);
-    currentIdleTarget.set(null);
+    idleRoamingController.clearAll();
     sendDirectCommit(openRequest.originNodeId, openRequest.requestId);
     log.info(
         "Vehicle {} autonomously committed requestId={} to origin={} trigger={} etaSeconds={}",
@@ -671,96 +652,17 @@ public class VehicleP2PService extends AbstractP2PNodeService {
    */
   public synchronized void checkIdleTravelAtStep(long simulationTick) {
     currentSimulationTick = Math.max(currentSimulationTick, simulationTick);
-    checkAndTriggerIdleTravel();
-  }
-
-  /**
-   * Check if vehicle should trigger random travel due to idleness. Throttled to avoid performance
-   * impact. Only triggers when feature is enabled, vehicle is available, and idle threshold
-   * exceeded.
-   *
-   * <p>This publishes a position to the P2P network to simulate autonomous movement, but does not
-   * change the vehicle's position in the World simulator. The actual movement is controlled by the
-   * collector/World, which will see this vehicle's P2P-published position via the overlay.
-   *
-   * <p>While idle, continuously publishes new random positions to the network.
-   */
-  private void checkAndTriggerIdleTravel() {
-    // Default to enabled when no JVM property present so UI and services behave consistently
-    boolean enabled =
-        Boolean.parseBoolean(
-            System.getProperty(P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED, "true"));
-    if (!enabled) {
-      return;
-    }
-
-    // Throttle idle checks to avoid overhead: O(1) comparison
-    long idleCheckThrottleTicks =
-        Math.max(1L, Long.getLong(P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS, 5L));
-    if (currentSimulationTick - lastIdleCheckTick < idleCheckThrottleTicks) {
-      return;
-    }
-    lastIdleCheckTick = currentSimulationTick;
-
-    // Skip if vehicle is busy or unavailable
-    if (isVehicleBusy() || !externallyAvailable) {
-      lastIdleTravelPublishTick = 0L; // Reset so next idle period publishes immediately
-      return;
-    }
-
-    // Skip until activity tracker is initialized (first availability event not yet received)
-    if (lastActivityTick < 0L) {
-      return;
-    }
-
-    // Check idle duration threshold
-    long idleThresholdTicks =
-        Math.max(1L, Long.getLong(P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, 10L));
-    long idleDurationTicks = currentSimulationTick - lastActivityTick;
-    if (idleDurationTicks < idleThresholdTicks) {
-      return; // Not idle yet
-    }
-
-    // Vehicle is idle - publish a new position periodically while idle
-    // This allows continuous movement in the P2P network during idleness
-    if (lastIdleTravelPublishTick > 0
-        && currentSimulationTick - lastIdleTravelPublishTick < idleCheckThrottleTicks) {
-      return; // Not yet time for next publish
-    }
-
-    // Vehicle is idle and threshold exceeded: reuse existing idle target while idle, create if
-    // absent
-    if (simulationX == null || simulationY == null) {
-      return;
-    }
-    // Skip if map bounds are not yet initialized (setMapBounds not called yet)
-    if (mapMaxX <= 0 || mapMaxY <= 0) {
-      return;
-    }
-
-    Position target = currentIdleTarget.get();
-    if (target == null) {
-      target = generateRandomTargetWithinRadius(simulationX, simulationY);
-      currentIdleTarget.set(target);
-      if (lastIdleTravelPublishTick == 0L) {
-        // First idle travel for this idle period - log the start
-        log.info(
-            "Vehicle {} selected idle random travel target ({}, {}) after {} ticks of idleness",
-            descriptor().id(),
-            target.getX(),
-            target.getY(),
-            idleDurationTicks);
-      }
-    }
-
-    // Publish same target repeatedly while idle so overlay shows consistent intent
-    updateVehiclePositionSnapshot(target.getX(), target.getY(), currentSimulationTick);
-
-    // Ensure collector can consume idle target at least once per idle period
-    pendingIdleTravelTarget.compareAndSet(
-        null, new Position(target.getX(), target.getY(), currentSimulationTick));
-
-    lastIdleTravelPublishTick = currentSimulationTick;
+    idleRoamingController.checkAndTrigger(
+        currentSimulationTick,
+        isVehicleBusy(),
+        externallyAvailable,
+        lastActivityTick,
+        simulationX,
+        simulationY,
+        mapMaxX,
+        mapMaxY,
+        descriptor().id(),
+        target -> updateVehiclePositionSnapshot(target.getX(), target.getY(), currentSimulationTick));
   }
 
   /**
@@ -768,51 +670,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
    * (embedded) should call this to obtain one-time idle waypoint to apply to World.
    */
   public Optional<Position> pollIdleTravelTarget() {
-    Position p = pendingIdleTravelTarget.getAndSet(null);
-    return Optional.ofNullable(p);
-  }
-
-  /**
-   * Generate a random target position within the map. Uses a polar-coordinate offset from the
-   * current position, clamped to map bounds. If the result equals the current position (e.g. taxi
-   * is at a corner and all random angles go outside), falls back to the map center.
-   *
-   * @param currentX current X coordinate
-   * @param currentY current Y coordinate
-   * @return Position of target
-   */
-  private Position generateRandomTargetWithinRadius(int currentX, int currentY) {
-    int maxDistanceMeters =
-        Math.max(
-            1,
-            Integer.getInteger(
-                P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS, 20000));
-
-    // Guard: map bounds must be initialized via setMapBounds before generating targets.
-    // If not set yet, return current position - checkAndTriggerIdleTravel will retry later.
-    if (mapMaxX <= 0 || mapMaxY <= 0) {
-      return new Position(currentX, currentY);
-    }
-
-    // Generate random angle and distance
-    double angle = randomTravelGenerator.nextDouble() * 2 * Math.PI;
-    double distance = randomTravelGenerator.nextDouble() * maxDistanceMeters;
-
-    // Clamp to map bounds with a small 2% margin so taxis can never target the exact edge.
-    // This prevents the "sliding along the boundary" problem where ~50% of random angles
-    // from an edge position produce out-of-bounds targets that clamp back to the same edge.
-    int marginX = Math.max(1, mapMaxX / 50);
-    int marginY = Math.max(1, mapMaxY / 50);
-    int targetX = Math.max(marginX, Math.min(mapMaxX - marginX, (int) Math.round(currentX + distance * Math.cos(angle))));
-    int targetY = Math.max(marginY, Math.min(mapMaxY - marginY, (int) Math.round(currentY + distance * Math.sin(angle))));
-
-    // Final fallback: if both axes equal current position, aim for the map center.
-    if (targetX == currentX && targetY == currentY) {
-      targetX = mapMaxX / 2;
-      targetY = mapMaxY / 2;
-    }
-
-    return new Position(targetX, targetY);
+    return idleRoamingController.pollIdleTravelTarget();
   }
 
   private static class OpenRideRequest {

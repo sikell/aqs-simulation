@@ -22,6 +22,7 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -52,6 +53,7 @@ final class MassRunDialog extends JDialog {
   private final JTextField mapSizeField;
   // P2P Collector Options
   private final JCheckBox idleRoamingEnabledCheck;
+  private final JComboBox<String> idleRoamingStrategyBox;
   private final JTextField idleThresholdField;
   private final JTextField idleCheckThrottleField;
   private final JTextField randomTravelMaxDistanceField;
@@ -108,6 +110,8 @@ final class MassRunDialog extends JDialog {
     overlayShortcutsField = new JTextField(defaults.overlayShortcutsCsv());
     idleRoamingEnabledCheck = new JCheckBox();
     idleRoamingEnabledCheck.setSelected(defaults.idleRoamingEnabled());
+    idleRoamingStrategyBox = new JComboBox<>(new String[] {"random", "page-rank"});
+    idleRoamingStrategyBox.setSelectedItem(normalizedIdleRoamingStrategy(defaults.idleRoamingStrategy()));
     idleThresholdField = new JTextField(String.valueOf(defaults.idleThresholdTicks()));
     idleCheckThrottleField = new JTextField(String.valueOf(defaults.idleCheckThrottleTicks()));
     randomTravelMaxDistanceField = new JTextField(String.valueOf(defaults.randomTravelMaxDistanceMeters()));
@@ -117,6 +121,7 @@ final class MassRunDialog extends JDialog {
     addRow(collectorPanel, "Overlay max neighbors (CSV)", overlayMaxNeighborsField);
     addRow(collectorPanel, "Overlay shortcuts (CSV)", overlayShortcutsField);
     addRow(collectorPanel, "Idle roaming enabled", idleRoamingEnabledCheck);
+    addRow(collectorPanel, "Idle roaming strategy", idleRoamingStrategyBox);
     addRow(collectorPanel, "Idle threshold [ticks]", idleThresholdField);
     addRow(collectorPanel, "Idle check throttle [ticks]", idleCheckThrottleField);
     addRow(collectorPanel, "Random travel max distance [m]", randomTravelMaxDistanceField);
@@ -241,6 +246,8 @@ final class MassRunDialog extends JDialog {
       int simulationSpeed = parseInt(simulationSpeedField.getText(), 1);
       List<Integer> mapSizes = parseCsvIntList(mapSizeField.getText(), 1, "map size");
       boolean idleRoamingEnabled = idleRoamingEnabledCheck.isSelected();
+      String idleRoamingStrategy =
+          normalizedIdleRoamingStrategy(String.valueOf(idleRoamingStrategyBox.getSelectedItem()));
       int idleThresholdTicks = parseInt(idleThresholdField.getText(), 1);
       int idleCheckThrottleTicks = parseInt(idleCheckThrottleField.getText(), 1);
       int randomTravelMaxDistance = parseInt(randomTravelMaxDistanceField.getText(), 1);
@@ -280,6 +287,7 @@ final class MassRunDialog extends JDialog {
               simulationSpeed,
               mapSizes,
               idleRoamingEnabled,
+              idleRoamingStrategy,
               idleThresholdTicks,
               idleCheckThrottleTicks,
               randomTravelMaxDistance);
@@ -324,6 +332,9 @@ final class MassRunDialog extends JDialog {
     props.setProperty("overlayMaxNeighbors", overlayMaxNeighborsField.getText());
     props.setProperty("overlayShortcuts", overlayShortcutsField.getText());
     props.setProperty("idleRoamingEnabled", String.valueOf(idleRoamingEnabledCheck.isSelected()));
+    props.setProperty(
+        "idleRoamingStrategy",
+        normalizedIdleRoamingStrategy(String.valueOf(idleRoamingStrategyBox.getSelectedItem())));
     props.setProperty("idleThresholdTicks", idleThresholdField.getText());
     props.setProperty("idleCheckThrottleTicks", idleCheckThrottleField.getText());
     props.setProperty("randomTravelMaxDistanceMeters", randomTravelMaxDistanceField.getText());
@@ -368,6 +379,10 @@ final class MassRunDialog extends JDialog {
     setFieldIfPresent(overlayShortcutsField, props, "overlayShortcuts");
     if (props.containsKey("idleRoamingEnabled")) {
       idleRoamingEnabledCheck.setSelected(Boolean.parseBoolean(props.getProperty("idleRoamingEnabled")));
+    }
+    if (props.containsKey("idleRoamingStrategy")) {
+      idleRoamingStrategyBox.setSelectedItem(
+          normalizedIdleRoamingStrategy(props.getProperty("idleRoamingStrategy")));
     }
     setFieldIfPresent(idleThresholdField, props, "idleThresholdTicks");
     setFieldIfPresent(idleCheckThrottleField, props, "idleCheckThrottleTicks");
@@ -460,6 +475,13 @@ final class MassRunDialog extends JDialog {
     return values;
   }
 
+  private static String normalizedIdleRoamingStrategy(String value) {
+    if (value == null || value.isBlank()) {
+      return "random";
+    }
+    return "page-rank".equalsIgnoreCase(value.trim()) ? "page-rank" : "random";
+  }
+
   record Defaults(
       String algorithmsCsv,
       String kHopsCsv,
@@ -481,6 +503,7 @@ final class MassRunDialog extends JDialog {
       int simulationSpeed,
       String mapSizeCsv,
       boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
       int idleThresholdTicks,
       int idleCheckThrottleTicks,
       int randomTravelMaxDistanceMeters) {}
@@ -506,6 +529,7 @@ final class MassRunDialog extends JDialog {
       int simulationSpeed,
       List<Integer> mapSizes,
       boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
       int idleThresholdTicks,
       int idleCheckThrottleTicks,
       int randomTravelMaxDistanceMeters) {}

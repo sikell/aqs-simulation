@@ -2,6 +2,7 @@ package de.sikeller.aqs.taxi.algorithm.collector;
 
 import de.sikeller.aqs.model.Taxi;
 import de.sikeller.aqs.model.World;
+import de.sikeller.aqs.model.SpawnScenario;
 import de.sikeller.aqs.p2p.api.P2PNetwork;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ public class LocalVehicleNodeManager {
       World world,
       boolean embeddedMode,
       P2PNetwork network,
+      SpawnScenario spawnScenario,
       Map<String, VehicleP2PService> localVehicleNodesByTaxiName,
       Map<String, String> vehicleNodeToTaxiName,
       Map<String, String> taxiNameToVehicleNodeId) {
@@ -60,6 +62,7 @@ public class LocalVehicleNodeManager {
               VehicleP2PService vehicleNode = vehicleNodeFactory.create(vehicleNodeId, network);
               vehicleNode.start();
               vehicleNode.setMapBounds(world.getMaxX(), world.getMaxY());
+              vehicleNode.setSpawnScenario(spawnScenario);
               localVehicleNodesByTaxiName.put(taxi.getName(), vehicleNode);
               vehicleNodeToTaxiName.put(vehicleNodeId, taxi.getName());
               taxiNameToVehicleNodeId.put(taxi.getName(), vehicleNodeId);
@@ -90,6 +93,7 @@ public class LocalVehicleNodeManager {
       World world,
       boolean embeddedMode,
       P2PNetwork network,
+      SpawnScenario spawnScenario,
       long stepCounter,
       Map<String, VehicleP2PService> localVehicleNodesByTaxiName,
       Map<String, String> vehicleNodeToTaxiName,
@@ -105,6 +109,7 @@ public class LocalVehicleNodeManager {
         VehicleP2PService vehicleNode = vehicleNodeFactory.create(vehicleNodeId, network);
         vehicleNode.start();
         vehicleNode.setMapBounds(world.getMaxX(), world.getMaxY());
+        vehicleNode.setSpawnScenario(spawnScenario);
         localVehicleNodesByTaxiName.put(taxi.getName(), vehicleNode);
         vehicleNodeToTaxiName.put(vehicleNodeId, taxi.getName());
         taxiNameToVehicleNodeId.put(taxi.getName(), vehicleNodeId);
@@ -114,6 +119,7 @@ public class LocalVehicleNodeManager {
             vehicleNodeId);
         node = vehicleNode;
       }
+      node.setSpawnScenario(spawnScenario);
       node.setSimulationState(
           taxi.isEmpty(), taxi.getPosition().getX(), taxi.getPosition().getY(), stepCounter);
     }

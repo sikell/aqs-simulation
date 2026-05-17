@@ -47,4 +47,5 @@ public final class P2PSystemProperties {
       "aqs.p2p.vehicle.idleCheckThrottleTicks";
   public static final String VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS =
       "aqs.p2p.vehicle.randomTravelMaxDistanceMeters";
+  public static final String VEHICLE_IDLE_ROAMING_STRATEGY = "aqs.p2p.vehicle.idleRoamingStrategy";
 }

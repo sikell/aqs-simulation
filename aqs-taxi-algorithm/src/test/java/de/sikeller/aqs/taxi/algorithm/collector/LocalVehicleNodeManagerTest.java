@@ -9,6 +9,7 @@ import de.sikeller.aqs.model.ClientMode;
 import de.sikeller.aqs.model.OrderFlattenFunction;
 import de.sikeller.aqs.model.OrderNode;
 import de.sikeller.aqs.model.Position;
+import de.sikeller.aqs.model.SpawnScenario;
 import de.sikeller.aqs.model.TargetList;
 import de.sikeller.aqs.model.Taxi;
 import de.sikeller.aqs.model.World;
@@ -49,6 +50,7 @@ class LocalVehicleNodeManagerTest {
         new StubWorld(Set.of(new StubTaxi("t0", true, 0, 0), new StubTaxi("t1", true, 1, 1))),
         true,
         network,
+        SpawnScenario.BASELINE,
         localNodes,
         vehicleToTaxi,
         taxiToVehicle);
@@ -61,6 +63,7 @@ class LocalVehicleNodeManagerTest {
         new StubWorld(Set.of(new StubTaxi("t0", true, 0, 0))),
         true,
         network,
+        SpawnScenario.BASELINE,
         localNodes,
         vehicleToTaxi,
         taxiToVehicle);
@@ -91,6 +94,7 @@ class LocalVehicleNodeManagerTest {
         new StubWorld(Set.of(new StubTaxi("t0", true, 10, 11), new StubTaxi("t1", false, 20, 21))),
         true,
         network,
+        SpawnScenario.BASELINE,
         7L,
         localNodes,
         vehicleToTaxi,

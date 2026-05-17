@@ -86,6 +86,11 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String P2P_OVERLAY_SHORTCUT_STRATEGY = "p2pOverlayShortcutStrategy";
   private static final String P2P_IDLE_TRAVEL_ENABLED = "p2pIdleTravelEnabled";
   private static final String P2P_IDLE_TRAVEL_THRESHOLD_TICKS = "p2pIdleTravelThresholdTicks";
+  private static final String KEY_SPAWN_SCENARIO = "spawnScenario";
+  private static final String VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY =
+      "aqs.p2p.vehicle.idleRoamingStrategy";
+  private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
+  private static final String IDLE_ROAMING_STRATEGY_PAGE_RANK = "page-rank";
   private static final String EMBEDDED_MODE_PROPERTY = "p2pEmbeddedSimulation";
   private static final String STATUS_MODE = "mode";
   private static final String STATUS_COLLECTOR_NODE = "collectorNode";
@@ -417,6 +422,19 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         Math.max(1, parameters.getOrDefault(P2P_IDLE_TRAVEL_THRESHOLD_TICKS, 60));
     System.setProperty(
         P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, String.valueOf(idleThresholdTicks));
+    System.setProperty(VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY, resolveIdleRoamingStrategy());
+  }
+
+  private String resolveIdleRoamingStrategy() {
+    String configured =
+        System.getProperty(VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY, IDLE_ROAMING_STRATEGY_RANDOM);
+    if (configured == null || configured.isBlank()) {
+      return IDLE_ROAMING_STRATEGY_RANDOM;
+    }
+    String normalized = configured.trim().toLowerCase();
+    return IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)
+        ? IDLE_ROAMING_STRATEGY_PAGE_RANK
+        : IDLE_ROAMING_STRATEGY_RANDOM;
   }
 
   private String resolveVehicleSelectionStrategy() {
@@ -655,6 +673,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         world,
         isEmbeddedSimulationMode(),
         network,
+        resolveSpawnScenario(),
         localVehicleNodesByTaxiName,
         vehicleNodeToTaxiName,
         taxiNameToVehicleNodeId);
@@ -665,10 +684,15 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         world,
         isEmbeddedSimulationMode(),
         network,
+        resolveSpawnScenario(),
         stepCounter,
         localVehicleNodesByTaxiName,
         vehicleNodeToTaxiName,
         taxiNameToVehicleNodeId);
+  }
+
+  private SpawnScenario resolveSpawnScenario() {
+    return SpawnScenario.fromOrdinal(parameters.getOrDefault(KEY_SPAWN_SCENARIO, 0));
   }
 
   private void applyOverlayConfig(Map<String, Integer> config) {

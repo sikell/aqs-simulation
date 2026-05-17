@@ -46,6 +46,8 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String P2P_VEHICLE_STRATEGY_CONFIG_KEY = "p2pVehicleDecisionStrategy";
   private static final String P2P_STRATEGY_NEAREST = "nearest";
   private static final String P2P_STRATEGY_GREEDY = "greedy";
+  private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
+  private static final String IDLE_ROAMING_STRATEGY_PAGE_RANK = "page-rank";
   private static final String P2P_MULTICAST_GROUP_FIELD = "p2pMulticastGroup";
   private static final Set<String> P2P_PORT_FIELDS = Set.of("p2pTcpPort", "p2pDiscoveryPort");
   private static final Set<String> P2P_CORE_PARAMETERS =
@@ -100,6 +102,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private JSpinner p2pShortcutNodeProbabilitySpinner;
   // Idle vehicle random travel UI controls
   private JCheckBox p2pIdleRandomTravelEnabledCheckBox;
+  private JComboBox<String> p2pIdleRoamingStrategyBox;
   private JSpinner p2pIdleThresholdSpinner;
   private JSpinner p2pIdleCheckThrottleSpinner;
   private JSpinner p2pRandomTravelMaxDistanceSpinner;
@@ -870,6 +873,15 @@ public class TaxiScenarioControl extends AbstractControl {
     int mapSize = readSpinnerValue("mapSize", 40000);
     int defaultOverlayMaxNeighbors = readSpinnerValue("p2pOverlayMaxNeighbors", 5);
     boolean idleRoamingEnabled = readCheckboxValue("p2pIdleRandomTravelEnabled", true);
+    String idleRoamingStrategy =
+        p2pIdleRoamingStrategyBox != null
+            ? normalizedIdleRoamingStrategy(
+                Objects.toString(
+                    p2pIdleRoamingStrategyBox.getSelectedItem(), IDLE_ROAMING_STRATEGY_RANDOM))
+            : normalizedIdleRoamingStrategy(
+                System.getProperty(
+                    P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
+                    IDLE_ROAMING_STRATEGY_RANDOM));
     int idleThresholdTicks = readSpinnerValue("p2pIdleThresholdTicks", 60);
     int idleCheckThrottleTicks = readSpinnerValue("p2pIdleCheckThrottleTicks", 5);
     int randomTravelMaxDistance = readSpinnerValue("p2pRandomTravelMaxDistanceMeters", 20000);
@@ -894,6 +906,7 @@ public class TaxiScenarioControl extends AbstractControl {
         simulationSpeed,
         String.valueOf(mapSize),
         idleRoamingEnabled,
+        idleRoamingStrategy,
         idleThresholdTicks,
         idleCheckThrottleTicks,
         randomTravelMaxDistance);
@@ -1139,6 +1152,9 @@ public class TaxiScenarioControl extends AbstractControl {
                     de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
                     String.valueOf(config.idleRoamingEnabled()));
                 System.setProperty(
+                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
+                    normalizedIdleRoamingStrategy(config.idleRoamingStrategy()));
+                System.setProperty(
                     de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS,
                     String.valueOf(config.idleThresholdTicks()));
                 System.setProperty(
@@ -1150,6 +1166,10 @@ public class TaxiScenarioControl extends AbstractControl {
                 // Sync UI checkboxes/spinners so they reflect the applied values
                 if (p2pIdleRandomTravelEnabledCheckBox != null) {
                   p2pIdleRandomTravelEnabledCheckBox.setSelected(config.idleRoamingEnabled());
+                }
+                if (p2pIdleRoamingStrategyBox != null) {
+                  p2pIdleRoamingStrategyBox.setSelectedItem(
+                      normalizedIdleRoamingStrategy(config.idleRoamingStrategy()));
                 }
                 setSpinnerValueIfPresent("p2pIdleThresholdTicks", config.idleThresholdTicks());
                 setSpinnerValueIfPresent("p2pIdleCheckThrottleTicks", config.idleCheckThrottleTicks());
@@ -1977,6 +1997,32 @@ public class TaxiScenarioControl extends AbstractControl {
       idleTravelGroup.add(p2pIdleRandomTravelEnabledCheckBox);
       idleTravelRows++;
 
+      JLabel idleRoamingStrategyLabel = new JLabel("Roaming strategy");
+      idleRoamingStrategyLabel.setName("p2pIdleRoamingStrategyLabel");
+      idleTravelGroup.add(idleRoamingStrategyLabel);
+      p2pIdleRoamingStrategyBox = new JComboBox<>();
+      p2pIdleRoamingStrategyBox.setName("p2pIdleRoamingStrategy");
+      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RANDOM);
+      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAGE_RANK);
+      String idleStrategyDefault =
+          normalizedIdleRoamingStrategy(
+              System.getProperty(
+                  P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
+                  IDLE_ROAMING_STRATEGY_RANDOM));
+      p2pIdleRoamingStrategyBox.setSelectedItem(idleStrategyDefault);
+      p2pIdleRoamingStrategyBox.setToolTipText(
+          "Idle roaming target strategy: random exploration or page-rank-like scenario centers");
+      p2pIdleRoamingStrategyBox.addActionListener(
+          e ->
+              System.setProperty(
+                  P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
+                  normalizedIdleRoamingStrategy(
+                      Objects.toString(
+                          p2pIdleRoamingStrategyBox.getSelectedItem(),
+                          IDLE_ROAMING_STRATEGY_RANDOM))));
+      idleTravelGroup.add(p2pIdleRoamingStrategyBox);
+      idleTravelRows++;
+
       JLabel idleThresholdLabel = new JLabel("Idle threshold [ticks]");
       idleThresholdLabel.setName("p2pIdleThresholdLabel");
       idleTravelGroup.add(idleThresholdLabel);
@@ -2334,6 +2380,13 @@ public class TaxiScenarioControl extends AbstractControl {
             P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
             String.valueOf(p2pIdleRandomTravelEnabledCheckBox.isSelected()));
       }
+      if (p2pIdleRoamingStrategyBox != null) {
+        System.setProperty(
+            P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
+            normalizedIdleRoamingStrategy(
+                Objects.toString(
+                    p2pIdleRoamingStrategyBox.getSelectedItem(), IDLE_ROAMING_STRATEGY_RANDOM)));
+      }
       if (p2pIdleThresholdSpinner != null) {
         Object val = p2pIdleThresholdSpinner.getValue();
         System.setProperty(
@@ -2397,6 +2450,13 @@ public class TaxiScenarioControl extends AbstractControl {
   private String normalizedStrategyKey(String value) {
     String key = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     return P2P_STRATEGY_GREEDY.equals(key) ? P2P_STRATEGY_GREEDY : P2P_STRATEGY_NEAREST;
+  }
+
+  private String normalizedIdleRoamingStrategy(String value) {
+    String key = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    return IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(key)
+        ? IDLE_ROAMING_STRATEGY_PAGE_RANK
+        : IDLE_ROAMING_STRATEGY_RANDOM;
   }
 
   private boolean isP2PMulticastOctet(String parameterName) {
