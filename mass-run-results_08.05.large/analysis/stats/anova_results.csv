@@ -1,5 +1,5 @@
 metric,test,F,p_value
 Calculation Time [millis],ANOVA(avg ~ variant_k),44.96845722576912,1.8292017845573804e-41
-Client Travel Time [min],ANOVA(avg ~ variant_k),7.178653681674391,1.3411476133531433e-06
+Client Travel Time [min],ANOVA(avg ~ variant_k),7.178653681674392,1.3411476133531433e-06
 Client Waiting Time [min],ANOVA(avg ~ variant_k),7.224668432479738,1.2112350616072995e-06
 Taxi Travel Distance [km],ANOVA(avg ~ variant_k),10.064838343197891,2.177337996978427e-09
