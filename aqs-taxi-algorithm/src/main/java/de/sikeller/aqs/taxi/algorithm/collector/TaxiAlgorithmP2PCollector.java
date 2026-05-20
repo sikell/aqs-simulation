@@ -268,7 +268,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   private void processNetworkCycle(World world, Collection<Client> waitingClients) {
-    if (clientNode == null) {
+    ClientP2PService localClientNode = this.clientNode;
+    if (localClientNode == null) {
       return;
     }
     if (isEmbeddedSimulationMode()) {
@@ -278,12 +279,12 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     }
     requestCoordinator.retriggerRequestsIfNeeded(waitingClients);
     requestCoordinator.publishNewRequests(world, waitingClients);
-    processInbox(world, waitingClients);
-    logPeriodicRuntimeStatus(world, waitingClients);
+    processInbox(world, waitingClients, localClientNode);
+    logPeriodicRuntimeStatus(world, waitingClients, localClientNode);
   }
 
-  private void processInbox(World world, Collection<Client> waitingClients) {
-    List<P2PMessage> delta = clientNode.drainInbox();
+  private void processInbox(World world, Collection<Client> waitingClients, ClientP2PService localClientNode) {
+    List<P2PMessage> delta = localClientNode.drainInbox();
     if (delta.isEmpty()) {
       return;
     }
@@ -298,7 +299,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         newMessages);
   }
 
-  private void logPeriodicRuntimeStatus(World world, Collection<Client> waitingClients) {
+  private void logPeriodicRuntimeStatus(World world, Collection<Client> waitingClients, ClientP2PService localClientNode) {
     if (stepCounter % 100 != 0) {
       return;
     }
@@ -306,7 +307,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         "[P2P-COLLECTOR] status t={} waiting={} {}",
         world.getCurrentTime(),
         waitingClients.size(),
-        clientNode.runtimeStatus().asLogLine());
+        localClientNode.runtimeStatus().asLogLine());
   }
 
   /**
