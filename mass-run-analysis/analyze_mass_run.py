@@ -50,13 +50,13 @@ _OPTIONAL_NUMERIC = {
     "p2pRqsRadius": -1, "taxiCount": -1, "clientCount": -1, "taxiSeatCount": -1,
     "p2pOverlayMinNeighbors": -1, "p2pOverlayMaxNeighbors": -1, "p2pOverlayShortcuts": -1,
 }
-_OPTIONAL_STRING = {"spawnScenario": "BASELINE"}
+_OPTIONAL_STRING = {"spawnScenario": "BASELINE", "idleRoamingMode": "n/a"}
 
 NUMERIC_DIMS = [
     "kHops", "p2pRqsRadius", "taxiCount", "clientCount",
     "taxiSeatCount", "p2pOverlayMinNeighbors", "p2pOverlayMaxNeighbors", "p2pOverlayShortcuts",
 ]
-CATEGORICAL_DIMS = ["algorithm", "p2pStrategy", "spawnScenario"]
+CATEGORICAL_DIMS = ["algorithm", "p2pStrategy", "spawnScenario", "idleRoamingMode"]
 
 DIM_LABELS: dict[str, str] = {
     "kHops": "k-Hops",
@@ -70,6 +70,7 @@ DIM_LABELS: dict[str, str] = {
     "spawnScenario": "Spawn-Szenario",
     "algorithm": "Algorithmus",
     "p2pStrategy": "P2P-Strategie",
+    "idleRoamingMode": "Idle-Roaming-Modus",
 }
 
 _ZERO_THR = 1e-9
@@ -135,6 +136,24 @@ def load_data(csv_path: Path) -> pd.DataFrame:
         raise FileNotFoundError(f"CSV not found: {csv_path}")
     df = pd.read_csv(csv_path)
 
+    if "idleRoamingMode" not in df.columns:
+        if "idleRoamingEnabled" in df.columns:
+            enabled = (
+                df["idleRoamingEnabled"]
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .map({"true": True, "1": True, "yes": True, "false": False, "0": False, "no": False})
+            )
+            strategy = (
+                df["idleRoamingStrategy"].astype(str).str.strip().str.lower()
+                if "idleRoamingStrategy" in df.columns
+                else pd.Series(["random"] * len(df), index=df.index)
+            )
+            df["idleRoamingMode"] = np.where(enabled.fillna(False), strategy, "none")
+        else:
+            df["idleRoamingMode"] = "n/a"
+
     for col, default in _OPTIONAL_NUMERIC.items():
         if col not in df.columns:
             df[col] = default
@@ -149,7 +168,7 @@ def load_data(csv_path: Path) -> pd.DataFrame:
     for col in _NUMERIC_COLS:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
-    for col in ["algorithm", "p2pStrategy", "metric", "spawnScenario"]:
+    for col in ["algorithm", "p2pStrategy", "metric", "spawnScenario", "idleRoamingMode"]:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip()
 
@@ -1334,7 +1353,7 @@ def write_stats(df: pd.DataFrame, dirs: dict, metrics: list[str]) -> pd.DataFram
 
     pivot_cols = [c for c in ["variant_k", "kHops", "spawnScenario", "taxiCount", "taxiSeatCount",
                               "p2pRqsRadius", "p2pOverlayMinNeighbors", "p2pOverlayMaxNeighbors",
-                              "p2pOverlayShortcuts"] if c in df.columns]
+                              "p2pOverlayShortcuts", "idleRoamingMode"] if c in df.columns]
     pivot = (
         df[df["metric"].isin(metrics)]
         .pivot_table(index=pivot_cols, columns="metric", values="avg", aggfunc="mean")
@@ -1751,7 +1770,7 @@ def main() -> None:
             plot_dim_effect(df, dim, vdims, dirs["plots"], metrics)
 
     # 5. Categorical dimension bar charts
-    for dim in ["spawnScenario", "p2pStrategy", "taxiSeatCount"]:
+    for dim in ["spawnScenario", "p2pStrategy", "idleRoamingMode", "taxiSeatCount"]:
         if dim in vdims:
             plot_categorical_dim(df, dim, vdims, dirs["plots"], metrics)
 
@@ -1764,6 +1783,7 @@ def main() -> None:
         ("kHops", "taxiSeatCount"),
         ("p2pRqsRadius", "taxiSeatCount"),
         ("taxiCount", "p2pStrategy"),
+        ("taxiCount", "idleRoamingMode"),
     ]
     for dim_x, dim_facet in _facet_pairs:
         if dim_x in vdims and dim_facet in vdims:

@@ -1,0 +1,81 @@
+metric,variant_k,spawnScenario,count,mean,median,std,min,max
+Calculation Time [millis],P2PCollector+nearest (k=0),BASELINE,80,0.014499999999999999,0.01,0.00855362829225267,0.01,0.07
+Calculation Time [millis],P2PCollector+nearest (k=0),RUSH_HOUR,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],P2PCollector+nearest (k=0),SPATIAL_IMBALANCE,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],P2PCollector+nearest (k=0),SPATIAL_ISLANDS,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],P2PCollector+nearest (k=1),BASELINE,80,0.014624999999999999,0.01,0.00692523362490347,0.01,0.03
+Calculation Time [millis],P2PCollector+nearest (k=1),RUSH_HOUR,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],P2PCollector+nearest (k=1),SPATIAL_IMBALANCE,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],P2PCollector+nearest (k=1),SPATIAL_ISLANDS,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],P2PCollector+nearest (k=2),BASELINE,80,0.014374999999999999,0.01,0.006530115241195297,0.01,0.03
+Calculation Time [millis],P2PCollector+nearest (k=2),RUSH_HOUR,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],P2PCollector+nearest (k=2),SPATIAL_IMBALANCE,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],P2PCollector+nearest (k=2),SPATIAL_ISLANDS,80,0.01,0.01,0.0,0.01,0.01
+Calculation Time [millis],SinglePassenger,BASELINE,10,0.0,0.0,0.0,0.0,0.0
+Calculation Time [millis],SinglePassenger,RUSH_HOUR,10,0.0,0.0,0.0,0.0,0.0
+Calculation Time [millis],SinglePassenger,SPATIAL_IMBALANCE,10,0.0,0.0,0.0,0.0,0.0
+Calculation Time [millis],SinglePassenger,SPATIAL_ISLANDS,10,0.0,0.0,0.0,0.0,0.0
+Calculation Time [millis],VehicleRouting,BASELINE,10,0.05600000000000001,0.05,0.00966091783079296,0.05,0.08
+Calculation Time [millis],VehicleRouting,RUSH_HOUR,10,0.093,0.08,0.02213594362117866,0.07,0.13
+Calculation Time [millis],VehicleRouting,SPATIAL_IMBALANCE,10,0.066,0.065,0.006992058987801015,0.06,0.08
+Calculation Time [millis],VehicleRouting,SPATIAL_ISLANDS,10,0.065,0.065,0.010801234497346435,0.05,0.08
+Client Travel Time [min],P2PCollector+nearest (k=0),BASELINE,80,162.408,106.52,100.76549372212344,57.91,374.53
+Client Travel Time [min],P2PCollector+nearest (k=0),RUSH_HOUR,80,243.6935,246.58499999999998,75.99348834695803,137.68,379.31
+Client Travel Time [min],P2PCollector+nearest (k=0),SPATIAL_IMBALANCE,80,215.184625,214.42000000000002,95.52030067144852,56.85,393.06
+Client Travel Time [min],P2PCollector+nearest (k=0),SPATIAL_ISLANDS,80,241.965625,223.96,112.47572131655956,86.38,448.13
+Client Travel Time [min],P2PCollector+nearest (k=1),BASELINE,80,159.6445,109.96000000000001,97.46836074635847,57.85,371.53
+Client Travel Time [min],P2PCollector+nearest (k=1),RUSH_HOUR,80,233.53337500000004,230.325,75.37782328308224,114.18,347.44
+Client Travel Time [min],P2PCollector+nearest (k=1),SPATIAL_IMBALANCE,80,213.48274999999998,213.575,95.75428579462107,53.51,409.6
+Client Travel Time [min],P2PCollector+nearest (k=1),SPATIAL_ISLANDS,80,234.76375,208.55,113.6207782229436,60.88,447.6
+Client Travel Time [min],P2PCollector+nearest (k=2),BASELINE,80,158.935125,111.28,97.03408362423126,58.79,371.53
+Client Travel Time [min],P2PCollector+nearest (k=2),RUSH_HOUR,80,230.31374999999997,219.61,77.09402052655817,94.35,350.0
+Client Travel Time [min],P2PCollector+nearest (k=2),SPATIAL_IMBALANCE,80,212.757875,212.25,95.60026820170194,53.26,409.6
+Client Travel Time [min],P2PCollector+nearest (k=2),SPATIAL_ISLANDS,80,235.01437500000003,211.985,112.04627044718366,55.98,447.6
+Client Travel Time [min],SinglePassenger,BASELINE,10,36.456,36.735,2.1674983019344882,33.0,39.53
+Client Travel Time [min],SinglePassenger,RUSH_HOUR,10,38.525999999999996,39.545,2.784174324044143,34.53,42.58
+Client Travel Time [min],SinglePassenger,SPATIAL_IMBALANCE,10,35.337,34.72,2.394916143277951,32.25,39.45
+Client Travel Time [min],SinglePassenger,SPATIAL_ISLANDS,10,38.762,38.56,1.8373277697061379,37.06,43.41
+Client Travel Time [min],VehicleRouting,BASELINE,10,37.589,37.59,1.9528295709900891,34.08,40.21
+Client Travel Time [min],VehicleRouting,RUSH_HOUR,10,41.973,42.6,4.027511086956258,35.65,48.81
+Client Travel Time [min],VehicleRouting,SPATIAL_IMBALANCE,10,37.016000000000005,36.345,2.664212203760555,34.31,42.34
+Client Travel Time [min],VehicleRouting,SPATIAL_ISLANDS,10,40.940000000000005,40.34,1.8784449833720331,38.79,44.06
+Client Waiting Time [min],P2PCollector+nearest (k=0),BASELINE,80,1.7626249999999999,1.33,1.0338911919711105,0.6,4.33
+Client Waiting Time [min],P2PCollector+nearest (k=0),RUSH_HOUR,80,2.685125,2.57,0.8897389657732144,1.28,5.16
+Client Waiting Time [min],P2PCollector+nearest (k=0),SPATIAL_IMBALANCE,80,2.2451250000000003,2.1900000000000004,1.2428081654366245,0.41,5.66
+Client Waiting Time [min],P2PCollector+nearest (k=0),SPATIAL_ISLANDS,80,2.582,2.06,1.7537875107638867,0.42,6.16
+Client Waiting Time [min],P2PCollector+nearest (k=1),BASELINE,80,1.716875,1.37,0.9546072076441053,0.59,4.03
+Client Waiting Time [min],P2PCollector+nearest (k=1),RUSH_HOUR,80,2.58525,2.495,0.8977623025605019,0.85,4.88
+Client Waiting Time [min],P2PCollector+nearest (k=1),SPATIAL_IMBALANCE,80,2.2022500000000003,2.1100000000000003,1.2369388255802505,0.43,5.7
+Client Waiting Time [min],P2PCollector+nearest (k=1),SPATIAL_ISLANDS,80,2.5225,1.895,1.7284049132954347,0.47,6.12
+Client Waiting Time [min],P2PCollector+nearest (k=2),BASELINE,80,1.7126249999999998,1.45,0.9607298698965244,0.61,4.03
+Client Waiting Time [min],P2PCollector+nearest (k=2),RUSH_HOUR,80,2.5185,2.4050000000000002,0.9263513563670308,0.86,4.8
+Client Waiting Time [min],P2PCollector+nearest (k=2),SPATIAL_IMBALANCE,80,2.200375,2.05,1.23454439271941,0.42,5.7
+Client Waiting Time [min],P2PCollector+nearest (k=2),SPATIAL_ISLANDS,80,2.503375,1.895,1.6912956188239723,0.46,6.12
+Client Waiting Time [min],SinglePassenger,BASELINE,10,0.22200000000000003,0.22,0.017511900715418263,0.2,0.26
+Client Waiting Time [min],SinglePassenger,RUSH_HOUR,10,0.252,0.26,0.02740640638812595,0.21,0.29
+Client Waiting Time [min],SinglePassenger,SPATIAL_IMBALANCE,10,0.24900000000000003,0.25,0.0166332999331662,0.22,0.27
+Client Waiting Time [min],SinglePassenger,SPATIAL_ISLANDS,10,0.262,0.26,0.02043961295567452,0.23,0.31
+Client Waiting Time [min],VehicleRouting,BASELINE,10,0.309,0.31,0.023309511649396118,0.27,0.36
+Client Waiting Time [min],VehicleRouting,RUSH_HOUR,10,0.42000000000000004,0.43,0.07673909622147561,0.3,0.55
+Client Waiting Time [min],VehicleRouting,SPATIAL_IMBALANCE,10,0.329,0.33999999999999997,0.03604010112206802,0.27,0.39
+Client Waiting Time [min],VehicleRouting,SPATIAL_ISLANDS,10,0.356,0.35,0.02633122354417533,0.31,0.41
+Taxi Travel Distance [km],P2PCollector+nearest (k=0),BASELINE,80,20.828375,15.895,17.831946615856594,1.86,51.28
+Taxi Travel Distance [km],P2PCollector+nearest (k=0),RUSH_HOUR,80,5.304,5.13,2.04002395121209,2.13,8.54
+Taxi Travel Distance [km],P2PCollector+nearest (k=0),SPATIAL_IMBALANCE,80,5.428,4.8,3.4172723596088788,0.92,11.45
+Taxi Travel Distance [km],P2PCollector+nearest (k=0),SPATIAL_ISLANDS,80,5.403499999999999,5.734999999999999,3.1586894814948687,0.84,9.85
+Taxi Travel Distance [km],P2PCollector+nearest (k=1),BASELINE,80,21.305,15.74,18.072469446612278,2.18,55.14
+Taxi Travel Distance [km],P2PCollector+nearest (k=1),RUSH_HOUR,80,5.814,5.45,2.16771278867317,2.24,9.93
+Taxi Travel Distance [km],P2PCollector+nearest (k=1),SPATIAL_IMBALANCE,80,5.620375,5.22,3.4850074709797703,0.97,11.86
+Taxi Travel Distance [km],P2PCollector+nearest (k=1),SPATIAL_ISLANDS,80,5.7532499999999995,6.265000000000001,3.267900566713138,0.84,10.99
+Taxi Travel Distance [km],P2PCollector+nearest (k=2),BASELINE,80,21.56375,15.520000000000001,18.235843573105814,2.18,51.91
+Taxi Travel Distance [km],P2PCollector+nearest (k=2),RUSH_HOUR,80,5.961625,5.7,2.220490562602685,2.24,10.04
+Taxi Travel Distance [km],P2PCollector+nearest (k=2),SPATIAL_IMBALANCE,80,5.6555,5.145,3.4859910963814347,0.97,12.03
+Taxi Travel Distance [km],P2PCollector+nearest (k=2),SPATIAL_ISLANDS,80,5.792125,6.279999999999999,3.281549376939366,0.84,11.47
+Taxi Travel Distance [km],SinglePassenger,BASELINE,10,10.229000000000001,10.305,0.6544115252992145,9.17,11.16
+Taxi Travel Distance [km],SinglePassenger,RUSH_HOUR,10,10.764,10.955,0.7851001351561608,9.66,12.0
+Taxi Travel Distance [km],SinglePassenger,SPATIAL_IMBALANCE,10,9.907,9.735,0.7146724191310777,8.97,11.13
+Taxi Travel Distance [km],SinglePassenger,SPATIAL_ISLANDS,10,10.904,10.855,0.5549414383518321,10.4,12.32
+Taxi Travel Distance [km],VehicleRouting,BASELINE,10,10.334,10.41,0.5912359934916008,9.35,11.08
+Taxi Travel Distance [km],VehicleRouting,RUSH_HOUR,10,10.956999999999999,10.995000000000001,0.8784968222291226,9.65,12.62
+Taxi Travel Distance [km],VehicleRouting,SPATIAL_IMBALANCE,10,10.175,9.99,0.744375204076845,9.35,11.65
+Taxi Travel Distance [km],VehicleRouting,SPATIAL_ISLANDS,10,11.239,11.145,0.5309833644600683,10.62,12.23
