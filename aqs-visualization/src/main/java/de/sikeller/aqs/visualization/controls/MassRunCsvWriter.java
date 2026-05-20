@@ -29,6 +29,9 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
+      String idleRoamingMode,
       String spawnScenario,
       int runIndex,
       int worldSeed,
@@ -57,6 +60,9 @@ final class MassRunCsvWriter {
                p2pOverlayMinNeighbors,
                p2pOverlayMaxNeighbors,
                p2pOverlayShortcuts,
+              idleRoamingEnabled,
+              idleRoamingStrategy,
+              idleRoamingMode,
               spawnScenario,
               runIndex,
               worldSeed,
@@ -97,8 +103,12 @@ final class MassRunCsvWriter {
     props.setProperty("overlayMinNeighbors", config.overlayMinNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     props.setProperty("overlayMaxNeighbors", config.overlayMaxNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     props.setProperty("overlayShortcuts", config.overlayShortcutsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("idleRoamingEnabled", String.valueOf(config.idleRoamingEnabled()));
-    props.setProperty("idleRoamingStrategy", String.valueOf(config.idleRoamingStrategy()));
+    props.setProperty("idleRoamingModes", String.join(",", config.idleRoamingModes()));
+    if (!config.idleRoamingModes().isEmpty()) {
+      String firstMode = config.idleRoamingModes().getFirst();
+      props.setProperty("idleRoamingEnabled", String.valueOf(!"none".equalsIgnoreCase(firstMode)));
+      props.setProperty("idleRoamingStrategy", "none".equalsIgnoreCase(firstMode) ? "random" : firstMode);
+    }
     props.setProperty("idleThresholdTicks", String.valueOf(config.idleThresholdTicks()));
     props.setProperty("idleCheckThrottleTicks", String.valueOf(config.idleCheckThrottleTicks()));
     props.setProperty("randomTravelMaxDistanceMeters", String.valueOf(config.randomTravelMaxDistanceMeters()));
@@ -143,6 +153,12 @@ final class MassRunCsvWriter {
               + "|"
               + row.p2pOverlayShortcuts()
               + "|"
+              + row.idleRoamingEnabled()
+              + "|"
+              + row.idleRoamingStrategy()
+              + "|"
+              + row.idleRoamingMode()
+              + "|"
               + row.spawnScenario()
               + "|"
               + row.metric();
@@ -164,6 +180,9 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors = group.get(0).p2pOverlayMinNeighbors();
       int p2pOverlayMaxNeighbors = group.get(0).p2pOverlayMaxNeighbors();
       int p2pOverlayShortcuts = group.get(0).p2pOverlayShortcuts();
+      boolean idleRoamingEnabled = group.get(0).idleRoamingEnabled();
+      String idleRoamingStrategy = group.get(0).idleRoamingStrategy();
+      String idleRoamingMode = group.get(0).idleRoamingMode();
       String spawnScenario = group.get(0).spawnScenario();
       String metric = group.get(0).metric();
 
@@ -180,6 +199,9 @@ final class MassRunCsvWriter {
                p2pOverlayMinNeighbors,
                p2pOverlayMaxNeighbors,
                p2pOverlayShortcuts,
+              idleRoamingEnabled,
+              idleRoamingStrategy,
+              idleRoamingMode,
               spawnScenario,
               metric,
               group.size(),
@@ -197,7 +219,7 @@ final class MassRunCsvWriter {
   private static void writeRunCsv(Path file, List<RunMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "timestamp,algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,spawnScenario,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
+        "timestamp,algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
     for (RunMetricRow row : rows) {
       lines.add(
           csv(
@@ -212,6 +234,9 @@ final class MassRunCsvWriter {
                row.p2pOverlayMinNeighbors(),
                row.p2pOverlayMaxNeighbors(),
                row.p2pOverlayShortcuts(),
+              row.idleRoamingEnabled(),
+              row.idleRoamingStrategy(),
+              row.idleRoamingMode(),
               row.spawnScenario(),
               row.runIndex(),
               row.worldSeed(),
@@ -229,7 +254,7 @@ final class MassRunCsvWriter {
   private static void writeAggregateCsv(Path file, List<AggregateMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,spawnScenario,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
+        "algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
     for (AggregateMetricRow row : rows) {
       lines.add(
           csv(
@@ -243,6 +268,9 @@ final class MassRunCsvWriter {
                row.p2pOverlayMinNeighbors(),
                row.p2pOverlayMaxNeighbors(),
                row.p2pOverlayShortcuts(),
+              row.idleRoamingEnabled(),
+              row.idleRoamingStrategy(),
+              row.idleRoamingMode(),
               row.spawnScenario(),
               row.metric(),
               row.runs(),
@@ -333,6 +361,9 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
+      String idleRoamingMode,
       String spawnScenario,
       int runIndex,
       int worldSeed,
@@ -355,6 +386,9 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
+      String idleRoamingMode,
       String spawnScenario,
       String metric,
       int runs,

@@ -6,7 +6,9 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.io.StringReader;
@@ -22,7 +24,6 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -52,8 +53,7 @@ final class MassRunDialog extends JDialog {
   private final JTextField simulationSpeedField;
   private final JTextField mapSizeField;
   // P2P Collector Options
-  private final JCheckBox idleRoamingEnabledCheck;
-  private final JComboBox<String> idleRoamingStrategyBox;
+  private final JTextField idleRoamingModesField;
   private final JTextField idleThresholdField;
   private final JTextField idleCheckThrottleField;
   private final JTextField randomTravelMaxDistanceField;
@@ -108,10 +108,7 @@ final class MassRunDialog extends JDialog {
     overlayMinNeighborsField = new JTextField(defaults.overlayMinNeighborsCsv());
     overlayMaxNeighborsField = new JTextField(defaults.overlayMaxNeighborsCsv());
     overlayShortcutsField = new JTextField(defaults.overlayShortcutsCsv());
-    idleRoamingEnabledCheck = new JCheckBox();
-    idleRoamingEnabledCheck.setSelected(defaults.idleRoamingEnabled());
-    idleRoamingStrategyBox = new JComboBox<>(new String[] {"random", "page-rank"});
-    idleRoamingStrategyBox.setSelectedItem(normalizedIdleRoamingStrategy(defaults.idleRoamingStrategy()));
+    idleRoamingModesField = new JTextField(defaults.idleRoamingModesCsv());
     idleThresholdField = new JTextField(String.valueOf(defaults.idleThresholdTicks()));
     idleCheckThrottleField = new JTextField(String.valueOf(defaults.idleCheckThrottleTicks()));
     randomTravelMaxDistanceField = new JTextField(String.valueOf(defaults.randomTravelMaxDistanceMeters()));
@@ -120,8 +117,7 @@ final class MassRunDialog extends JDialog {
     addRow(collectorPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
     addRow(collectorPanel, "Overlay max neighbors (CSV)", overlayMaxNeighborsField);
     addRow(collectorPanel, "Overlay shortcuts (CSV)", overlayShortcutsField);
-    addRow(collectorPanel, "Idle roaming enabled", idleRoamingEnabledCheck);
-    addRow(collectorPanel, "Idle roaming strategy", idleRoamingStrategyBox);
+    addRow(collectorPanel, "Idle roaming mode (CSV: none,random,page-rank)", idleRoamingModesField);
     addRow(collectorPanel, "Idle threshold [ticks]", idleThresholdField);
     addRow(collectorPanel, "Idle check throttle [ticks]", idleCheckThrottleField);
     addRow(collectorPanel, "Random travel max distance [m]", randomTravelMaxDistanceField);
@@ -245,9 +241,7 @@ final class MassRunDialog extends JDialog {
       int taxiSpeed = parseInt(taxiSpeedField.getText(), 1);
       int simulationSpeed = parseInt(simulationSpeedField.getText(), 1);
       List<Integer> mapSizes = parseCsvIntList(mapSizeField.getText(), 1, "map size");
-      boolean idleRoamingEnabled = idleRoamingEnabledCheck.isSelected();
-      String idleRoamingStrategy =
-          normalizedIdleRoamingStrategy(String.valueOf(idleRoamingStrategyBox.getSelectedItem()));
+      List<String> idleRoamingModes = parseIdleRoamingModes(idleRoamingModesField.getText());
       int idleThresholdTicks = parseInt(idleThresholdField.getText(), 1);
       int idleCheckThrottleTicks = parseInt(idleCheckThrottleField.getText(), 1);
       int randomTravelMaxDistance = parseInt(randomTravelMaxDistanceField.getText(), 1);
@@ -286,8 +280,7 @@ final class MassRunDialog extends JDialog {
               taxiSpeed,
               simulationSpeed,
               mapSizes,
-              idleRoamingEnabled,
-              idleRoamingStrategy,
+              idleRoamingModes,
               idleThresholdTicks,
               idleCheckThrottleTicks,
               randomTravelMaxDistance);
@@ -308,7 +301,10 @@ final class MassRunDialog extends JDialog {
 
   private void pasteConfigFromClipboard() {
     try {
-      String text = (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
+      String text = readTextFromClipboard();
+      if (text == null || text.isBlank()) {
+        throw new IllegalArgumentException("Clipboard does not contain text");
+      }
       applyConfig(text);
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(this, "Failed to paste config: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -331,10 +327,7 @@ final class MassRunDialog extends JDialog {
     props.setProperty("overlayMinNeighbors", overlayMinNeighborsField.getText());
     props.setProperty("overlayMaxNeighbors", overlayMaxNeighborsField.getText());
     props.setProperty("overlayShortcuts", overlayShortcutsField.getText());
-    props.setProperty("idleRoamingEnabled", String.valueOf(idleRoamingEnabledCheck.isSelected()));
-    props.setProperty(
-        "idleRoamingStrategy",
-        normalizedIdleRoamingStrategy(String.valueOf(idleRoamingStrategyBox.getSelectedItem())));
+    props.setProperty("idleRoamingModes", idleRoamingModesField.getText());
     props.setProperty("idleThresholdTicks", idleThresholdField.getText());
     props.setProperty("idleCheckThrottleTicks", idleCheckThrottleField.getText());
     props.setProperty("randomTravelMaxDistanceMeters", randomTravelMaxDistanceField.getText());
@@ -377,12 +370,15 @@ final class MassRunDialog extends JDialog {
     setFieldIfPresent(overlayMinNeighborsField, props, "overlayMinNeighbors");
     setFieldIfPresent(overlayMaxNeighborsField, props, "overlayMaxNeighbors");
     setFieldIfPresent(overlayShortcutsField, props, "overlayShortcuts");
-    if (props.containsKey("idleRoamingEnabled")) {
-      idleRoamingEnabledCheck.setSelected(Boolean.parseBoolean(props.getProperty("idleRoamingEnabled")));
-    }
-    if (props.containsKey("idleRoamingStrategy")) {
-      idleRoamingStrategyBox.setSelectedItem(
-          normalizedIdleRoamingStrategy(props.getProperty("idleRoamingStrategy")));
+    if (props.containsKey("idleRoamingModes")) {
+      idleRoamingModesField.setText(props.getProperty("idleRoamingModes"));
+    } else {
+      String migratedMode =
+          normalizeRoamingMode(
+              Boolean.parseBoolean(props.getProperty("idleRoamingEnabled", "true"))
+                  ? props.getProperty("idleRoamingStrategy", "random")
+                  : "none");
+      idleRoamingModesField.setText(migratedMode);
     }
     setFieldIfPresent(idleThresholdField, props, "idleThresholdTicks");
     setFieldIfPresent(idleCheckThrottleField, props, "idleCheckThrottleTicks");
@@ -475,11 +471,42 @@ final class MassRunDialog extends JDialog {
     return values;
   }
 
-  private static String normalizedIdleRoamingStrategy(String value) {
+  private static String normalizeRoamingMode(String value) {
     if (value == null || value.isBlank()) {
       return "random";
     }
-    return "page-rank".equalsIgnoreCase(value.trim()) ? "page-rank" : "random";
+    String normalized = value.trim().toLowerCase();
+    if ("none".equals(normalized)) {
+      return "none";
+    }
+    return "page-rank".equals(normalized) ? "page-rank" : "random";
+  }
+
+  private static List<String> parseIdleRoamingModes(String csv) {
+    Set<String> values = new LinkedHashSet<>();
+    for (String part : csv.split(",")) {
+      String mode = normalizeRoamingMode(part);
+      if (!mode.isBlank()) {
+        values.add(mode);
+      }
+    }
+    if (values.isEmpty()) {
+      throw new IllegalArgumentException("At least one idle roaming mode is required");
+    }
+    return new ArrayList<>(values);
+  }
+
+  private static String readTextFromClipboard() throws Exception {
+    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+    Transferable transferable = clipboard.getContents(null);
+    if (transferable == null) {
+      return null;
+    }
+    if (transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+      Object text = transferable.getTransferData(DataFlavor.stringFlavor);
+      return text == null ? null : String.valueOf(text);
+    }
+    return null;
   }
 
   record Defaults(
@@ -502,8 +529,7 @@ final class MassRunDialog extends JDialog {
       int taxiSpeed,
       int simulationSpeed,
       String mapSizeCsv,
-      boolean idleRoamingEnabled,
-      String idleRoamingStrategy,
+      String idleRoamingModesCsv,
       int idleThresholdTicks,
       int idleCheckThrottleTicks,
       int randomTravelMaxDistanceMeters) {}
@@ -528,8 +554,7 @@ final class MassRunDialog extends JDialog {
       int taxiSpeed,
       int simulationSpeed,
       List<Integer> mapSizes,
-      boolean idleRoamingEnabled,
-      String idleRoamingStrategy,
+      List<String> idleRoamingModes,
       int idleThresholdTicks,
       int idleCheckThrottleTicks,
       int randomTravelMaxDistanceMeters) {}

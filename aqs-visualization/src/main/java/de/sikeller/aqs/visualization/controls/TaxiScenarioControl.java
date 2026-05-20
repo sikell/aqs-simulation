@@ -15,6 +15,7 @@ import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -885,6 +886,7 @@ public class TaxiScenarioControl extends AbstractControl {
     int idleThresholdTicks = readSpinnerValue("p2pIdleThresholdTicks", 60);
     int idleCheckThrottleTicks = readSpinnerValue("p2pIdleCheckThrottleTicks", 5);
     int randomTravelMaxDistance = readSpinnerValue("p2pRandomTravelMaxDistanceMeters", 20000);
+    String idleRoamingModesCsv = idleRoamingEnabled ? idleRoamingStrategy : "none";
     return new MassRunDialog.Defaults(
         resolveDefaultMassRunAlgorithmsCsv(availableAlgorithms),
         String.valueOf(defaultKHops),
@@ -905,8 +907,7 @@ public class TaxiScenarioControl extends AbstractControl {
         taxiSpeed,
         simulationSpeed,
         String.valueOf(mapSize),
-        idleRoamingEnabled,
-        idleRoamingStrategy,
+        idleRoamingModesCsv,
         idleThresholdTicks,
         idleCheckThrottleTicks,
         randomTravelMaxDistance);
@@ -961,6 +962,8 @@ public class TaxiScenarioControl extends AbstractControl {
                                     .size()
                                 * effectiveOverlayShortcutsForAlgorithm(algorithmSimpleName, config)
                                     .size()
+                                * effectiveIdleRoamingModesForAlgorithm(algorithmSimpleName, config)
+                                    .size()
                                 * config.spawnScenarios().size()
                                 * config.taxiCounts().size()
                                 * config.taxiSeatCounts().size()
@@ -981,13 +984,16 @@ public class TaxiScenarioControl extends AbstractControl {
                   effectiveOverlayMaxNeighborsForAlgorithm(algorithmSimpleName, config);
               List<Integer> effectiveOverlayShortcuts =
                   effectiveOverlayShortcutsForAlgorithm(algorithmSimpleName, config);
+              List<String> effectiveIdleRoamingModes =
+                  effectiveIdleRoamingModesForAlgorithm(algorithmSimpleName, config);
               for (int kHops : effectiveKHops) {
                 for (int rqsRadius : effectiveRqsRadius) {
                   for (String p2pStrategy : effectiveStrategies) {
                     for (int overlayMinNeighbors : effectiveOverlayMinNeighbors) {
                       for (int overlayMaxNeighbors : effectiveOverlayMaxNeighbors) {
                         for (int overlayShortcuts : effectiveOverlayShortcuts) {
-                          for (String spawnScenario : config.spawnScenarios()) {
+                          for (String idleRoamingMode : effectiveIdleRoamingModes) {
+                            for (String spawnScenario : config.spawnScenarios()) {
                             for (int pairIndex = 0;
                                 pairIndex < config.taxiCounts().size();
                                 pairIndex++) {
@@ -1009,6 +1015,7 @@ public class TaxiScenarioControl extends AbstractControl {
                                           overlayMinNeighbors,
                                           overlayMaxNeighbors,
                                           overlayShortcuts,
+                                          idleRoamingMode,
                                           spawnScenario,
                                           taxiCount,
                                           clientCount,
@@ -1029,6 +1036,9 @@ public class TaxiScenarioControl extends AbstractControl {
                                           result.executedOverlayMinNeighbors(),
                                           result.executedOverlayMaxNeighbors(),
                                           result.executedOverlayShortcuts(),
+                                          result.executedIdleRoamingEnabled(),
+                                          result.executedIdleRoamingStrategy(),
+                                          result.executedIdleRoamingMode(),
                                           result.executedSpawnScenario(),
                                           runIndex,
                                           seed,
@@ -1045,6 +1055,7 @@ public class TaxiScenarioControl extends AbstractControl {
                                       });
                                 }
                               }
+                            }
                             }
                           }
                         }
@@ -1113,6 +1124,7 @@ public class TaxiScenarioControl extends AbstractControl {
       int overlayMinNeighbors,
       int overlayMaxNeighbors,
       int overlayShortcuts,
+      String idleRoamingMode,
       String spawnScenario,
       int taxiCount,
       int clientCount,
@@ -1141,19 +1153,26 @@ public class TaxiScenarioControl extends AbstractControl {
               int executedOverlayMinNeighbors = -1;
               int executedOverlayMaxNeighbors = -1;
               int executedOverlayShortcuts = -1;
+              boolean executedIdleRoamingEnabled = false;
+              String executedIdleRoamingStrategy = "n/a";
+              String executedIdleRoamingMode = "n/a";
               if (isCollectorAlgorithmName(executedAlgorithm)) {
                 setSpinnerValueIfPresent("p2pRequestForwardHops", kHops);
                 setSpinnerValueIfPresent("p2pFixedSearchRadius", rqsRadius);
                 setSpinnerValueIfPresent("p2pOverlayMinNeighbors", overlayMinNeighbors);
                 setSpinnerValueIfPresent("p2pOverlayMaxNeighbors", overlayMaxNeighbors);
                 setSpinnerValueIfPresent("p2pOverlayShortcuts", overlayShortcuts);
+                String normalizedRoamingMode = normalizedMassRunRoamingMode(idleRoamingMode);
+                boolean idleRoamingEnabled = !"none".equals(normalizedRoamingMode);
+                String idleRoamingStrategy =
+                    idleRoamingEnabled ? normalizedRoamingMode : IDLE_ROAMING_STRATEGY_RANDOM;
                 // Apply idle roaming system properties for this iteration
                 System.setProperty(
                     de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
-                    String.valueOf(config.idleRoamingEnabled()));
+                    String.valueOf(idleRoamingEnabled));
                 System.setProperty(
                     de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
-                    normalizedIdleRoamingStrategy(config.idleRoamingStrategy()));
+                    idleRoamingStrategy);
                 System.setProperty(
                     de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS,
                     String.valueOf(config.idleThresholdTicks()));
@@ -1165,11 +1184,10 @@ public class TaxiScenarioControl extends AbstractControl {
                     String.valueOf(config.randomTravelMaxDistanceMeters()));
                 // Sync UI checkboxes/spinners so they reflect the applied values
                 if (p2pIdleRandomTravelEnabledCheckBox != null) {
-                  p2pIdleRandomTravelEnabledCheckBox.setSelected(config.idleRoamingEnabled());
+                  p2pIdleRandomTravelEnabledCheckBox.setSelected(idleRoamingEnabled);
                 }
                 if (p2pIdleRoamingStrategyBox != null) {
-                  p2pIdleRoamingStrategyBox.setSelectedItem(
-                      normalizedIdleRoamingStrategy(config.idleRoamingStrategy()));
+                  p2pIdleRoamingStrategyBox.setSelectedItem(idleRoamingStrategy);
                 }
                 setSpinnerValueIfPresent("p2pIdleThresholdTicks", config.idleThresholdTicks());
                 setSpinnerValueIfPresent("p2pIdleCheckThrottleTicks", config.idleCheckThrottleTicks());
@@ -1180,6 +1198,9 @@ public class TaxiScenarioControl extends AbstractControl {
                 executedOverlayMinNeighbors = overlayMinNeighbors;
                 executedOverlayMaxNeighbors = overlayMaxNeighbors;
                 executedOverlayShortcuts = overlayShortcuts;
+                executedIdleRoamingEnabled = idleRoamingEnabled;
+                executedIdleRoamingStrategy = idleRoamingEnabled ? idleRoamingStrategy : "none";
+                executedIdleRoamingMode = normalizedRoamingMode;
                 executedStrategy = applyP2PStrategyForMassRun(p2pStrategy);
               }
               simulation.setSpeed(config.simulationSpeed());
@@ -1193,6 +1214,9 @@ public class TaxiScenarioControl extends AbstractControl {
                   executedOverlayMinNeighbors,
                   executedOverlayMaxNeighbors,
                   executedOverlayShortcuts,
+                  executedIdleRoamingEnabled,
+                  executedIdleRoamingStrategy,
+                  executedIdleRoamingMode,
                   spawnScenario);
             });
 
@@ -1232,6 +1256,9 @@ public class TaxiScenarioControl extends AbstractControl {
         result.executedOverlayMinNeighbors(),
         result.executedOverlayMaxNeighbors(),
         result.executedOverlayShortcuts(),
+        result.executedIdleRoamingEnabled(),
+        result.executedIdleRoamingStrategy(),
+        result.executedIdleRoamingMode(),
         result.executedSpawnScenario());
   }
 
@@ -1425,6 +1452,27 @@ public class TaxiScenarioControl extends AbstractControl {
     return List.of(-1);
   }
 
+  private List<String> effectiveIdleRoamingModesForAlgorithm(
+      String algorithmSimpleName, MassRunDialog.MassRunConfig config) {
+    if (isCollectorAlgorithmName(algorithmSimpleName)) {
+      return config.idleRoamingModes();
+    }
+    return List.of("n/a");
+  }
+
+  private String normalizedMassRunRoamingMode(String value) {
+    if (value == null || value.isBlank() || "n/a".equalsIgnoreCase(value)) {
+      return "none";
+    }
+    String normalized = value.trim().toLowerCase(Locale.ROOT);
+    if ("none".equals(normalized)) {
+      return "none";
+    }
+    return IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)
+        ? IDLE_ROAMING_STRATEGY_PAGE_RANK
+        : IDLE_ROAMING_STRATEGY_RANDOM;
+  }
+
   private record MassRunIterationResult(
       ResultTable table,
       String executedAlgorithm,
@@ -1433,6 +1481,9 @@ public class TaxiScenarioControl extends AbstractControl {
       int executedOverlayMinNeighbors,
       int executedOverlayMaxNeighbors,
       int executedOverlayShortcuts,
+      boolean executedIdleRoamingEnabled,
+      String executedIdleRoamingStrategy,
+      String executedIdleRoamingMode,
       String executedSpawnScenario) {}
 
   private void setControlsEnabledForMassRun(boolean enabled) {
@@ -2558,8 +2609,21 @@ public class TaxiScenarioControl extends AbstractControl {
       if (comp instanceof JSpinner spinner && comp.getName() != null) {
         props.setProperty(spinner.getName(), spinner.getValue().toString());
       }
+      if (comp instanceof JComboBox<?> combo && comp.getName() != null) {
+        props.setProperty(comp.getName(), Objects.toString(combo.getSelectedItem(), ""));
+      }
+      if (comp instanceof JCheckBox checkBox && comp.getName() != null) {
+        props.setProperty(comp.getName(), String.valueOf(checkBox.isSelected()));
+      }
       if (comp instanceof JSlider slider && comp.getName() != null) {
         props.setProperty(slider.getName(), String.valueOf(slider.getValue()));
+      }
+    }
+
+    // Selection Parameters
+    for (Component comp : selection.getComponents()) {
+      if (comp instanceof JComboBox<?> combo && comp.getName() != null) {
+        props.setProperty(comp.getName(), Objects.toString(combo.getSelectedItem(), ""));
       }
     }
 
@@ -2575,12 +2639,21 @@ public class TaxiScenarioControl extends AbstractControl {
           if (comp instanceof JComboBox<?> combo && comp.getName() != null) {
             props.setProperty(combo.getName(), Objects.toString(combo.getSelectedItem(), ""));
           }
+          if (comp instanceof JCheckBox checkBox && comp.getName() != null) {
+            props.setProperty(comp.getName(), String.valueOf(checkBox.isSelected()));
+          }
         });
 
     // Batch Processing Parameters
     for (Component comp : batchProcessing.getComponents()) {
       if (comp instanceof JSpinner spinner && comp.getName() != null) {
         props.setProperty(spinner.getName(), spinner.getValue().toString());
+      }
+      if (comp instanceof JComboBox<?> combo && comp.getName() != null) {
+        props.setProperty(comp.getName(), Objects.toString(combo.getSelectedItem(), ""));
+      }
+      if (comp instanceof JCheckBox checkBox && comp.getName() != null) {
+        props.setProperty(comp.getName(), String.valueOf(checkBox.isSelected()));
       }
     }
 
@@ -2607,7 +2680,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private void pasteConfigFromClipboard() {
     try {
       Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-      String configString = (String) clipboard.getData(DataFlavor.stringFlavor);
+      String configString = readTextFromClipboard(clipboard);
 
       if (configString == null || configString.trim().isEmpty()) {
         JOptionPane.showMessageDialog(
@@ -2709,6 +2782,10 @@ public class TaxiScenarioControl extends AbstractControl {
                         lookupName,
                         ex.getMessage());
                   }
+                } else if (compInAlgoPanel instanceof JCheckBox checkBox
+                    && lookupName.equals(compInAlgoPanel.getName())) {
+                  checkBox.setSelected(Boolean.parseBoolean(lookupValue));
+                  found[0] = true;
                 } else if (compInAlgoPanel instanceof JSlider
                     && lookupName.equals(compInAlgoPanel.getName())) {
                   ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
@@ -2730,6 +2807,16 @@ public class TaxiScenarioControl extends AbstractControl {
           if (generalComp instanceof JSlider) {
             ((JSlider) generalComp).setValue(Integer.parseInt(valueStr));
             log.trace("Set GENERAL JSlider '{}' to '{}'", name, valueStr);
+            valueSet = true;
+          }
+          if (generalComp instanceof JComboBox<?> combo) {
+            combo.setSelectedItem(valueStr);
+            log.trace("Set GENERAL JComboBox '{}' to '{}'", name, valueStr);
+            valueSet = true;
+          }
+          if (generalComp instanceof JCheckBox checkBox) {
+            checkBox.setSelected(Boolean.parseBoolean(valueStr));
+            log.trace("Set GENERAL JCheckBox '{}' to '{}'", name, valueStr);
             valueSet = true;
           }
         }
@@ -2761,6 +2848,16 @@ public class TaxiScenarioControl extends AbstractControl {
           "Error",
           JOptionPane.ERROR_MESSAGE);
     }
+  }
+
+  private String readTextFromClipboard(Clipboard clipboard)
+      throws UnsupportedFlavorException, IOException {
+    Transferable transferable = clipboard.getContents(null);
+    if (transferable == null || !transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+      return null;
+    }
+    Object text = transferable.getTransferData(DataFlavor.stringFlavor);
+    return text == null ? null : String.valueOf(text);
   }
 
   private static class P2PTopologyPanel extends JPanel {
