@@ -66,9 +66,9 @@ public class OverlaySelectorImpl implements OverlaySelector {
     // can learn positions and later form geo-local neighbourships. Restricting this to
     // overlay neighbours creates a circular dependency: you need a position to become a
     // neighbour, but you only receive the position if you are already a neighbour.
-    if (P2PTopics.VEHICLE_POSITION.equals(topic)) {
-      return new OverlaySelection(new ArrayList<>(peers), Set.of());
-    }
+    // if (P2PTopics.VEHICLE_POSITION.equals(topic)) {
+    //  return new OverlaySelection(new ArrayList<>(peers), Set.of());
+    // }
 
     if (self.role() == NodeRole.CLIENT && P2PTopics.RIDE_REQUEST.equals(topic)) {
       return new OverlaySelection(new ArrayList<>(peers), Set.of());
@@ -154,7 +154,9 @@ public class OverlaySelectorImpl implements OverlaySelector {
       // for tests and typical usage where only a small neighborhood is desired unless a
       // specific max is configured.
       int limitInRange =
-          (maxNeighbors == Integer.MAX_VALUE) ? Math.max(1, minNeighbors) : Math.max(1, maxNeighbors);
+          (maxNeighbors == Integer.MAX_VALUE)
+              ? Math.max(1, minNeighbors)
+              : Math.max(1, maxNeighbors);
       List<NodeDescriptor> inRange =
           DistancePeerSelector.vehiclePeersWithinDistance(
               self, sortedPeers, positionManager, maxDistance, limitInRange, selectedIds);
