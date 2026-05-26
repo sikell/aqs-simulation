@@ -1325,6 +1325,203 @@ def plot_impact_by_strategy(df: pd.DataFrame, vdims: dict, plots_dir: Path, metr
             _save(fig, plots_dir / f"impact_strategy_{_safe(scenario)}_{_safe(metric)}.png")
 
 
+def plot_collector_all_params_categorical(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics: list[str]) -> None:
+    """Comprehensive comparison: all varying collector parameter combinations as categorical.
+
+    Builds one bar category per *actually varying* collector-dimension combination
+    (szenario-spezifisch), inkl. Idle-Roaming, und stellt diese den zentralen
+    Algorithmen gegenüber.
+
+    Wenn sowohl Taxi- als auch Client-Anzahl variieren, wird statt 2D-Balken ein
+    3D-Plot genutzt (x=Taxi, y=Client, z=Metric), damit diese Achsen nicht im
+    Kategorienamen untergehen.
+    """
+    # Work with full dataframe to keep both collector and non-collector data
+    if df.empty:
+        return
+    
+    # Check if we have collector data at all
+    has_collector = df["algorithm_base"].astype(str).str.contains("p2pcollector", case=False, na=False).any()
+    if not has_collector:
+        return
+    
+    collector_candidate_dims = [
+        "kHops",
+        "p2pRqsRadius",
+        "p2pStrategy",
+        "idleRoamingMode",
+        "taxiCount",
+        "clientCount",
+        "taxiSeatCount",
+        "p2pOverlayMinNeighbors",
+        "p2pOverlayMaxNeighbors",
+        "p2pOverlayShortcuts",
+    ]
+    abbrev = {
+        "kHops": "k",
+        "p2pRqsRadius": "r",
+        "p2pStrategy": "s",
+        "idleRoamingMode": "roam",
+        "taxiCount": "t",
+        "clientCount": "c",
+        "taxiSeatCount": "seat",
+        "p2pOverlayMinNeighbors": "minN",
+        "p2pOverlayMaxNeighbors": "maxN",
+        "p2pOverlayShortcuts": "sc",
+    }
+
+    global_relevant_dims = [d for d in collector_candidate_dims if d in vdims and len(vdims.get(d, [])) > 1]
+    if not global_relevant_dims:
+        return
+
+    def _fmt_dim_value(dim: str, value: object) -> str:
+        if dim == "kHops":
+            return _fmt_khops(value)
+        if dim == "p2pRqsRadius":
+            return _fmt_rqs(value)
+        if pd.isna(value):
+            return "n/a"
+        if dim in {
+            "taxiCount",
+            "clientCount",
+            "taxiSeatCount",
+            "p2pOverlayMinNeighbors",
+            "p2pOverlayMaxNeighbors",
+            "p2pOverlayShortcuts",
+        }:
+            try:
+                return str(int(float(str(value))))
+            except Exception:
+                return str(value)
+        return str(value)
+    
+    sns.set_theme(style="whitegrid")
+    scenarios = vdims.get("spawnScenario",
+                          [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
+    
+    for metric in metrics:
+        metric_df = df[df["metric"] == metric].copy()
+        if metric_df.empty:
+            continue
+        
+        # Separate collector and non-collector from the start
+        is_collector = metric_df["algorithm_base"].astype(str).str.contains("p2pcollector", case=False, na=False)
+        collector_df = metric_df[is_collector].copy()
+        non_collector_df = metric_df[~is_collector].copy()
+        
+        if collector_df.empty:
+            continue
+        
+        for scenario in scenarios:
+            sub_collector = collector_df[collector_df["spawnScenario"] == scenario].copy() if "spawnScenario" in collector_df.columns else collector_df.copy()
+            sub_non_coll = non_collector_df[non_collector_df["spawnScenario"] == scenario] if "spawnScenario" in non_collector_df.columns else non_collector_df
+            if sub_collector.empty:
+                continue
+
+            # Nur Dimensionen berücksichtigen, die in diesem Szenario bei Collector wirklich variieren.
+            scenario_dims = [d for d in global_relevant_dims if d in sub_collector.columns and sub_collector[d].dropna().nunique() > 1]
+            use_3d_for_scale = "taxiCount" in scenario_dims and "clientCount" in scenario_dims
+            dims_for_category = [d for d in scenario_dims if d not in {"taxiCount", "clientCount"}] if use_3d_for_scale else scenario_dims
+
+            if dims_for_category:
+                sub_collector["_category"] = sub_collector.apply(
+                    lambda r: " ".join(
+                        f"{abbrev[d]}={_fmt_dim_value(d, r[d])}"
+                        for d in dims_for_category
+                    ),
+                    axis=1,
+                )
+            else:
+                sub_collector["_category"] = "Collector"
+
+            collector_categories = sorted(sub_collector["_category"].dropna().unique().tolist())
+            if not collector_categories:
+                continue
+
+            non_coll_algos = _sorted_variants(sub_non_coll["algo_short"].dropna().unique()) if not sub_non_coll.empty else []
+            non_coll_categories = [f"[Central] {algo}" for algo in non_coll_algos]
+
+            all_categories = collector_categories + non_coll_categories
+            n_total_cats = len(all_categories)
+            if n_total_cats < 2:
+                continue
+
+            collector_palette = _palette(max(1, len(collector_categories)))
+            central_palette = sns.color_palette("Set2", n_colors=max(len(non_coll_categories), 1))
+            cmap_collector = {cat: collector_palette[i] for i, cat in enumerate(collector_categories)}
+            cmap_central = {cat: central_palette[i] for i, cat in enumerate(non_coll_categories)}
+
+            if use_3d_for_scale:
+                sub_collector_3d = sub_collector.copy()
+                sub_collector_3d["_bar_group"] = sub_collector_3d["_category"]
+
+                if not sub_non_coll.empty:
+                    sub_non_coll_3d = sub_non_coll.copy()
+                    sub_non_coll_3d["_bar_group"] = sub_non_coll_3d["algo_short"].apply(lambda a: f"[Central] {a}")
+                    sub_plot = pd.concat([sub_collector_3d, sub_non_coll_3d], ignore_index=True)
+                else:
+                    sub_plot = sub_collector_3d
+
+                taxi_vals = sorted(sub_plot["taxiCount"].dropna().unique().tolist())
+                client_vals = sorted(sub_plot["clientCount"].dropna().unique().tolist())
+                if len(taxi_vals) < 2 or len(client_vals) < 2:
+                    use_3d_for_scale = False
+                else:
+                    taxi_step = (max(taxi_vals) - min(taxi_vals)) / max(len(taxi_vals) - 1, 1) if len(taxi_vals) > 1 else 1.0
+                    client_step = (max(client_vals) - min(client_vals)) / max(len(client_vals) - 1, 1) if len(client_vals) > 1 else 1.0
+                    bar_groups = collector_categories + non_coll_categories
+                    cmap_groups = {**cmap_collector, **cmap_central}
+                    varied_dims_label = ", ".join(DIM_LABELS.get(d, d) for d in dims_for_category) if dims_for_category else "(keine)"
+                    _build_3d_figure(
+                        sub_plot,
+                        bar_groups,
+                        "_bar_group",
+                        cmap_groups,
+                        taxi_vals,
+                        client_vals,
+                        taxi_step,
+                        client_step,
+                        metric,
+                        f"3D Alle Collector-Parameter (+ Zentral): {metric}  [Spawn: {scenario}]  [Var. ohne Taxi/Client: {varied_dims_label}]",
+                        plots_dir,
+                        f"collector_all_params_{_safe(scenario)}_{_safe(metric)}.png",
+                    )
+                    continue
+            
+            fig, ax = plt.subplots(figsize=(max(10, 2.2 * n_total_cats), 5.5))
+            x = np.arange(n_total_cats)
+            
+            means = []
+            cis = []
+            colors = []
+            
+            # Plot collector categories
+            for cat in collector_categories:
+                cat_data = sub_collector[sub_collector["_category"] == cat]["avg"]
+                means.append(float(cat_data.mean()) if not cat_data.empty else 0.0)
+                cis.append(_ci95(cat_data))
+                colors.append(cmap_collector[cat])
+            
+            # Add central algorithm categories
+            for algo in non_coll_categories:
+                algo_name = algo.replace("[Central] ", "")
+                algo_data = sub_non_coll[sub_non_coll["algo_short"] == algo_name]["avg"]
+                means.append(float(algo_data.mean()) if not algo_data.empty else 0.0)
+                cis.append(_ci95(algo_data))
+                colors.append(cmap_central[algo])
+            
+            bars = ax.bar(x, means, yerr=cis, color=colors, capsize=4, 
+                         error_kw={"elinewidth": 1.0, "ecolor": "#333"}, width=0.75)
+            _annotate_bars(ax, bars, pd.Series(means))
+            
+            ax.set_xticks(x)
+            ax.set_xticklabels(all_categories, rotation=45, ha="right", fontsize=8)
+            ax.set_ylabel(metric)
+            varied_dims_label = ", ".join(DIM_LABELS.get(d, d) for d in scenario_dims) if scenario_dims else "(keine)"
+            ax.set_title(_wrap(f"Alle Collector-Parameter (+ Zentral): {metric}  [Spawn: {scenario}]  [Var.: {varied_dims_label}]"), fontsize=12)
+            _save(fig, plots_dir / f"collector_all_params_{_safe(scenario)}_{_safe(metric)}.png")
+
+
 def write_stats(df: pd.DataFrame, dirs: dict, metrics: list[str]) -> pd.DataFrame:
     records = []
     for metric in metrics:
@@ -1390,7 +1587,7 @@ def write_overview(df: pd.DataFrame, vdims: dict, out: Path) -> dict:
 
 _GROUP_ORDER = [
     "Algorithmen-Vergleich",
-    "RQS-Einfluss", "k-Hop-Einfluss", "Strategie-Einfluss",
+    "RQS-Einfluss", "k-Hop-Einfluss", "Strategie-Einfluss", "Alle Parameter (Collector)",
     "Skalierung (Übersicht)", "Skalierung (RQS-gemittelt)", "Skalierung (pro Algo/k)",
     "3D Taxi×Client", "3D pro RQS", "3D pro Algo/k",
     "Dimension-Effekte", "Kategorie-Effekte", "Mehr-Dim Facet",
@@ -1403,6 +1600,7 @@ def _plot_group(name: str) -> str:
     if name.startswith("impact_rqs"):         return "RQS-Einfluss"
     if name.startswith("impact_khop"):        return "k-Hop-Einfluss"
     if name.startswith("impact_strategy"):    return "Strategie-Einfluss"
+    if name.startswith("collector_all_params"): return "Alle Parameter (Collector)"
     if name.startswith("scaling_avg_rqs"):    return "Skalierung (RQS-gemittelt)"
     if name.startswith("scaling_per_algo"):   return "Skalierung (pro Algo/k)"
     if name.startswith("scaling"):            return "Skalierung (Übersicht)"
@@ -1754,6 +1952,9 @@ def main() -> None:
     plot_impact_by_rqs(df, vdims, dirs["plots"], metrics)
     plot_impact_by_khop(df, vdims, dirs["plots"], metrics)
     plot_impact_by_strategy(df, vdims, dirs["plots"], metrics)
+
+    # 2b. Collector comprehensive parameter comparison (all parameters as categorical)
+    plot_collector_all_params_categorical(df, vdims, dirs["plots"], metrics)
 
     # 3. Scaling overview grid (all varying numeric dims in one figure per metric)
     plot_scaling_overview(df, vdims, dirs["plots"], metrics)

@@ -10,6 +10,8 @@ public class VisualizationProperties
     implements TaxiDrawing.TaxiDrawingProperties,
         ClientDrawing.ClientDrawingProperties,
         BackgroundDrawing.BackgroundDrawingProperties {
+  private boolean showPageRankHq = true;
+  private Map<String, int[]> taxiPageRankHqPositions = Map.of();
   private boolean showClientPaths = false;
   private boolean showClientNames = false;
   private boolean showClientPositions = true;

@@ -63,8 +63,8 @@ class VehicleP2PServiceIdleTest {
   }
 
   @Test
-  void pollIdleTravelTarget_pageRankSpatialImbalanceTargetsCenter() {
-    System.setProperty(P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, "page-rank");
+  void pollIdleTravelTarget_returnToHqSpatialImbalanceTargetsCenter() {
+    System.setProperty(P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, "return-to-hq");
 
     var network = new InMemoryP2PNetwork();
     VehicleP2PService vehicle = new VehicleP2PService("vehicle-1", network);

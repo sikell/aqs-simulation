@@ -117,7 +117,7 @@ final class MassRunDialog extends JDialog {
     addRow(collectorPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
     addRow(collectorPanel, "Overlay max neighbors (CSV)", overlayMaxNeighborsField);
     addRow(collectorPanel, "Overlay shortcuts (CSV)", overlayShortcutsField);
-    addRow(collectorPanel, "Idle roaming mode (CSV: none,random,page-rank)", idleRoamingModesField);
+    addRow(collectorPanel, "Idle roaming mode (CSV: none,random,return-to-hq,page-rank)", idleRoamingModesField);
     addRow(collectorPanel, "Idle threshold [ticks]", idleThresholdField);
     addRow(collectorPanel, "Idle check throttle [ticks]", idleCheckThrottleField);
     addRow(collectorPanel, "Random travel max distance [m]", randomTravelMaxDistanceField);
@@ -479,7 +479,13 @@ final class MassRunDialog extends JDialog {
     if ("none".equals(normalized)) {
       return "none";
     }
-    return "page-rank".equals(normalized) ? "page-rank" : "random";
+    if ("return-to-hq".equals(normalized)) {
+      return "return-to-hq";
+    }
+    if ("page-rank".equals(normalized)) {
+      return "page-rank";
+    }
+    return "random";
   }
 
   private static List<String> parseIdleRoamingModes(String csv) {

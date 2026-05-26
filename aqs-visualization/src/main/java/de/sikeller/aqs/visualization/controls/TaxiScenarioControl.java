@@ -48,6 +48,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String P2P_STRATEGY_NEAREST = "nearest";
   private static final String P2P_STRATEGY_GREEDY = "greedy";
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
+  private static final String IDLE_ROAMING_STRATEGY_RETURN_TO_HQ = "return-to-hq";
   private static final String IDLE_ROAMING_STRATEGY_PAGE_RANK = "page-rank";
   private static final String P2P_MULTICAST_GROUP_FIELD = "p2pMulticastGroup";
   private static final Set<String> P2P_PORT_FIELDS = Set.of("p2pTcpPort", "p2pDiscoveryPort");
@@ -113,7 +114,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String DEFAULT_TAXI_COUNT_TOOLTIP =
       "Set the count of taxis to be spawned in the simulation run";
   private static final long MASS_RUN_ITERATION_TIMEOUT_MS =
-      Long.getLong("aqs.massRun.iterationTimeoutMs", 600_000L);
+      Long.getLong("aqs.massRun.iterationTimeoutMs", 600_000L * 3); // 30 min
   private static final long MASS_RUN_WAIT_POLL_MS = 20L;
 
   public TaxiScenarioControl(SimulationControl simulation) {
@@ -574,6 +575,12 @@ public class TaxiScenarioControl extends AbstractControl {
                                 .sorted()
                                 .toList()));
         visualizationProperties.setTaxiKnownClientIds(taxiKnowledge);
+        String activeRoamingStrategy = System.getProperty(
+            P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM);
+        visualizationProperties.setTaxiPageRankHqPositions(
+            IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(activeRoamingStrategy)
+                ? provider.getPageRankHqPositions()
+                : Map.of());
       }
       if (p2pTopologyPanel != null) {
         P2PNetworkSnapshot topologySnapshot = provider.getP2PNetworkSnapshot();
@@ -616,6 +623,7 @@ public class TaxiScenarioControl extends AbstractControl {
     p2pLastEventValue.setText("-");
     if (visualizationProperties != null) {
       visualizationProperties.setTaxiKnownClientIds(Map.of());
+      visualizationProperties.setTaxiPageRankHqPositions(Map.of());
       visualizationProperties.setP2pNetworkSnapshot(P2PNetworkSnapshot.empty());
     }
     if (p2pTopologyPanel != null) {
@@ -994,68 +1002,69 @@ public class TaxiScenarioControl extends AbstractControl {
                         for (int overlayShortcuts : effectiveOverlayShortcuts) {
                           for (String idleRoamingMode : effectiveIdleRoamingModes) {
                             for (String spawnScenario : config.spawnScenarios()) {
-                            for (int pairIndex = 0;
-                                pairIndex < config.taxiCounts().size();
-                                pairIndex++) {
-                              int taxiCount = config.taxiCounts().get(pairIndex);
-                              int clientCount = config.clientCounts().get(pairIndex);
-                              int mapSize = config.mapSizes().size() == 1
-                                  ? config.mapSizes().get(0)
-                                  : config.mapSizes().get(pairIndex);
-                              for (int taxiSeatCount : config.taxiSeatCounts()) {
-                                for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
-                                  int seed = config.baseSeed() + (runIndex - 1);
-                                  MassRunIterationResult result =
-                                      executeMassRunIteration(
-                                          config,
-                                          algorithmSimpleName,
-                                          kHops,
-                                          rqsRadius,
-                                          p2pStrategy,
-                                          overlayMinNeighbors,
-                                          overlayMaxNeighbors,
-                                          overlayShortcuts,
-                                          idleRoamingMode,
-                                          spawnScenario,
-                                          taxiCount,
-                                          clientCount,
-                                          taxiSeatCount,
-                                          mapSize,
-                                          seed);
-                                  String timestamp = java.time.Instant.now().toString();
-                                  runRows.addAll(
-                                      MassRunCsvWriter.toRunRows(
-                                          result.table(),
-                                          result.executedAlgorithm(),
-                                          kHops,
-                                          result.executedRqsRadius(),
-                                          taxiCount,
-                                          clientCount,
-                                          taxiSeatCount,
-                                          result.executedStrategy(),
-                                          result.executedOverlayMinNeighbors(),
-                                          result.executedOverlayMaxNeighbors(),
-                                          result.executedOverlayShortcuts(),
-                                          result.executedIdleRoamingEnabled(),
-                                          result.executedIdleRoamingStrategy(),
-                                          result.executedIdleRoamingMode(),
-                                          result.executedSpawnScenario(),
-                                          runIndex,
-                                          seed,
-                                          timestamp));
+                              for (int pairIndex = 0;
+                                  pairIndex < config.taxiCounts().size();
+                                  pairIndex++) {
+                                int taxiCount = config.taxiCounts().get(pairIndex);
+                                int clientCount = config.clientCounts().get(pairIndex);
+                                int mapSize =
+                                    config.mapSizes().size() == 1
+                                        ? config.mapSizes().get(0)
+                                        : config.mapSizes().get(pairIndex);
+                                for (int taxiSeatCount : config.taxiSeatCounts()) {
+                                  for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
+                                    int seed = config.baseSeed() + (runIndex - 1);
+                                    MassRunIterationResult result =
+                                        executeMassRunIteration(
+                                            config,
+                                            algorithmSimpleName,
+                                            kHops,
+                                            rqsRadius,
+                                            p2pStrategy,
+                                            overlayMinNeighbors,
+                                            overlayMaxNeighbors,
+                                            overlayShortcuts,
+                                            idleRoamingMode,
+                                            spawnScenario,
+                                            taxiCount,
+                                            clientCount,
+                                            taxiSeatCount,
+                                            mapSize,
+                                            seed);
+                                    String timestamp = java.time.Instant.now().toString();
+                                    runRows.addAll(
+                                        MassRunCsvWriter.toRunRows(
+                                            result.table(),
+                                            result.executedAlgorithm(),
+                                            kHops,
+                                            result.executedRqsRadius(),
+                                            taxiCount,
+                                            clientCount,
+                                            taxiSeatCount,
+                                            result.executedStrategy(),
+                                            result.executedOverlayMinNeighbors(),
+                                            result.executedOverlayMaxNeighbors(),
+                                            result.executedOverlayShortcuts(),
+                                            result.executedIdleRoamingEnabled(),
+                                            result.executedIdleRoamingStrategy(),
+                                            result.executedIdleRoamingMode(),
+                                            result.executedSpawnScenario(),
+                                            runIndex,
+                                            seed,
+                                            timestamp));
 
-                                  // Fortschritt pro abgeschlossener Iteration aktualisieren
-                                  doneRuns++;
-                                  int progress =
-                                      (int) Math.round(doneRuns * 100.0 / Math.max(1, totalRuns));
-                                  setProgress(Math.max(0, Math.min(100, progress)));
-                                  publish(
-                                      new int[] {
-                                        doneRuns, totalRuns, Math.max(0, Math.min(100, progress))
-                                      });
+                                    // Fortschritt pro abgeschlossener Iteration aktualisieren
+                                    doneRuns++;
+                                    int progress =
+                                        (int) Math.round(doneRuns * 100.0 / Math.max(1, totalRuns));
+                                    setProgress(Math.max(0, Math.min(100, progress)));
+                                    publish(
+                                        new int[] {
+                                          doneRuns, totalRuns, Math.max(0, Math.min(100, progress))
+                                        });
+                                  }
                                 }
                               }
-                            }
                             }
                           }
                         }
@@ -1067,9 +1076,12 @@ public class TaxiScenarioControl extends AbstractControl {
             }
 
             // write config file for reproducibility
-            MassRunCsvWriter.OutputFiles csvOutput = MassRunCsvWriter.write(config.outputDir(), runRows);
-            java.nio.file.Path configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
-            return new MassRunCsvWriter.OutputFiles(csvOutput.runCsv(), csvOutput.aggregateCsv(), configFile);
+            MassRunCsvWriter.OutputFiles csvOutput =
+                MassRunCsvWriter.write(config.outputDir(), runRows);
+            java.nio.file.Path configFile =
+                MassRunCsvWriter.writeConfig(config.outputDir(), config);
+            return new MassRunCsvWriter.OutputFiles(
+                csvOutput.runCsv(), csvOutput.aggregateCsv(), configFile);
           }
 
           @Override
@@ -1180,7 +1192,8 @@ public class TaxiScenarioControl extends AbstractControl {
                     de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS,
                     String.valueOf(config.idleCheckThrottleTicks()));
                 System.setProperty(
-                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
+                    de.sikeller.aqs.p2p.api.P2PSystemProperties
+                        .VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
                     String.valueOf(config.randomTravelMaxDistanceMeters()));
                 // Sync UI checkboxes/spinners so they reflect the applied values
                 if (p2pIdleRandomTravelEnabledCheckBox != null) {
@@ -1190,8 +1203,10 @@ public class TaxiScenarioControl extends AbstractControl {
                   p2pIdleRoamingStrategyBox.setSelectedItem(idleRoamingStrategy);
                 }
                 setSpinnerValueIfPresent("p2pIdleThresholdTicks", config.idleThresholdTicks());
-                setSpinnerValueIfPresent("p2pIdleCheckThrottleTicks", config.idleCheckThrottleTicks());
-                setSpinnerValueIfPresent("p2pRandomTravelMaxDistanceMeters", config.randomTravelMaxDistanceMeters());
+                setSpinnerValueIfPresent(
+                    "p2pIdleCheckThrottleTicks", config.idleCheckThrottleTicks());
+                setSpinnerValueIfPresent(
+                    "p2pRandomTravelMaxDistanceMeters", config.randomTravelMaxDistanceMeters());
                 // Mass-runs: keep topology scan ticks as configured to ensure proper protocol
                 // behavior.
                 executedRqsRadius = rqsRadius;
@@ -1470,7 +1485,9 @@ public class TaxiScenarioControl extends AbstractControl {
     }
     return IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)
         ? IDLE_ROAMING_STRATEGY_PAGE_RANK
-        : IDLE_ROAMING_STRATEGY_RANDOM;
+        : IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(normalized)
+            ? IDLE_ROAMING_STRATEGY_RETURN_TO_HQ
+            : IDLE_ROAMING_STRATEGY_RANDOM;
   }
 
   private record MassRunIterationResult(
@@ -2051,18 +2068,18 @@ public class TaxiScenarioControl extends AbstractControl {
       JLabel idleRoamingStrategyLabel = new JLabel("Roaming strategy");
       idleRoamingStrategyLabel.setName("p2pIdleRoamingStrategyLabel");
       idleTravelGroup.add(idleRoamingStrategyLabel);
-      p2pIdleRoamingStrategyBox = new JComboBox<>();
-      p2pIdleRoamingStrategyBox.setName("p2pIdleRoamingStrategy");
-      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RANDOM);
-      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAGE_RANK);
-      String idleStrategyDefault =
-          normalizedIdleRoamingStrategy(
-              System.getProperty(
-                  P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
-                  IDLE_ROAMING_STRATEGY_RANDOM));
-      p2pIdleRoamingStrategyBox.setSelectedItem(idleStrategyDefault);
-      p2pIdleRoamingStrategyBox.setToolTipText(
-          "Idle roaming target strategy: random exploration or page-rank-like scenario centers");
+       p2pIdleRoamingStrategyBox = new JComboBox<>();
+       p2pIdleRoamingStrategyBox.setName("p2pIdleRoamingStrategy");
+       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RANDOM);
+       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RETURN_TO_HQ);
+       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAGE_RANK);
+       String idleStrategyDefault =
+           normalizedIdleRoamingStrategy(
+               System.getProperty(
+                   P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM));
+       p2pIdleRoamingStrategyBox.setSelectedItem(idleStrategyDefault);
+       p2pIdleRoamingStrategyBox.setToolTipText(
+           "Idle roaming target strategy: random exploration, return-to-hq (scenario centers), or page-rank (pickup average)");
       p2pIdleRoamingStrategyBox.addActionListener(
           e ->
               System.setProperty(
@@ -2503,12 +2520,16 @@ public class TaxiScenarioControl extends AbstractControl {
     return P2P_STRATEGY_GREEDY.equals(key) ? P2P_STRATEGY_GREEDY : P2P_STRATEGY_NEAREST;
   }
 
-  private String normalizedIdleRoamingStrategy(String value) {
-    String key = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
-    return IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(key)
-        ? IDLE_ROAMING_STRATEGY_PAGE_RANK
-        : IDLE_ROAMING_STRATEGY_RANDOM;
-  }
+   private String normalizedIdleRoamingStrategy(String value) {
+     String key = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+     if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(key)) {
+       return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
+     }
+     if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(key)) {
+       return IDLE_ROAMING_STRATEGY_PAGE_RANK;
+     }
+     return IDLE_ROAMING_STRATEGY_RANDOM;
+   }
 
   private boolean isP2PMulticastOctet(String parameterName) {
     return "p2pMulticastA".equals(parameterName)

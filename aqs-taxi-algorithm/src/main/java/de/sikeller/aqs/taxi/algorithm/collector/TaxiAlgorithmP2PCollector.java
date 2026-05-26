@@ -90,6 +90,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY =
       "aqs.p2p.vehicle.idleRoamingStrategy";
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
+  private static final String IDLE_ROAMING_STRATEGY_RETURN_TO_HQ = "return-to-hq";
   private static final String IDLE_ROAMING_STRATEGY_PAGE_RANK = "page-rank";
   private static final String EMBEDDED_MODE_PROPERTY = "p2pEmbeddedSimulation";
   private static final String STATUS_MODE = "mode";
@@ -209,7 +210,13 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
             (taxi, client, worldArg) ->
                 worldArg.mutate().planClientForTaxi(taxi, client, TargetList.sequentialOrders),
             this::refreshStatus,
-            this::announceWinner);
+            (requestId, vehicleNodeId, client) -> {
+              announceWinner(requestId, vehicleNodeId);
+              if (client != null && client.getPosition() != null) {
+                registerPickupPositionForVehicle(
+                    vehicleNodeId, client.getPosition().getX(), client.getPosition().getY());
+              }
+            });
     topologyManager =
         new TopologyManager(
             () -> clientNode,
@@ -387,16 +394,22 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         continue;
       }
 
-      world.mutate().planClientForTaxi(selectedTaxi, client, TargetList.sequentialOrders);
-      log.info(
-          "[P2P-COLLECTOR] assigned committed requestId={} client={} vehicle={}",
-          pending.requestId(),
-          client.getName(),
-          pending.committedVehicleNodeId());
-      assignedClients.add(client.getName());
-      announceWinner(pending.requestId(), pending.committedVehicleNodeId());
-      refreshStatus(EVENT_ASSIGNED_PREFIX + pending.requestId());
-      applied++;
+       world.mutate().planClientForTaxi(selectedTaxi, client, TargetList.sequentialOrders);
+       log.info(
+           "[P2P-COLLECTOR] assigned committed requestId={} client={} vehicle={}",
+           pending.requestId(),
+           client.getName(),
+           pending.committedVehicleNodeId());
+       // Register pickup position for return-to-hq strategy
+       Position clientPos = client.getPosition();
+       if (clientPos != null) {
+         registerPickupPositionForVehicle(
+             pending.committedVehicleNodeId(), clientPos.getX(), clientPos.getY());
+       }
+       assignedClients.add(client.getName());
+       announceWinner(pending.requestId(), pending.committedVehicleNodeId());
+       refreshStatus(EVENT_ASSIGNED_PREFIX + pending.requestId());
+       applied++;
     }
     assignedClients.forEach(runtimeState::removePendingForClient);
     return applied;
@@ -433,9 +446,13 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return IDLE_ROAMING_STRATEGY_RANDOM;
     }
     String normalized = configured.trim().toLowerCase();
-    return IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)
-        ? IDLE_ROAMING_STRATEGY_PAGE_RANK
-        : IDLE_ROAMING_STRATEGY_RANDOM;
+    if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAGE_RANK;
+    }
+    return IDLE_ROAMING_STRATEGY_RANDOM;
   }
 
   private String resolveVehicleSelectionStrategy() {
@@ -588,6 +605,22 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     }
 
     return runtimeState.taxiKnowledgeSnapshot(activeClientNames);
+  }
+
+  @Override
+  public Map<String, int[]> getPageRankHqPositions() {
+    if (!isEmbeddedSimulationMode() || localVehicleNodesByTaxiName.isEmpty()) {
+      return Map.of();
+    }
+    Map<String, int[]> result = new LinkedHashMap<>();
+    localVehicleNodesByTaxiName.forEach(
+        (taxiName, vehicleNode) -> {
+          int[] hq = vehicleNode.getIdleRoamingController().getHqPositionSnapshot();
+          if (hq != null) {
+            result.put(taxiName, hq);
+          }
+        });
+    return result;
   }
 
   @Override
@@ -791,6 +824,39 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return;
     }
     clientNode.announceWinner(requestId, winnerVehicleNodeId);
+  }
+
+  /** Register pickup position for return-to-hq strategy tracking. */
+  private void registerPickupPositionForVehicle(String vehicleNodeId, int pickupX, int pickupY) {
+    if (vehicleNodeId == null || vehicleNodeId.isBlank()) {
+      return;
+    }
+    if (!isEmbeddedSimulationMode()) {
+      log.debug(
+          "[P2P-COLLECTOR] Cannot register pickup position in non-embedded mode vehicleNodeId={}",
+          vehicleNodeId);
+      return;
+    }
+    if (localVehicleNodesByTaxiName.isEmpty()) {
+      log.debug("[P2P-COLLECTOR] No local vehicle nodes available for pickup registration");
+      return;
+    }
+    String taxiName = vehicleNodeToTaxiName.getOrDefault(vehicleNodeId, vehicleNodeId);
+    VehicleP2PService vehicleNode = localVehicleNodesByTaxiName.get(taxiName);
+    if (vehicleNode != null) {
+      vehicleNode.getIdleRoamingController().registerPickupPosition(pickupX, pickupY);
+      log.info(
+          "[P2P-COLLECTOR] Registered page-rank pickup position ({}, {}) for vehicleNodeId={} taxiName={}",
+          pickupX,
+          pickupY,
+          vehicleNodeId,
+          taxiName);
+    } else {
+      log.debug(
+          "[P2P-COLLECTOR] Vehicle node not found in localVehicleNodesByTaxiName for taxiName={} vehicleNodeId={}",
+          taxiName,
+          vehicleNodeId);
+    }
   }
 
   private void stopNetworkNode() {

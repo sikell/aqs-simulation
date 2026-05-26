@@ -3,6 +3,8 @@ package de.sikeller.aqs.p2p.util;
 import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.model.SpawnScenario;
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class IdleRoamingController {
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
+  private static final String IDLE_ROAMING_STRATEGY_RETURN_TO_HQ = "return-to-hq";
   private static final String IDLE_ROAMING_STRATEGY_PAGE_RANK = "page-rank";
 
   private volatile long lastIdleCheckTick = 0L;
@@ -23,9 +26,58 @@ public class IdleRoamingController {
   private final AtomicReference<Position> pendingIdleTravelTarget = new AtomicReference<>();
   private final AtomicReference<Position> currentIdleTarget = new AtomicReference<>();
   private volatile SpawnScenario activeSpawnScenario = SpawnScenario.BASELINE;
+  private final List<int[]> pickupPositions = new ArrayList<>();
+  private volatile AtomicReference<int[]> cachedHqPosition = new AtomicReference<>();
 
   public void setSpawnScenario(SpawnScenario scenario) {
     activeSpawnScenario = scenario == null ? SpawnScenario.BASELINE : scenario;
+  }
+
+  /** Register a pickup position to build the HQ average for return-to-hq strategy. */
+  public synchronized void registerPickupPosition(int pickupX, int pickupY) {
+    pickupPositions.add(new int[] {pickupX, pickupY});
+    // Invalidate cached HQ position so it gets recalculated
+    cachedHqPosition.set(null);
+    log.debug(
+        "Registered pickup position ({}, {}); total pickups: {}",
+        pickupX,
+        pickupY,
+        pickupPositions.size());
+  }
+
+  /** Compute and return the average HQ position from all registered pickups. */
+  private synchronized int[] computeHqPosition() {
+    if (pickupPositions.isEmpty()) {
+      return null;
+    }
+    int sumX = 0;
+    int sumY = 0;
+    for (int[] pos : pickupPositions) {
+      sumX += pos[0];
+      sumY += pos[1];
+    }
+    return new int[] {sumX / pickupPositions.size(), sumY / pickupPositions.size()};
+  }
+
+  /** Get cached HQ position or compute it if not cached. */
+  private int[] getHqPosition() {
+    int[] cached = cachedHqPosition.get();
+    if (cached != null) {
+      return cached;
+    }
+    int[] computed = computeHqPosition();
+    if (computed != null) {
+      cachedHqPosition.set(computed);
+    }
+    return computed;
+  }
+
+  /**
+   * Returns the current average pickup position (page-rank HQ) as [x, y], or null if no pickups
+   * have been registered yet.
+   */
+  public int[] getHqPositionSnapshot() {
+    return getHqPosition();
   }
 
   public void clearCurrentTarget() {
@@ -127,8 +179,11 @@ public class IdleRoamingController {
 
   private Position generateIdleTarget(int currentX, int currentY, int mapMaxX, int mapMaxY) {
     String strategy = resolveIdleRoamingStrategy();
+    if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(strategy)) {
+      return generateReturnToHqTarget(currentX, currentY, mapMaxX, mapMaxY);
+    }
     if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(strategy)) {
-      return generatePageRankLikeTarget(currentX, currentY, mapMaxX, mapMaxY);
+      return generatePageRankTarget(currentX, currentY, mapMaxX, mapMaxY);
     }
     return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
   }
@@ -141,18 +196,34 @@ public class IdleRoamingController {
       return IDLE_ROAMING_STRATEGY_RANDOM;
     }
     String normalized = configured.trim().toLowerCase();
-    return IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)
-        ? IDLE_ROAMING_STRATEGY_PAGE_RANK
-        : IDLE_ROAMING_STRATEGY_RANDOM;
+    if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAGE_RANK;
+    }
+    return IDLE_ROAMING_STRATEGY_RANDOM;
   }
 
-  private Position generatePageRankLikeTarget(int currentX, int currentY, int mapMaxX, int mapMaxY) {
+  private Position generateReturnToHqTarget(int currentX, int currentY, int mapMaxX, int mapMaxY) {
     return switch (activeSpawnScenario) {
       case BASELINE -> generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
       case RUSH_HOUR, SPATIAL_IMBALANCE ->
           new Position(clampToMapX(mapMaxX / 2, mapMaxX), clampToMapY(mapMaxY / 2, mapMaxY));
       case SPATIAL_ISLANDS -> nearestSpatialIslandCenter(currentX, currentY, mapMaxX, mapMaxY);
     };
+  }
+
+  private Position generatePageRankTarget(int currentX, int currentY, int mapMaxX, int mapMaxY) {
+    int[] hqPos = getHqPosition();
+    if (hqPos != null) {
+      int hqX = clampToMapX(hqPos[0], mapMaxX);
+      int hqY = clampToMapY(hqPos[1], mapMaxY);
+      log.info("Vehicle returning to page-rank HQ position ({}, {}); computed from {} pickups", hqX, hqY, pickupPositions.size());
+      return new Position(hqX, hqY);
+    }
+    log.info("No page-rank HQ recorded yet (0 pickups), falling back to random roaming");
+    return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
   }
 
   private Position nearestSpatialIslandCenter(int currentX, int currentY, int mapMaxX, int mapMaxY) {

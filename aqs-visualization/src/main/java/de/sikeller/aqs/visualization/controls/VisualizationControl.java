@@ -131,6 +131,14 @@ public class VisualizationControl extends AbstractControl {
             properties.isShowClientKnowledgeColors(),
             properties::setShowClientKnowledgeColors));
 
+    controls.add(
+        checkBox(
+            "Show page-rank HQ markers",
+            "showPageRankHq",
+            "Display the average pickup position (page-rank HQ) for each taxi as a small triangle.",
+            properties.isShowPageRankHq(),
+            properties::setShowPageRankHq));
+
     return controls;
   }
 

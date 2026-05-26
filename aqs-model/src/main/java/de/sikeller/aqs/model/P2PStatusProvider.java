@@ -19,6 +19,14 @@ public interface P2PStatusProvider {
     return Map.of();
   }
 
+  /**
+   * Returns the current page-rank HQ position per taxi name as [x, y], or an empty map if not
+   * available.
+   */
+  default Map<String, int[]> getPageRankHqPositions() {
+    return Map.of();
+  }
+
   default Map<String, Set<String>> getClientKnowledgeByTaxiIds() {
     Map<String, Set<String>> clientToTaxis = new java.util.LinkedHashMap<>();
     getTaxiKnowledgeByClientIds()

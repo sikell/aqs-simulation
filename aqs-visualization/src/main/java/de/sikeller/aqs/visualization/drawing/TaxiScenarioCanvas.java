@@ -1,6 +1,7 @@
 package de.sikeller.aqs.visualization.drawing;
 
 import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.successColor;
+import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.taxiColor;
 import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.todoColor;
 
 import de.sikeller.aqs.model.Client;
@@ -109,11 +110,43 @@ public class TaxiScenarioCanvas extends JPanel {
 
     clients.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
     taxis.forEach(t -> t.printForegroundShape(g2d, widthRatio, heightRatio));
+
+    if (visuProperties.isShowPageRankHq()) {
+      drawPageRankHqMarkers(g2d, widthRatio, heightRatio);
+    }
+
     g2d.dispose();
 
     spawnProgressBar.setValue(world.getSpawnProgress());
     finishedProgressBar.setValue(world.getFinishedProgress());
     SwingUtilities.invokeLater(this::repaint);
+  }
+
+  private void drawPageRankHqMarkers(
+      Graphics2D g2d, double widthRatio, double heightRatio) {
+    Map<String, int[]> hqPositions = visuProperties.getTaxiPageRankHqPositions();
+    if (hqPositions == null || hqPositions.isEmpty()) {
+      return;
+    }
+    Stroke previous = g2d.getStroke();
+    g2d.setStroke(new BasicStroke(1.5f));
+    int half = 6;
+    for (Map.Entry<String, int[]> entry : hqPositions.entrySet()) {
+      int[] pos = entry.getValue();
+      if (pos == null || pos.length < 2) continue;
+      int cx = (int) Math.round(pos[0] * widthRatio);
+      int cy = (int) Math.round(pos[1] * heightRatio);
+      if (!isWithinCanvas(cx, cy)) continue;
+      // upward-pointing triangle: tip at top
+      int[] xs = {cx, cx - half, cx + half};
+      int[] ys = {cy - half, cy + half, cy + half};
+      Color taxiColor = taxiColor(entry.getKey());
+      g2d.setColor(new Color(taxiColor.getRed(), taxiColor.getGreen(), taxiColor.getBlue(), 200));
+      g2d.fillPolygon(xs, ys, 3);
+      g2d.setColor(taxiColor.darker());
+      g2d.drawPolygon(xs, ys, 3);
+    }
+    g2d.setStroke(previous);
   }
 
   private void drawRqsRecognitionOverlay(

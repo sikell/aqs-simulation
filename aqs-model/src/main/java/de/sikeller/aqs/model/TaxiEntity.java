@@ -176,7 +176,6 @@ class TaxiEntity implements Taxi {
       // Idle-travel waypoint reached – no client boarding logic needed
       return;
     }
-    // ...existing code...
     var client =
         plannedPassengers.stream()
             .filter(c -> c.isSame(currentTarget.getClient()))

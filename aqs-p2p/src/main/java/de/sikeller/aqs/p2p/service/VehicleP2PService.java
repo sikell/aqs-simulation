@@ -23,6 +23,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -50,9 +52,14 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private volatile Integer simulationY;
   private volatile long lastCleanupTick = 0L;
   private volatile long lastActivityTick = -1L; // -1 = not yet initialized
-  private final IdleRoamingController idleRoamingController = new IdleRoamingController();
 
-  private volatile int mapMaxX = 0;  // 0 = not yet initialized from world
+  /**
+   * -- GETTER -- Get the idle roaming controller for direct access (e.g., for HQ pickup
+   * registration).
+   */
+  @Getter private final IdleRoamingController idleRoamingController = new IdleRoamingController();
+
+  private volatile int mapMaxX = 0; // 0 = not yet initialized from world
   private volatile int mapMaxY = 0;
 
   /** Called by the collector to provide the authoritative World map bounds for idle travel. */
@@ -462,8 +469,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     long nowTick = currentSimulationTick;
     openRideRequests
         .entrySet()
-        .removeIf(
-            entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks);
+        .removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > ttlTicks);
     // Also evict stale seenRideRequests entries to prevent unbounded growth over long runs
     seenRideRequests.entrySet().removeIf(entry -> nowTick - entry.getValue() > ttlTicks);
     // Evict forwarded payload cache if too large
@@ -662,7 +668,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         mapMaxX,
         mapMaxY,
         descriptor().id(),
-        target -> updateVehiclePositionSnapshot(target.getX(), target.getY(), currentSimulationTick));
+        target ->
+            updateVehiclePositionSnapshot(target.getX(), target.getY(), currentSimulationTick));
   }
 
   /**

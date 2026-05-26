@@ -10,7 +10,6 @@ import de.sikeller.aqs.taxi.algorithm.collector.api.CollectorRuntimeStateView;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.slf4j.Logger;
@@ -36,8 +35,8 @@ final class CommitHandler {
   private final Function<World, Map<String, Taxi>> emptyTaxisProvider;
   private final TriConsumer<Taxi, Client, World> applyAssignment;
   private final Consumer<String> refreshStatusCallback;
-  /** Called with (requestId, winnerVehicleNodeId) after a successful assignment. */
-  private final BiConsumer<String, String> onAssignedCallback;
+  /** Called with (requestId, winnerVehicleNodeId, client) after a successful assignment. */
+  private final TriConsumer<String, String, Client> onAssignedCallback;
 
   CommitHandler(
       CollectorRuntimeStateView runtimeState,
@@ -46,7 +45,7 @@ final class CommitHandler {
       Function<World, Map<String, Taxi>> emptyTaxisProvider,
       TriConsumer<Taxi, Client, World> applyAssignment,
       Consumer<String> refreshStatusCallback,
-      BiConsumer<String, String> onAssignedCallback) {
+      TriConsumer<String, String, Client> onAssignedCallback) {
     this.runtimeState = runtimeState;
     this.vehicleNodeToTaxiName = vehicleNodeToTaxiName;
     this.taxiNameToVehicleNodeId = taxiNameToVehicleNodeId;
@@ -101,7 +100,7 @@ final class CommitHandler {
                selectedTaxi.getName());
          runtimeState.removePendingForClient(pending.clientName());
          refreshStatusCallback.accept("assigned-" + pending.requestId());
-         onAssignedCallback.accept(pending.requestId(), vehicleNodeId);
+         onAssignedCallback.accept(pending.requestId(), vehicleNodeId, client);
         return;
       }
     }

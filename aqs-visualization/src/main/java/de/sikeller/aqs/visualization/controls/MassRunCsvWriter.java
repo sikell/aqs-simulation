@@ -106,8 +106,16 @@ final class MassRunCsvWriter {
     props.setProperty("idleRoamingModes", String.join(",", config.idleRoamingModes()));
     if (!config.idleRoamingModes().isEmpty()) {
       String firstMode = config.idleRoamingModes().getFirst();
-      props.setProperty("idleRoamingEnabled", String.valueOf(!"none".equalsIgnoreCase(firstMode)));
-      props.setProperty("idleRoamingStrategy", "none".equalsIgnoreCase(firstMode) ? "random" : firstMode);
+      boolean anyIdleRoamingEnabled =
+          config.idleRoamingModes().stream().anyMatch(mode -> !"none".equalsIgnoreCase(mode));
+      String representativeStrategy =
+          config.idleRoamingModes().stream()
+              .filter(mode -> !"none".equalsIgnoreCase(mode))
+              .findFirst()
+              .orElse(firstMode);
+      props.setProperty("idleRoamingEnabled", String.valueOf(anyIdleRoamingEnabled));
+      props.setProperty(
+          "idleRoamingStrategy", anyIdleRoamingEnabled ? representativeStrategy : "random");
     }
     props.setProperty("idleThresholdTicks", String.valueOf(config.idleThresholdTicks()));
     props.setProperty("idleCheckThrottleTicks", String.valueOf(config.idleCheckThrottleTicks()));
