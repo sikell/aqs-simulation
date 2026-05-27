@@ -24,6 +24,12 @@ public class LocalVehicleNodeManager {
 
   private final String vehicleNodePrefix;
   private final VehicleNodeFactory vehicleNodeFactory;
+  private final Map<String, SyncedTaxiState> lastSyncedTaxiStates = new java.util.HashMap<>();
+  private SpawnScenario lastAppliedSpawnScenario;
+  private int lastAppliedMapMaxX = Integer.MIN_VALUE;
+  private int lastAppliedMapMaxY = Integer.MIN_VALUE;
+
+  private record SyncedTaxiState(boolean available, int x, int y) {}
 
   public LocalVehicleNodeManager(String vehicleNodePrefix) {
     this(vehicleNodePrefix, VehicleP2PService::new);
@@ -66,6 +72,7 @@ public class LocalVehicleNodeManager {
               localVehicleNodesByTaxiName.put(taxi.getName(), vehicleNode);
               vehicleNodeToTaxiName.put(vehicleNodeId, taxi.getName());
               taxiNameToVehicleNodeId.put(taxi.getName(), vehicleNodeId);
+              lastSyncedTaxiStates.remove(taxi.getName());
               log.info(
                   "[P2P-COLLECTOR] created local vehicle node taxi={} nodeId={}",
                   taxi.getName(),
@@ -85,6 +92,7 @@ public class LocalVehicleNodeManager {
       }
       vehicleNodeToTaxiName.remove(node.descriptor().id());
       taxiNameToVehicleNodeId.remove(taxiName);
+      lastSyncedTaxiStates.remove(taxiName);
       node.stop();
     }
   }
@@ -102,6 +110,8 @@ public class LocalVehicleNodeManager {
       return;
     }
 
+    applySharedNodeSettingsIfNeeded(world, spawnScenario, localVehicleNodesByTaxiName);
+
     for (Taxi taxi : world.getTaxis()) {
       VehicleP2PService node = localVehicleNodesByTaxiName.get(taxi.getName());
       if (node == null) {
@@ -113,15 +123,47 @@ public class LocalVehicleNodeManager {
         localVehicleNodesByTaxiName.put(taxi.getName(), vehicleNode);
         vehicleNodeToTaxiName.put(vehicleNodeId, taxi.getName());
         taxiNameToVehicleNodeId.put(taxi.getName(), vehicleNodeId);
+        lastSyncedTaxiStates.remove(taxi.getName());
         log.info(
             "[P2P-COLLECTOR] lazily created local vehicle node taxi={} nodeId={}",
             taxi.getName(),
             vehicleNodeId);
         node = vehicleNode;
       }
-      node.setSpawnScenario(spawnScenario);
-      node.setSimulationState(
-          taxi.isEmpty(), taxi.getPosition().getX(), taxi.getPosition().getY(), stepCounter);
+      SyncedTaxiState nextState =
+          new SyncedTaxiState(taxi.isEmpty(), taxi.getPosition().getX(), taxi.getPosition().getY());
+      SyncedTaxiState previousState = lastSyncedTaxiStates.get(taxi.getName());
+      if (nextState.equals(previousState)) {
+        node.advanceSimulationTick(stepCounter);
+      } else {
+        node.setSimulationState(nextState.available(), nextState.x(), nextState.y(), stepCounter);
+        lastSyncedTaxiStates.put(taxi.getName(), nextState);
+      }
+    }
+  }
+
+  private void applySharedNodeSettingsIfNeeded(
+      World world,
+      SpawnScenario spawnScenario,
+      Map<String, VehicleP2PService> localVehicleNodesByTaxiName) {
+    if (localVehicleNodesByTaxiName.isEmpty()) {
+      lastAppliedSpawnScenario = spawnScenario;
+      lastAppliedMapMaxX = world.getMaxX();
+      lastAppliedMapMaxY = world.getMaxY();
+      return;
+    }
+
+    int maxX = world.getMaxX();
+    int maxY = world.getMaxY();
+    if (maxX != lastAppliedMapMaxX || maxY != lastAppliedMapMaxY) {
+      localVehicleNodesByTaxiName.values().forEach(node -> node.setMapBounds(maxX, maxY));
+      lastAppliedMapMaxX = maxX;
+      lastAppliedMapMaxY = maxY;
+    }
+
+    if (spawnScenario != lastAppliedSpawnScenario) {
+      localVehicleNodesByTaxiName.values().forEach(node -> node.setSpawnScenario(spawnScenario));
+      lastAppliedSpawnScenario = spawnScenario;
     }
   }
 
@@ -131,6 +173,10 @@ public class LocalVehicleNodeManager {
     localVehicleNodesByTaxiName.values().forEach(VehicleP2PService::stop);
     localVehicleNodesByTaxiName.clear();
     taxiNameToVehicleNodeId.clear();
+    lastSyncedTaxiStates.clear();
+    lastAppliedSpawnScenario = null;
+    lastAppliedMapMaxX = Integer.MIN_VALUE;
+    lastAppliedMapMaxY = Integer.MIN_VALUE;
   }
 }
 

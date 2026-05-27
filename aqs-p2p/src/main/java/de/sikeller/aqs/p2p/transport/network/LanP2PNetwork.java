@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -40,11 +41,21 @@ public class LanP2PNetwork implements P2PNetwork {
   private final long announceIntervalMillis;
 
   private final Map<String, RemotePeer> peersById = new ConcurrentHashMap<>();
+  private volatile Set<NodeDescriptor> peersSnapshot = Set.of();
+  private volatile boolean peersSnapshotDirty = true;
   private final AtomicLong sentMessages = new AtomicLong();
   private final AtomicLong receivedMessages = new AtomicLong();
   private final AtomicBoolean running = new AtomicBoolean(false);
   private final AtomicReference<IOException> tcpServerStartupError = new AtomicReference<>();
-  private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(3);
+  private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+  private final ExecutorService ioExecutor =
+      Executors.newCachedThreadPool(
+          r -> {
+            Thread t = new Thread(r, "p2p-io");
+            t.setDaemon(true);
+            return t;
+          });
+  private final Map<String, PooledConnection> outboundConnections = new ConcurrentHashMap<>();
 
   private volatile NodeDescriptor localNode;
   private volatile Consumer<P2PMessage> messageHandler;
@@ -101,6 +112,9 @@ public class LanP2PNetwork implements P2PNetwork {
     }
     running.set(false);
     peersById.clear();
+    peersSnapshot = Set.of();
+    peersSnapshotDirty = false;
+    closeAllOutboundConnections();
 
     if (discoverySocket != null) {
       discoverySocket.close();
@@ -115,7 +129,8 @@ public class LanP2PNetwork implements P2PNetwork {
       tcpServer = null;
     }
 
-    executor.shutdownNow();
+    scheduler.shutdownNow();
+    ioExecutor.shutdownNow();
     log.info("LAN P2P stopped for {}", nodeId);
   }
 
@@ -127,27 +142,24 @@ public class LanP2PNetwork implements P2PNetwork {
       return;
     }
 
-    try (Socket socket = new Socket()) {
-      socket.connect(new InetSocketAddress(peer.address(), peer.tcpPort()), 1000);
-      try (var writer =
-          new BufferedWriter(
-              new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8))) {
-        writer.write(P2PMessageWireCodec.encode(message));
-        writer.newLine();
-        writer.flush();
-      }
-      long sent = sentMessages.incrementAndGet();
-      log.info(
-          "[P2P-NET] send from={} to={} topic={} peers={} sentTotal={}",
-          localNode != null ? localNode.id() : "unknown",
-          targetNodeId,
-          message.topic(),
-          peersById.size(),
-          sent);
-    } catch (IOException e) {
+    String encoded = P2PMessageWireCodec.encode(message);
+    if (!sendViaPooledConnection(peer, encoded)) {
       log.warn(
-          "Could not send message to {} at {}:{}", targetNodeId, peer.address(), peer.tcpPort());
+          "Could not send message to {} at {}:{}",
+          targetNodeId,
+          peer.address(),
+          peer.tcpPort());
+      return;
     }
+
+    long sent = sentMessages.incrementAndGet();
+    log.info(
+        "[P2P-NET] send from={} to={} topic={} peers={} sentTotal={}",
+        localNode != null ? localNode.id() : "unknown",
+        targetNodeId,
+        message.topic(),
+        peersById.size(),
+        sent);
   }
 
   @Override
@@ -161,14 +173,24 @@ public class LanP2PNetwork implements P2PNetwork {
 
   @Override
   public Set<NodeDescriptor> peers() {
-    return peersById.values().stream()
-        .map(RemotePeer::node)
-        .collect(java.util.stream.Collectors.toSet());
+    if (!peersSnapshotDirty) {
+      return peersSnapshot;
+    }
+    synchronized (this) {
+      if (peersSnapshotDirty) {
+        peersSnapshot =
+            peersById.values().stream()
+                .map(RemotePeer::node)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        peersSnapshotDirty = false;
+      }
+      return peersSnapshot;
+    }
   }
 
   private void startDiscovery() {
-    executor.submit(this::discoveryReceiveLoop);
-    executor.scheduleAtFixedRate(
+    ioExecutor.submit(this::discoveryReceiveLoop);
+    scheduler.scheduleAtFixedRate(
         this::announceAndCleanup, 0, announceIntervalMillis, TimeUnit.MILLISECONDS);
   }
 
@@ -176,14 +198,14 @@ public class LanP2PNetwork implements P2PNetwork {
     CountDownLatch startupLatch = new CountDownLatch(1);
     tcpServerStartupLatch = startupLatch;
     tcpServerStartupError.set(null);
-    executor.submit(
+    ioExecutor.submit(
         () -> {
           try (ServerSocket server = new ServerSocket(tcpPort)) {
             this.tcpServer = server;
             startupLatch.countDown();
             while (!Thread.currentThread().isInterrupted()) {
               Socket socket = server.accept();
-              executor.submit(() -> handleIncomingConnection(socket));
+              ioExecutor.submit(() -> handleIncomingConnection(socket));
             }
           } catch (IOException e) {
             if (startupLatch.getCount() > 0) {
@@ -223,21 +245,23 @@ public class LanP2PNetwork implements P2PNetwork {
         var reader =
             new BufferedReader(
                 new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8))) {
-      String line = reader.readLine();
-      if (line == null || line.isBlank()) {
-        return;
-      }
-      P2PMessage message = P2PMessageWireCodec.decode(line);
-      long received = receivedMessages.incrementAndGet();
-      log.info(
-          "[P2P-NET] recv at={} from={} topic={} peers={} recvTotal={}",
-          localNode != null ? localNode.id() : "unknown",
-          message.senderId(),
-          message.topic(),
-          peersById.size(),
-          received);
-      if (messageHandler != null) {
-        messageHandler.accept(message);
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (line.isBlank()) {
+          continue;
+        }
+        P2PMessage message = P2PMessageWireCodec.decode(line);
+        long received = receivedMessages.incrementAndGet();
+        log.info(
+            "[P2P-NET] recv at={} from={} topic={} peers={} recvTotal={}",
+            localNode != null ? localNode.id() : "unknown",
+            message.senderId(),
+            message.topic(),
+            peersById.size(),
+            received);
+        if (messageHandler != null) {
+          messageHandler.accept(message);
+        }
       }
     } catch (Exception e) {
       log.debug("Ignoring malformed incoming message: {}", e.getMessage());
@@ -286,6 +310,8 @@ public class LanP2PNetwork implements P2PNetwork {
       if (DISCOVERY_TYPE_GOODBYE.equals(type)) {
         var removed = peersById.remove(nodeId);
         if (removed != null) {
+          peersSnapshotDirty = true;
+          closeOutboundConnection(nodeId);
           log.info("[P2P-DISCOVERY] peer-left id={} peers={}", nodeId, peersById.size());
         }
         return;
@@ -296,8 +322,14 @@ public class LanP2PNetwork implements P2PNetwork {
 
       NodeDescriptor descriptor = new NodeDescriptor(nodeId, role);
       boolean known = peersById.containsKey(nodeId);
-      peersById.put(
+      RemotePeer previous =
+          peersById.put(
           nodeId, new RemotePeer(descriptor, sourceAddress, peerPort, System.currentTimeMillis()));
+      peersSnapshotDirty = true;
+      if (previous != null
+          && (!previous.address().equals(sourceAddress) || previous.tcpPort() != peerPort)) {
+        closeOutboundConnection(nodeId);
+      }
       if (!known) {
         log.info(
             "[P2P-DISCOVERY] peer-found id={} role={} host={} tcpPort={} peers={}",
@@ -323,8 +355,60 @@ public class LanP2PNetwork implements P2PNetwork {
     peersById.entrySet().removeIf(entry -> now - entry.getValue().lastSeenMillis() > peerTtlMillis);
     int removedByTtl = before - peersById.size();
     if (removedByTtl > 0) {
+      peersSnapshotDirty = true;
+      outboundConnections.keySet().stream()
+          .filter(peerId -> !peersById.containsKey(peerId))
+          .toList()
+          .forEach(this::closeOutboundConnection);
       log.info("[P2P-DISCOVERY] peer-timeout removed={} peers={}", removedByTtl, peersById.size());
     }
+  }
+
+  private boolean sendViaPooledConnection(RemotePeer peer, String encoded) {
+    String peerId = peer.node().id();
+    for (int attempt = 0; attempt < 2; attempt++) {
+      PooledConnection connection =
+          outboundConnections.compute(
+              peerId,
+              (id, existing) -> {
+                if (existing != null
+                    && existing.matches(peer.address(), peer.tcpPort())
+                    && existing.isOpen()) {
+                  return existing;
+                }
+                if (existing != null) {
+                  existing.closeQuietly();
+                }
+                try {
+                  return PooledConnection.connect(peer.address(), peer.tcpPort());
+                } catch (IOException e) {
+                  return null;
+                }
+              });
+      if (connection == null) {
+        return false;
+      }
+      try {
+        connection.sendLine(encoded);
+        return true;
+      } catch (IOException sendError) {
+        outboundConnections.remove(peerId, connection);
+        connection.closeQuietly();
+      }
+    }
+    return false;
+  }
+
+  private void closeOutboundConnection(String peerId) {
+    PooledConnection connection = outboundConnections.remove(peerId);
+    if (connection != null) {
+      connection.closeQuietly();
+    }
+  }
+
+  private void closeAllOutboundConnections() {
+    outboundConnections.values().forEach(PooledConnection::closeQuietly);
+    outboundConnections.clear();
   }
 
   private void sendDiscoveryPacket(String type) {
@@ -362,4 +446,51 @@ public class LanP2PNetwork implements P2PNetwork {
 
   private record RemotePeer(
       NodeDescriptor node, InetAddress address, int tcpPort, long lastSeenMillis) {}
+
+  private static final class PooledConnection {
+    private final InetAddress address;
+    private final int port;
+    private final Socket socket;
+    private final BufferedWriter writer;
+
+    private PooledConnection(InetAddress address, int port, Socket socket, BufferedWriter writer) {
+      this.address = address;
+      this.port = port;
+      this.socket = socket;
+      this.writer = writer;
+    }
+
+    static PooledConnection connect(InetAddress address, int port) throws IOException {
+      Socket socket = new Socket();
+      socket.connect(new InetSocketAddress(address, port), 1000);
+      BufferedWriter writer =
+          new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+      return new PooledConnection(address, port, socket, writer);
+    }
+
+    synchronized void sendLine(String encoded) throws IOException {
+      writer.write(encoded);
+      writer.newLine();
+      writer.flush();
+    }
+
+    boolean matches(InetAddress expectedAddress, int expectedPort) {
+      return port == expectedPort && address.equals(expectedAddress);
+    }
+
+    boolean isOpen() {
+      return socket.isConnected() && !socket.isClosed();
+    }
+
+    void closeQuietly() {
+      try {
+        writer.close();
+      } catch (IOException ignored) {
+      }
+      try {
+        socket.close();
+      } catch (IOException ignored) {
+      }
+    }
+  }
 }

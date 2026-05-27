@@ -86,6 +86,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String P2P_OVERLAY_SHORTCUT_STRATEGY = "p2pOverlayShortcutStrategy";
   private static final String P2P_IDLE_TRAVEL_ENABLED = "p2pIdleTravelEnabled";
   private static final String P2P_IDLE_TRAVEL_THRESHOLD_TICKS = "p2pIdleTravelThresholdTicks";
+  private static final String P2P_RQS_GRID_CELL_SIZE = "p2pRqsGridCellSize";
   private static final String KEY_SPAWN_SCENARIO = "spawnScenario";
   private static final String VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY =
       "aqs.p2p.vehicle.idleRoamingStrategy";
@@ -290,7 +291,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     logPeriodicRuntimeStatus(world, waitingClients, localClientNode);
   }
 
-  private void processInbox(World world, Collection<Client> waitingClients, ClientP2PService localClientNode) {
+  private void processInbox(
+      World world, Collection<Client> waitingClients, ClientP2PService localClientNode) {
     List<P2PMessage> delta = localClientNode.drainInbox();
     if (delta.isEmpty()) {
       return;
@@ -306,7 +308,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         newMessages);
   }
 
-  private void logPeriodicRuntimeStatus(World world, Collection<Client> waitingClients, ClientP2PService localClientNode) {
+  private void logPeriodicRuntimeStatus(
+      World world, Collection<Client> waitingClients, ClientP2PService localClientNode) {
     if (stepCounter % 100 != 0) {
       return;
     }
@@ -394,22 +397,22 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         continue;
       }
 
-       world.mutate().planClientForTaxi(selectedTaxi, client, TargetList.sequentialOrders);
-       log.info(
-           "[P2P-COLLECTOR] assigned committed requestId={} client={} vehicle={}",
-           pending.requestId(),
-           client.getName(),
-           pending.committedVehicleNodeId());
-       // Register pickup position for return-to-hq strategy
-       Position clientPos = client.getPosition();
-       if (clientPos != null) {
-         registerPickupPositionForVehicle(
-             pending.committedVehicleNodeId(), clientPos.getX(), clientPos.getY());
-       }
-       assignedClients.add(client.getName());
-       announceWinner(pending.requestId(), pending.committedVehicleNodeId());
-       refreshStatus(EVENT_ASSIGNED_PREFIX + pending.requestId());
-       applied++;
+      world.mutate().planClientForTaxi(selectedTaxi, client, TargetList.sequentialOrders);
+      log.info(
+          "[P2P-COLLECTOR] assigned committed requestId={} client={} vehicle={}",
+          pending.requestId(),
+          client.getName(),
+          pending.committedVehicleNodeId());
+      // Register pickup position for return-to-hq strategy
+      Position clientPos = client.getPosition();
+      if (clientPos != null) {
+        registerPickupPositionForVehicle(
+            pending.committedVehicleNodeId(), clientPos.getX(), clientPos.getY());
+      }
+      assignedClients.add(client.getName());
+      announceWinner(pending.requestId(), pending.committedVehicleNodeId());
+      refreshStatus(EVENT_ASSIGNED_PREFIX + pending.requestId());
+      applied++;
     }
     assignedClients.forEach(runtimeState::removePendingForClient);
     return applied;

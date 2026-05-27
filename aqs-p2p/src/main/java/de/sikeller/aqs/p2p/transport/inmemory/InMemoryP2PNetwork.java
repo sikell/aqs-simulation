@@ -12,17 +12,24 @@ import java.util.function.Predicate;
 public class InMemoryP2PNetwork implements P2PNetwork {
   private final Map<String, NodeDescriptor> peersById = new ConcurrentHashMap<>();
   private final Map<String, Consumer<P2PMessage>> handlersById = new ConcurrentHashMap<>();
+  private volatile Set<NodeDescriptor> peersSnapshot = Set.of();
+
+  private void refreshPeersSnapshot() {
+    peersSnapshot = Set.copyOf(peersById.values());
+  }
 
   @Override
   public void join(NodeDescriptor node, Consumer<P2PMessage> messageHandler) {
     peersById.put(node.id(), node);
     handlersById.put(node.id(), messageHandler);
+    refreshPeersSnapshot();
   }
 
   @Override
   public void leave(String nodeId) {
     peersById.remove(nodeId);
     handlersById.remove(nodeId);
+    refreshPeersSnapshot();
   }
 
   @Override
@@ -44,6 +51,6 @@ public class InMemoryP2PNetwork implements P2PNetwork {
 
   @Override
   public Set<NodeDescriptor> peers() {
-    return Set.copyOf(peersById.values());
+    return peersSnapshot;
   }
 }

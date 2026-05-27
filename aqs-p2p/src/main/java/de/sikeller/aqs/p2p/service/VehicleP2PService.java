@@ -317,15 +317,13 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     String bestNodeId = descriptor().id();
     int bestEtaSeconds = selfEtaSeconds;
 
-    for (NodeDescriptor peer : network().peers()) { // Worst-case O(n_peers)
-      if (peer.role() != NodeRole.VEHICLE || peer.id().equals(descriptor().id())) {
-        continue;
-      }
-      if (!overlayNeighbors.contains(peer.id())) {
+    // Compare only against selected overlay neighbors (instead of all peers).
+    for (String neighborId : overlayNeighbors) {
+      if (neighborId == null || neighborId.isBlank() || neighborId.equals(descriptor().id())) {
         continue;
       }
 
-      Position peerPosition = knownVehiclePositions.get(peer.id()); // O(1) map lookup
+      Position peerPosition = knownVehiclePositions.get(neighborId); // O(1) map lookup
       if (peerPosition == null) {
         continue;
       }
@@ -334,9 +332,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           estimateEtaSecondsFromPosition(
               peerPosition.getX(), peerPosition.getY(), reqX, reqY); // O(1) math
       if (peerEtaSeconds < bestEtaSeconds
-          || (peerEtaSeconds == bestEtaSeconds && peer.id().compareTo(bestNodeId) < 0)) {
+          || (peerEtaSeconds == bestEtaSeconds && neighborId.compareTo(bestNodeId) < 0)) {
         bestEtaSeconds = peerEtaSeconds;
-        bestNodeId = peer.id();
+        bestNodeId = neighborId;
       }
     }
     return descriptor().id().equals(bestNodeId);
@@ -670,6 +668,15 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         descriptor().id(),
         target ->
             updateVehiclePositionSnapshot(target.getX(), target.getY(), currentSimulationTick));
+  }
+
+  /**
+   * Advances only the internal simulation tick without re-evaluating movement/availability logic.
+   * Useful for collector-side state sync when taxi state is unchanged.
+   */
+  public synchronized void advanceSimulationTick(long simulationTick) {
+    currentSimulationTick = Math.max(currentSimulationTick, simulationTick);
+    cleanupStaleOpenRequestsIfNeeded();
   }
 
   /**

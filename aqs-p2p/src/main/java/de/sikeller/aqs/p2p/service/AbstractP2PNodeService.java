@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -25,6 +26,22 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractP2PNodeService implements P2PNodeService {
+
+  private static final String STATUS_LOGGING_ENABLED_PROPERTY = "aqs.p2p.status.logging.enabled";
+  private static final String STATUS_SCHEDULER_THREADS_PROPERTY = "aqs.p2p.status.scheduler.threads";
+  private static final int DEFAULT_STATUS_SCHEDULER_THREADS =
+      Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors()));
+  private static final AtomicInteger STATUS_THREAD_COUNTER = new AtomicInteger();
+  // Shared executor avoids one dedicated scheduler thread per node.
+  private static final ScheduledExecutorService SHARED_STATUS_SCHEDULER =
+      Executors.newScheduledThreadPool(
+          Integer.getInteger(STATUS_SCHEDULER_THREADS_PROPERTY, DEFAULT_STATUS_SCHEDULER_THREADS),
+          r -> {
+            Thread thread =
+                new Thread(r, "p2p-status-shared-" + STATUS_THREAD_COUNTER.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+          });
 
   // Cache expensive overlay selection results keyed by topic. The cache is keyed by
   // a revision value composed from vehiclePositionRevision and a checksum of current peers.
@@ -37,7 +54,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   private final AtomicInteger inboxSize = new AtomicInteger();
   private final AtomicLong messagesSent = new AtomicLong();
   private final AtomicLong messagesReceived = new AtomicLong();
-  private volatile ScheduledExecutorService statusScheduler;
+  private volatile ScheduledFuture<?> statusTask;
   private volatile boolean running;
 
   private PositionManager positionManager;
@@ -80,8 +97,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     network.join(descriptor, this::handleIncoming);
     running = true;
     log.info("Node {} joined network as {}", descriptor.id(), descriptor.role());
-    statusScheduler = createStatusScheduler();
-    statusScheduler.scheduleAtFixedRate(this::logStatus, 0, 10, TimeUnit.SECONDS);
+    if (isStatusLoggingEnabled()) {
+      statusTask = SHARED_STATUS_SCHEDULER.scheduleAtFixedRate(this::logStatus, 0, 10, TimeUnit.SECONDS);
+    }
   }
 
   @Override
@@ -91,10 +109,10 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     }
     network.leave(descriptor.id());
     running = false;
-    var scheduler = statusScheduler;
-    statusScheduler = null;
-    if (scheduler != null) {
-      scheduler.shutdownNow();
+    var task = statusTask;
+    statusTask = null;
+    if (task != null) {
+      task.cancel(false);
     }
     inbox.clear();
     inboxSize.set(0);
@@ -332,13 +350,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     log.info("[P2P-STATUS] {}", runtimeStatus().asLogLine());
   }
 
-  private ScheduledExecutorService createStatusScheduler() {
-    return Executors.newSingleThreadScheduledExecutor(
-        r -> {
-          Thread thread = new Thread(r, "p2p-status-" + descriptor.id());
-          thread.setDaemon(true);
-          return thread;
-        });
+  private boolean isStatusLoggingEnabled() {
+    return Boolean.parseBoolean(System.getProperty(STATUS_LOGGING_ENABLED_PROPERTY, "true"));
   }
 
   protected abstract void onMessage(P2PMessage message);
