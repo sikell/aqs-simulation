@@ -6,16 +6,18 @@ import de.sikeller.aqs.simulation.SimulationRunner;
 import de.sikeller.aqs.simulation.WorldGeneratorScenario;
 import de.sikeller.aqs.taxi.algorithm.collector.TaxiAlgorithmP2PCollector;
 import de.sikeller.aqs.visualization.SimulationVisualization;
-import java.util.Arrays;
 
 public class Main {
 
   public static void main(String[] args) {
     var world = WorldObject.builder().maxX(40000).maxY(40000).build();
 
-    var algorithm = new Algorithm(new TaxiAlgorithmP2PCollector());
+    var defaultAlgorithm = new TaxiAlgorithmP2PCollector();
+    var algorithm = new Algorithm(defaultAlgorithm);
 
-    var runner = new SimulationRunner(world, algorithm, new WorldGeneratorScenario());
+    var worldGenerator = new WorldGeneratorScenario();
+
+    var runner = new SimulationRunner(world, algorithm, worldGenerator);
     var visualisation = new SimulationVisualization(world, runner);
     visualisation.start();
 
