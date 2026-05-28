@@ -9,10 +9,10 @@ class WorldSimulatorSpawnTimingTest {
 
   @Test
   void lateSpawnedWaitingClientMovesOnlyOneTickOnFirstVisibleStep() {
-    WorldObject world = WorldObject.builder().maxX(1000).maxY(1000).build();
+    WorldObject world = WorldObject.builder().size(World.size(1000, 1000)).build();
     world.addClient("c1", 100, new Position(0, 0), new Position(100, 0), 36);
 
-    WorldSimulator simulator = new WorldSimulator(world);
+    WorldSimulator simulator = new WorldSimulator(world, EntitySimulator.defaultInstance());
 
     simulator.move(100); // not spawned yet because currentTime > spawnTime is required
     Client beforeSpawn = world.getClients().iterator().next();

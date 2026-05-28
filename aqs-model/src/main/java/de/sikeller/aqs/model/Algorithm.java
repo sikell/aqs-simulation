@@ -5,6 +5,7 @@ import org.reflections.scanners.SubTypesScanner;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.lang.reflect.Modifier;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public class Algorithm {
         this.algorithm = algorithm;
     }
 
-    public ArrayList<Class<?>> getAllAlgorithms() {
+  public List<Class<?>> getAllAlgorithms() {
         ArrayList<Class<?>> algorithmList = new ArrayList<>();
         Reflections reflections =
                 new Reflections(

@@ -12,19 +12,17 @@ import lombok.Data;
 @Data
 public class WorldSimulator {
   private final WorldObject world;
+  private final EntitySimulator simulator;
 
   public void move(long currentTime) {
     var timePassed = currentTime - world.getCurrentTime();
     if (timePassed == 0) return;
     world.setCurrentTime(currentTime);
-    // use for loops here to improve performance
     for (Taxi taxi : world.getTaxis()) {
-      EntitySimulator simulator = new EntitySimulator(taxi);
-      simulator.move(currentTime);
+      simulator.move(currentTime, taxi);
     }
     for (Client client : world.getClientsByMode(ClientMode.WAITING, true)) {
-      EntitySimulator simulator = new EntitySimulator(client);
-      simulator.move(currentTime);
+      simulator.move(currentTime, client);
     }
   }
 }

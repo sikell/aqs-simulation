@@ -8,7 +8,7 @@ class WorldObjectBoundsTest {
 
   @Test
   void addClientClampsPositionAndTargetToWorldBounds() {
-    WorldObject world = WorldObject.builder().maxX(10).maxY(20).build();
+    WorldObject world = WorldObject.builder().size(World.size(10, 20)).build();
 
     world.addClient("c1", 0, new Position(-5, 25), new Position(15, -2), 5);
 
@@ -19,7 +19,7 @@ class WorldObjectBoundsTest {
 
   @Test
   void addTaxiClampsPositionToWorldBounds() {
-    WorldObject world = WorldObject.builder().maxX(10).maxY(20).build();
+    WorldObject world = WorldObject.builder().size(World.size(10, 20)).build();
 
     world.addTaxi("t1", 2, new Position(99, -1), 80);
 

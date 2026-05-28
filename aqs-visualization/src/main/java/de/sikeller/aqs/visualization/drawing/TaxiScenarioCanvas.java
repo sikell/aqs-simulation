@@ -38,8 +38,8 @@ public class TaxiScenarioCanvas extends JPanel {
   private final JProgressBar finishedProgressBar;
 
   public TaxiScenarioCanvas(World world, VisualizationProperties visuProperties) {
-    this.height = world.getMaxY();
-    this.width = world.getMaxX();
+    this.height = world.getSize().getMaxY();
+    this.width = world.getSize().getMaxX();
     this.visuProperties = visuProperties;
     this.canvasHeight = 700;
     this.canvasWidth = 700;
@@ -77,8 +77,8 @@ public class TaxiScenarioCanvas extends JPanel {
   }
 
   public void repaint(World world) {
-    this.width = world.getMaxX();
-    this.height = world.getMaxY();
+    this.width = world.getSize().getMaxX();
+    this.height = world.getSize().getMaxY();
     Graphics2D g2d = bufferedImage.createGraphics();
     g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
     g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);

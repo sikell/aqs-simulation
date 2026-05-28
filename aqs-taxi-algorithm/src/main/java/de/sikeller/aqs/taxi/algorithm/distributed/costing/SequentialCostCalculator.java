@@ -4,6 +4,7 @@ import de.sikeller.aqs.model.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class SequentialCostCalculator implements CostCalculator {
@@ -17,7 +18,7 @@ public class SequentialCostCalculator implements CostCalculator {
 
   @Override
   public CostCalculationResult calculateMarginalCost(
-      Taxi taxi, Client newClient, double maxClientTripTime_s) {
+      Taxi taxi, Client newClient, double maxClientTripTime_s, Collection<Client> allClients) {
     final long startTime = System.nanoTime();
 
     Position currentPos = taxi.getPosition();
@@ -40,8 +41,8 @@ public class SequentialCostCalculator implements CostCalculator {
     double minNewRouteLength_m = CostCalculationResult.INFEASIBLE_COST;
     List<OrderNode> bestRoute = null;
 
-    OrderNode newPickupNode = new OrderNode(newClient, newClient.getPosition());
-    OrderNode newDropoffNode = new OrderNode(newClient, newClient.getTarget());
+    OrderNode newPickupNode = new OrderNode(newClient.getName(), newClient.getPosition());
+    OrderNode newDropoffNode = new OrderNode(newClient.getName(), newClient.getTarget());
 
     // Iterate through all possible insertion positions for pickup
     for (int i = 0; i <= currentRouteNodes.size(); i++) {
@@ -63,7 +64,11 @@ public class SequentialCostCalculator implements CostCalculator {
         // ToDo: Check if it's more efficient to combine the following two validity checks into one
         // --- Validity Check 1: (Capacity) ---
         if (!isRouteValidByCapacity(
-            currentPos, candidateRoute, taxi.getCapacity(), initialPassengersInTaxi)) {
+            currentPos,
+            candidateRoute,
+            taxi.getCapacity(),
+            initialPassengersInTaxi,
+            allClients.stream().collect(Collectors.toMap(Client::getName, c -> c)))) {
           continue;
         }
         // --- Validity Check 2: (Time Limit) ---
@@ -156,7 +161,7 @@ public class SequentialCostCalculator implements CostCalculator {
 
       if (!pickedUp) {
         // Check if current node IS the pickup node
-        if (node.getClient().equals(targetClient)
+        if (node.getClient().equals(targetClient.getName())
             && node.getPosition().equals(targetClient.getPosition())) {
           distanceToPickup_m = currentRouteDistance_m; // Total distance traveled until pickup point
           pickedUp = true;
@@ -165,7 +170,7 @@ public class SequentialCostCalculator implements CostCalculator {
         distanceInTaxi_m += segmentDistance_m; // Accumulate distance while client is in taxi
 
         // Check if current node IS the dropoff node
-        if (node.getClient().equals(targetClient)
+        if (node.getClient().equals(targetClient.getName())
             && node.getPosition().equals(targetClient.getTarget())) {
           // Found dropoff, times can be calculated
           double timeToPickup_s = distanceToPickup_m / taxiSpeed_mps;
@@ -203,7 +208,8 @@ public class SequentialCostCalculator implements CostCalculator {
       Position startPos,
       List<OrderNode> candidateNodes,
       int capacity,
-      Set<Client> initialPassengersInTaxi) {
+      Set<Client> initialPassengersInTaxi,
+      Map<String, Client> allClients) {
     Set<Client> currentPassengers = new HashSet<>(initialPassengersInTaxi);
     Position lastPos = startPos; // Needed only if segment travel time/constraints were relevant
 
@@ -220,7 +226,7 @@ public class SequentialCostCalculator implements CostCalculator {
       // Simulate segment travel (if time constraints were added, check here)
       lastPos = node.getPosition(); // Update position for next segment start
 
-      Client client = node.getClient();
+      Client client = allClients.get(node.getClient());
       boolean isPickup = node.getPosition().equals(client.getPosition());
       boolean isDropoff = node.getPosition().equals(client.getTarget());
 

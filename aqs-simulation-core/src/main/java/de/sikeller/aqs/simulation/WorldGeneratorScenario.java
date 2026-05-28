@@ -34,9 +34,7 @@ public class WorldGeneratorScenario implements WorldGenerator {
     log.info("Initialize world with scenario={} parameters={}", scenario, parameters);
 
     int mapSize = parameters.getOrDefault("mapSize", 40000);
-    world.setMaxX(mapSize);
-    world.setMaxY(mapSize);
-    world.reset();
+    world.reset(new World.WorldSize(mapSize, mapSize));
     generateTaxis(world, parameters, random);
     generateClients(world, parameters, random, scenario);
   }
@@ -133,16 +131,16 @@ public class WorldGeneratorScenario implements WorldGenerator {
    */
   private Position spatialImbalancePosition(World world, Random random) {
     if (random.nextDouble() < 0.60) {
-      int cx = world.getMaxX() / 2;
-      int cy = world.getMaxY() / 2;
-      int radius = Math.min(world.getMaxX(), world.getMaxY()) / 6;
+      int cx = world.getSize().getMaxX() / 2;
+      int cy = world.getSize().getMaxY() / 2;
+      int radius = Math.min(world.getSize().getMaxX(), world.getSize().getMaxY()) / 6;
       // Rejection sampling for uniform distribution inside circle
       for (int attempt = 0; attempt < 1000; attempt++) {
         int dx = random.nextInt(2 * radius + 1) - radius;
         int dy = random.nextInt(2 * radius + 1) - radius;
         if ((long) dx * dx + (long) dy * dy <= (long) radius * radius) {
-          int x = Math.max(0, Math.min(world.getMaxX() - 1, cx + dx));
-          int y = Math.max(0, Math.min(world.getMaxY() - 1, cy + dy));
+          int x = Math.max(0, Math.min(world.getSize().getMaxX() - 1, cx + dx));
+          int y = Math.max(0, Math.min(world.getSize().getMaxY() - 1, cy + dy));
           return new Position(x, y);
         }
       }
@@ -151,7 +149,7 @@ public class WorldGeneratorScenario implements WorldGenerator {
   }
 
   private Position randomPosition(World world, Random random) {
-    return new Position(random.nextInt(world.getMaxX()), random.nextInt(world.getMaxY()));
+    return new Position(random.nextInt(world.getSize().getMaxX()), random.nextInt(world.getSize().getMaxY()));
   }
 
   // -------------------------------------------------------------------------
@@ -176,14 +174,14 @@ public class WorldGeneratorScenario implements WorldGenerator {
     if (random.nextDouble() < ISLAND_SPAWN_FRACTION) {
       int[][] centres = islandCentres(world);
       int[] centre = centres[random.nextInt(centres.length)];
-      int radius = (int) (Math.min(world.getMaxX(), world.getMaxY()) * ISLAND_RADIUS_FACTOR);
+      int radius = (int) (Math.min(world.getSize().getMaxX(), world.getSize().getMaxY()) * ISLAND_RADIUS_FACTOR);
       radius = Math.max(1, radius);
       for (int attempt = 0; attempt < 1000; attempt++) {
         int dx = random.nextInt(2 * radius + 1) - radius;
         int dy = random.nextInt(2 * radius + 1) - radius;
         if ((long) dx * dx + (long) dy * dy <= (long) radius * radius) {
-          int x = Math.max(0, Math.min(world.getMaxX() - 1, centre[0] + dx));
-          int y = Math.max(0, Math.min(world.getMaxY() - 1, centre[1] + dy));
+          int x = Math.max(0, Math.min(world.getSize().getMaxX() - 1, centre[0] + dx));
+          int y = Math.max(0, Math.min(world.getSize().getMaxY() - 1, centre[1] + dy));
           return new Position(x, y);
         }
       }
@@ -202,8 +200,8 @@ public class WorldGeneratorScenario implements WorldGenerator {
    * </pre>
    */
   private static int[][] islandCentres(World world) {
-    int w = world.getMaxX();
-    int h = world.getMaxY();
+    int w = world.getSize().getMaxX();
+    int h = world.getSize().getMaxY();
     int spread = (int) (Math.min(w, h) * 0.08); // distance between islands inside a cluster
 
     // Cluster A – north-west

@@ -2,6 +2,7 @@ package de.sikeller.aqs.taxi.algorithm.distributed.costing;
 
 import de.sikeller.aqs.model.Client;
 import de.sikeller.aqs.model.Taxi;
+import java.util.Collection;
 import java.util.Map;
 
 /** Interface for calculating the marginal cost of adding a new client to a taxi's route. */
@@ -21,7 +22,7 @@ public interface CostCalculator {
    *     the calculation.
    */
   CostCalculationResult calculateMarginalCost(
-      Taxi taxi, Client newClient, double maxClientTripTime);
+      Taxi taxi, Client newClient, double maxClientTripTime, Collection<Client> allClients);
 
   /**
    * Receives parameters from the simulation UI.

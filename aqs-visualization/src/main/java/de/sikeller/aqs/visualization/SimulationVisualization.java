@@ -16,27 +16,29 @@ import javax.swing.border.EmptyBorder;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class SimulationVisualization extends AbstractVisualization implements SimulationObserver, Runnable {
+public class SimulationVisualization extends AbstractVisualization
+    implements SimulationObserver, Runnable {
   private static final int REPAINT_INTERVAL_MS = 50;
   private final TaxiScenarioCanvas canvas;
+  private final VisualizationProperties visualizationProperties;
 
   /** null if waiting for next snapshot to be rendered, or a snapshot to be rendered next */
   private final AtomicReference<World> snapshot = new AtomicReference<>();
 
   public SimulationVisualization(World world, SimulationControl simulation) {
     super("Taxi Scenario Simulation");
+    this.visualizationProperties = new VisualizationProperties();
     TaxiScenarioControl taxiScenarioControl = new TaxiScenarioControl(simulation);
 
     var controls = new JPanel();
     controls.setLayout(new BorderLayout(0, 12));
     controls.setBorder(new EmptyBorder(8, 8, 8, 8));
     controls.add(taxiScenarioControl, BorderLayout.NORTH);
-    var visuProperties = new VisualizationProperties();
-    taxiScenarioControl.setVisualizationProperties(visuProperties);
-    VisualizationControl visualizationControl = new VisualizationControl(visuProperties);
+    taxiScenarioControl.setVisualizationProperties(visualizationProperties);
+    VisualizationControl visualizationControl = new VisualizationControl(visualizationProperties);
     taxiScenarioControl.setP2PModeUiListener(visualizationControl::setP2PModeUiState);
     controls.add(visualizationControl, BorderLayout.SOUTH);
-    canvas = new TaxiScenarioCanvas(world, visuProperties);
+    canvas = new TaxiScenarioCanvas(world, visualizationProperties);
 
     var simulationArea = new JPanel(new BorderLayout(0, 14));
     simulationArea.setBorder(new EmptyBorder(8, 8, 8, 8));
@@ -83,6 +85,7 @@ public class SimulationVisualization extends AbstractVisualization implements Si
 
   @Override
   public void onUpdate(WorldObject world, boolean forceUpdate) {
+    if (!visualizationProperties.isEnableRealtimeVisualization()) return;
     // Only create a new snapshot if the last was rendered successfully (the reference is null) to
     // avoid unused snapshot calculations.
     snapshot.getAndUpdate(w -> w == null || forceUpdate ? world.snapshot() : w);

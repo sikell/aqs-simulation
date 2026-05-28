@@ -6,11 +6,14 @@ import static de.sikeller.aqs.visualization.drawing.VisualizationUtils.smallFont
 import de.sikeller.aqs.model.ResultTable;
 import de.sikeller.aqs.model.TickDataPoint;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +66,11 @@ public class ResultVisualization extends AbstractVisualization {
             model =
                 new DefaultTableModel(convertedResultTable.getData(), resultTable.getColumns());
             table = new JTable(model);
+            table.setRowSelectionAllowed(true);
+            table.setColumnSelectionAllowed(false);
+            table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+            table.addMouseListener(highlightTableRowsInRunMouseListener(resultTable));
+
             JScrollPane scrollPane = new JScrollPane(table);
             int frameWidth = frame.getWidth();
             scrollPane.setMinimumSize(
@@ -91,6 +99,30 @@ public class ResultVisualization extends AbstractVisualization {
             frame.repaint();
           }
         });
+  }
+
+  @Nonnull
+  private MouseAdapter highlightTableRowsInRunMouseListener(ResultTable resultTable) {
+    // if a row is selected all related rows in all other runs are also selected
+    return new MouseAdapter() {
+      @Override
+      public void mouseClicked(MouseEvent e) {
+        int clickedViewRow = table.rowAtPoint(e.getPoint());
+        if (clickedViewRow < 0) return;
+
+        int rowsPerRun = resultTable.getGroupSize();
+        int clickedModelRow = table.convertRowIndexToModel(clickedViewRow);
+        int rowInsideRun = clickedModelRow % rowsPerRun;
+
+        table.clearSelection();
+        for (int viewRow = 0; viewRow < table.getRowCount(); viewRow++) {
+          int modelRow = table.convertRowIndexToModel(viewRow);
+          if (modelRow % rowsPerRun == rowInsideRun) {
+            table.addRowSelectionInterval(viewRow, viewRow);
+          }
+        }
+      }
+    };
   }
 
   public void addDiagrams() {
@@ -168,7 +200,7 @@ public class ResultVisualization extends AbstractVisualization {
       convertedData[0][i] = round(convertDistanceToKilometers(resultTable.getDouble(0, i)), 2);
       convertedData[1][i] = round(convertTimeToMinutes(resultTable.getDouble(1, i)), 2);
     }
-    return new ResultTable(resultTable.getColumns(), convertedData);
+    return new ResultTable(resultTable.getColumns(), convertedData, resultTable.getGroupSize());
   }
 
   public static double round(double value, int places) {
