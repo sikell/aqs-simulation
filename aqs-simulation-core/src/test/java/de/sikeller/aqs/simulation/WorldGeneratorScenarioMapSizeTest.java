@@ -3,10 +3,8 @@ package de.sikeller.aqs.simulation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import de.sikeller.aqs.model.Client;
-import de.sikeller.aqs.model.Position;
-import de.sikeller.aqs.model.SpawnScenario;
-import de.sikeller.aqs.model.WorldObject;
+import de.sikeller.aqs.model.*;
+
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -19,14 +17,14 @@ class WorldGeneratorScenarioMapSizeTest {
     int clientCount = 300;
 
     for (SpawnScenario scenario : SpawnScenario.values()) {
-      WorldObject world = WorldObject.builder().maxX(1).maxY(1).build();
+      WorldObject world = WorldObject.builder().size(World.size(1, 1)).build();
       Map<String, Integer> parameters = baseParameters(mapSize, clientCount);
       parameters.put("spawnScenario", scenario.ordinal());
 
       new WorldGeneratorScenario().init(world, parameters);
 
-      assertEquals(mapSize, world.getMaxX(), "maxX should come from mapSize");
-      assertEquals(mapSize, world.getMaxY(), "maxY should come from mapSize");
+      assertEquals(mapSize, world.getSize().getMaxX(), "maxX should come from mapSize");
+      assertEquals(mapSize, world.getSize().getMaxY(), "maxY should come from mapSize");
       assertEquals(clientCount, world.getClients().size(), "all clients should be created");
 
       for (Client client : world.getClients()) {

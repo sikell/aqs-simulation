@@ -10,6 +10,8 @@ public class VisualizationProperties
     implements TaxiDrawing.TaxiDrawingProperties,
         ClientDrawing.ClientDrawingProperties,
         BackgroundDrawing.BackgroundDrawingProperties {
+  /** This disables all visualization features. */
+  private boolean enableRealtimeVisualization = true;
   private boolean showPageRankHq = true;
   private Map<String, int[]> taxiPageRankHqPositions = Map.of();
   private boolean showClientPaths = false;

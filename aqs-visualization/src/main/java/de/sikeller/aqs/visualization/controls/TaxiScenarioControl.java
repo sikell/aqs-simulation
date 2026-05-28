@@ -946,7 +946,7 @@ public class TaxiScenarioControl extends AbstractControl {
     massRunInProgress = true;
     setControlsEnabledForMassRun(false);
     simulation.stop();
-    simulation.setRealtimeVisualizationEnabled(false);
+    visualizationProperties.setEnableRealtimeVisualization(false);
     if (p2pStatusTimer != null) {
       p2pStatusTimer.stop();
     }
@@ -1100,7 +1100,7 @@ public class TaxiScenarioControl extends AbstractControl {
           protected void done() {
             progressDialog.dispose();
             massRunInProgress = false;
-            simulation.setRealtimeVisualizationEnabled(true);
+            visualizationProperties.setEnableRealtimeVisualization(true);
             if (p2pStatusTimer != null && !p2pStatusTimer.isRunning()) {
               p2pStatusTimer.start();
             }

@@ -22,6 +22,15 @@ public class VisualizationControl extends AbstractControl {
     controls.setBorder(new TitledBorder("Visualization Control"));
     controls.setLayout(new GridLayout(0, 2, GAP, GAP));
 
+    controls.add(
+            checkBox(
+                    "Enable realtime visualization",
+                    "enableRealTimeVisualization",
+                    "Enable the visualization feature - or disable completely for performance reasons",
+                    properties.isEnableRealtimeVisualization(),
+                    properties::setEnableRealtimeVisualization));
+    controls.add(placeholder());
+
     controls.add(label("Scale", "scaleLabel"));
 
     controls.add(

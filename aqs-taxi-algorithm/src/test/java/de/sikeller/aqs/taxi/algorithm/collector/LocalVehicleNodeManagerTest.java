@@ -4,16 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import de.sikeller.aqs.model.Client;
-import de.sikeller.aqs.model.ClientMode;
-import de.sikeller.aqs.model.OrderFlattenFunction;
-import de.sikeller.aqs.model.OrderNode;
-import de.sikeller.aqs.model.Position;
-import de.sikeller.aqs.model.SpawnScenario;
-import de.sikeller.aqs.model.TargetList;
-import de.sikeller.aqs.model.Taxi;
-import de.sikeller.aqs.model.World;
-import de.sikeller.aqs.model.WorldMutator;
+import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.p2p.api.NodeDescriptor;
 import de.sikeller.aqs.p2p.api.P2PMessage;
 import de.sikeller.aqs.p2p.api.P2PNetwork;
@@ -202,11 +193,10 @@ class LocalVehicleNodeManagerTest {
     }
 
     @Override
-    public int getMaxX() {
-      return 0;
+    public WorldSize getSize() {
+      return World.size(0, 0);
     }
 
-    @Override
     public int getMaxY() {
       return 0;
     }
@@ -339,4 +329,3 @@ class LocalVehicleNodeManagerTest {
     public void updatePosition(Position position, long currentTime) {}
   }
 }
-

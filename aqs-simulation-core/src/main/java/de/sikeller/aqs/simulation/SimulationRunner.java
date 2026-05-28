@@ -5,6 +5,7 @@ import de.sikeller.aqs.model.TickDataPoint;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import de.sikeller.aqs.simulation.result.SimulationResultSink;
 import de.sikeller.aqs.simulation.stats.CollectorMinMaxAverage;
+import de.sikeller.aqs.simulation.stats.CollectorTimeSeries;
 import de.sikeller.aqs.simulation.stats.StatsCollector;
 import de.sikeller.aqs.visualization.ResultVisualization;
 import java.util.*;
@@ -46,8 +47,7 @@ public class SimulationRunner implements SimulationControl {
     this.algorithm = algorithm;
     this.worldGenerator = worldGenerator;
     this.resultVisualization = new ResultVisualization();
-    this.resultSink =
-        resultSink == null ? this.resultVisualization::showResults : resultSink;
+    this.resultSink = resultSink == null ? this.resultVisualization::showResults : resultSink;
   }
 
   public static SimulationResultSink noVisualizationResultSink() {
@@ -65,36 +65,32 @@ public class SimulationRunner implements SimulationControl {
     simulationFinished = false;
     simulationInitialized = false;
 
-    WorldSimulator worldSimulator = new WorldSimulator(world);
+    WorldSimulator worldSimulator = new WorldSimulator(world, EntitySimulator.defaultInstance());
     var algorithmCalculationTime = CollectorMinMaxAverage.longCollector();
     var customCalculationTime = CollectorMinMaxAverage.longCollector();
     var simulationCalculationTime = CollectorMinMaxAverage.longCollector();
-    List<TickDataPoint> tickDataPoints = new ArrayList<>();
+    CollectorTimeSeries.Collector<TickDataPoint> tickDataPoints =
+        CollectorTimeSeries.newCollector();
     while (!world.isFinished()) {
-      int sleepMillis = (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1));
+      int sleepMillis =
+          Math.max(0, (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1)));
       Thread.sleep(sleepMillis);
       if (!running) {
         continue;
       }
       var simulationStartTime = System.nanoTime();
       var currentTime = world.getCurrentTime() + 1;
-      int activeClients =
-          world
-              .getClientsByModes(
-                  Set.of(ClientMode.WAITING, ClientMode.PLANNED, ClientMode.MOVING), true)
-              .size();
       var startTime = System.nanoTime();
       var result = algorithm.get().nextStep(world);
       var calculationTime = System.nanoTime() - startTime;
       algorithmCalculationTime.collect(calculationTime);
       customCalculationTime.collect(
           result.getCalculationTime() != null ? result.getCalculationTime() : 0);
-      tickDataPoints.add(new TickDataPoint(currentTime, calculationTime, activeClients));
+      int activeClients = world.getActiveClientsCount();
+      tickDataPoints.collect(new TickDataPoint(currentTime, calculationTime, activeClients));
       log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
-      if (realtimeVisualizationEnabled) {
-        listeners.forEach(l -> l.onUpdate(world, false));
-      }
+      notifyVisualizationListeners(false);
       simulationCalculationTime.collect(System.nanoTime() - simulationStartTime);
     }
 
@@ -114,17 +110,15 @@ public class SimulationRunner implements SimulationControl {
     } catch (Exception e) {
       log.error(e.getMessage(), e);
     }
-    if (realtimeVisualizationEnabled) {
-      resultVisualization.showLoadChart(tickDataPoints, algorithm.get().getName());
-    }
+    resultVisualization.showLoadChart(tickDataPoints.result(), algorithm.get().getName());
     eventDispatcher.resetEvents();
 
     simulationFinished = true;
+    notifyVisualizationListeners(true);
+  }
 
-    if (realtimeVisualizationEnabled) {
-      // A final force update to ensure the last state:
-      listeners.forEach(l -> l.onUpdate(world, true));
-    }
+  private void notifyVisualizationListeners(boolean forceUpdate) {
+      listeners.forEach(l -> l.onUpdate(world, forceUpdate));
   }
 
   public void print() {
@@ -156,9 +150,7 @@ public class SimulationRunner implements SimulationControl {
         algorithm.get().prepareWorldParameters(new HashMap<>(parameters));
     worldGenerator.init(world, preparedParameters);
     algorithm.get().init(world);
-    if (realtimeVisualizationEnabled) {
-      listeners.forEach(l -> l.onUpdate(world, true));
-    }
+    notifyVisualizationListeners(true);
     print();
     simulationFinished = false;
     simulationInitialized = true;
@@ -176,15 +168,5 @@ public class SimulationRunner implements SimulationControl {
 
   public void showResultVisualization() {
     this.resultVisualization.openResults();
-  }
-
-  @Override
-  public void setRealtimeVisualizationEnabled(boolean enabled) {
-    this.realtimeVisualizationEnabled = enabled;
-  }
-
-  @Override
-  public boolean isRealtimeVisualizationEnabled() {
-    return realtimeVisualizationEnabled;
   }
 }

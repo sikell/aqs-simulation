@@ -15,9 +15,7 @@ public class WorldGeneratorRandom implements WorldGenerator {
     var random = new Random(seed);
 
     int mapSize = parameters.getOrDefault("mapSize", 40000);
-    world.setMaxX(mapSize);
-    world.setMaxY(mapSize);
-    world.reset();
+    world.reset(new World.WorldSize(mapSize, mapSize));
     generateClients(world, parameters, random);
     generateTaxis(world, parameters, random);
   }
@@ -53,6 +51,6 @@ public class WorldGeneratorRandom implements WorldGenerator {
   }
 
   private Position randomPosition(World world, Random random) {
-    return new Position(random.nextInt(world.getMaxX()), random.nextInt(world.getMaxY()));
+    return new Position(random.nextInt(world.getSize().getMaxX()), random.nextInt(world.getSize().getMaxY()));
   }
 }

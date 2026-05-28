@@ -61,7 +61,7 @@ public class LocalVehicleNodeManager {
               String vehicleNodeId = vehicleNodePrefix + taxi.getName();
               VehicleP2PService vehicleNode = vehicleNodeFactory.create(vehicleNodeId, network);
               vehicleNode.start();
-              vehicleNode.setMapBounds(world.getMaxX(), world.getMaxY());
+              vehicleNode.setMapBounds(world.getSize().getMaxX(), world.getSize().getMaxY());
               vehicleNode.setSpawnScenario(spawnScenario);
               localVehicleNodesByTaxiName.put(taxi.getName(), vehicleNode);
               vehicleNodeToTaxiName.put(vehicleNodeId, taxi.getName());
@@ -108,7 +108,7 @@ public class LocalVehicleNodeManager {
         String vehicleNodeId = vehicleNodePrefix + taxi.getName();
         VehicleP2PService vehicleNode = vehicleNodeFactory.create(vehicleNodeId, network);
         vehicleNode.start();
-        vehicleNode.setMapBounds(world.getMaxX(), world.getMaxY());
+        vehicleNode.setMapBounds(world.getSize().getMaxX(), world.getSize().getMaxY());
         vehicleNode.setSpawnScenario(spawnScenario);
         localVehicleNodesByTaxiName.put(taxi.getName(), vehicleNode);
         vehicleNodeToTaxiName.put(vehicleNodeId, taxi.getName());

@@ -68,7 +68,7 @@ public class ResultVisualization extends AbstractVisualization {
             table = new JTable(model);
             table.setRowSelectionAllowed(true);
             table.setColumnSelectionAllowed(false);
-            table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
             table.addMouseListener(highlightTableRowsInRunMouseListener(resultTable));
 
             JScrollPane scrollPane = new JScrollPane(table);
