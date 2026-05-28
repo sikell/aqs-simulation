@@ -68,6 +68,7 @@ public class SimulationRunner implements SimulationControl {
     WorldSimulator worldSimulator = new WorldSimulator(world);
     var algorithmCalculationTime = CollectorMinMaxAverage.longCollector();
     var customCalculationTime = CollectorMinMaxAverage.longCollector();
+    var simulationCalculationTime = CollectorMinMaxAverage.longCollector();
     List<TickDataPoint> tickDataPoints = new ArrayList<>();
     while (!world.isFinished()) {
       int sleepMillis = (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1));
@@ -75,6 +76,7 @@ public class SimulationRunner implements SimulationControl {
       if (!running) {
         continue;
       }
+      var simulationStartTime = System.nanoTime();
       var currentTime = world.getCurrentTime() + 1;
       int activeClients =
           world
@@ -93,6 +95,7 @@ public class SimulationRunner implements SimulationControl {
       if (realtimeVisualizationEnabled) {
         listeners.forEach(l -> l.onUpdate(world, false));
       }
+      simulationCalculationTime.collect(System.nanoTime() - simulationStartTime);
     }
 
     eventDispatcher.print();
@@ -101,7 +104,8 @@ public class SimulationRunner implements SimulationControl {
         world,
         getAlgorithm(),
         algorithmCalculationTime.result(TimeUnit.NANOSECONDS::toMillis),
-        customCalculationTime.result(TimeUnit.NANOSECONDS::toMicros));
+        customCalculationTime.result(TimeUnit.NANOSECONDS::toMicros),
+        simulationCalculationTime.result(TimeUnit.NANOSECONDS::toMillis));
     statsCollector.print();
 
     latestResultTable = statsCollector.tableResults();

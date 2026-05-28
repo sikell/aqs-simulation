@@ -17,6 +17,7 @@ public class StatsCollector {
   private Result<Long> travelTime;
   private Result<Long> calculationTime;
   private Result<Long> customTime;
+  private Result<Long> simulationTime;
   private Algorithm algorithm;
   private int runCounter = 0;
 
@@ -25,20 +26,22 @@ public class StatsCollector {
       World world,
       Algorithm algorithm,
       Result<Long> calculationTime,
-      Result<Long> customTime) {
+      Result<Long> customTime,
+      Result<Long> simulationTime) {
     collectClientWaitingTime(eventList);
     collectClientTravelTime(eventList);
     collectTaxiTravelDistance(world);
     this.calculationTime = calculationTime;
     this.customTime = customTime;
     this.algorithm = algorithm;
+    this.simulationTime = simulationTime;
     runCounter++;
   }
 
   public ResultTable tableResults() {
     var columns = new String[] {"Result", "Min", "Max", "Avg", "Sum", "Count", "Algorithm", "Run"};
 
-    var data = new Object[5][];
+    var data = new Object[6][];
     data[0] =
         new Object[] {
           "Taxi Travel Distance [km]",
@@ -94,8 +97,19 @@ public class StatsCollector {
           algorithm.get().getName(),
           runCounter
         };
+    data[5] =
+        new Object[] {
+          "Simulation Time [millis]",
+          simulationTime.min(),
+          simulationTime.max(),
+          format(DOUBLE_FORMAT, simulationTime.avg()),
+          simulationTime.sum(),
+          simulationTime.count(),
+          algorithm.get().getName(),
+          runCounter
+        };
 
-    return new ResultTable(columns, data);
+    return new ResultTable(columns, data, data.length);
   }
 
   public void print() {
@@ -128,7 +142,8 @@ public class StatsCollector {
 
     waitingTime =
         new CollectorMinMaxAverage<EventClientEntersTaxi>()
-            .collectLong(enterEvents, event -> event.getCurrentTime() - event.getClient().getSpawnTime());
+            .collectLong(
+                enterEvents, event -> event.getCurrentTime() - event.getClient().getSpawnTime());
   }
 
   private void collectClientTravelTime(EventList eventList) {
