@@ -178,7 +178,7 @@ class TaxiEntity implements Taxi {
     }
     var client =
         plannedPassengers.stream()
-            .filter(c -> c.isSame(currentTarget.getClient()))
+            .filter(c -> c.getName().equals(currentTarget.getClient()))
             .findFirst()
             .orElse(null);
     if (client == null) {

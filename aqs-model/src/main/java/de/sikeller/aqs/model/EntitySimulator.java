@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class EntitySimulator {
   /** 1 distance = 1m, 1 time = 1s, 1 speed = 1km/h */
-  private final double speedQuotient = 1000.0 / 3600.0;
+  private static final double speedQuotient = 1000.0 / 3600.0;
 
   private final Entity entity;
 
@@ -19,5 +19,10 @@ public class EntitySimulator {
     var movedDistance = speedQuotient * entity.getCurrentSpeed() * timePassed;
     var newPosition = entity.getPosition().moveTowards(entity.getTarget(), movedDistance);
     entity.updatePosition(newPosition, currentTime);
+  }
+
+  /** Time needed to move a given distance. Does not modify the entity! */
+  public static long timePassed(Entity entity, double movedDistance) {
+    return Math.round(movedDistance / (speedQuotient * entity.getCurrentSpeed()));
   }
 }
