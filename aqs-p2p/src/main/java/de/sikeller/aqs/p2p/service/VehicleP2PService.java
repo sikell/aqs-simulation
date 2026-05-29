@@ -39,7 +39,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final long DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 600L;
   private static final long DEFAULT_CLEANUP_INTERVAL_TICKS = 10L;
   private static final int MAX_FORWARDED_PAYLOAD_CACHE_SIZE = 200;
-  private final ConcurrentMap<String, String> committedByRequest = new ConcurrentHashMap<>();
   // Track first-seen tick per requestId so we can evict stale entries along with openRideRequests
   private final ConcurrentMap<String, Long> seenRideRequests = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, OpenRideRequest> openRideRequests = new ConcurrentHashMap<>();
@@ -158,9 +157,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     Map<String, String> payload = KeyValuePayload.parse(message.payload());
     String winnerVehicleId = payload.get(P2PPayloadKeys.WINNER_VEHICLE);
 
-    // Mark as committed so we never re-offer this request
-    committedByRequest.putIfAbsent(
-        requestId, winnerVehicleId != null ? winnerVehicleId : "assigned");
+    // Mark as seen so late duplicates/out-of-order deliveries with same requestId are ignored.
+    seenRideRequests.putIfAbsent(requestId, currentSimulationTick);
     openRideRequests.remove(requestId);
 
     boolean iWon = descriptor().id().equals(winnerVehicleId);
@@ -231,7 +229,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
    * wins (first-come-first-serve collision resolution).
    */
   private void commitForRequestIfBest(OpenRideRequest openRequest, String trigger) {
-    if (openRequest == null || committedByRequest.containsKey(openRequest.requestId)) {
+    if (openRequest == null) {
       return;
     }
     log.debug(
@@ -265,11 +263,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
 
-    // Autonomously commit: mark busy with a lease (protects against race in embedded mode)
-    String existingWinner =
-        committedByRequest.putIfAbsent(openRequest.requestId, descriptor().id());
-    if (existingWinner != null) {
-      return; // another local thread already committed
+    // Atomically claim this open request locally so concurrent triggers cannot double-commit.
+    if (!openRideRequests.remove(openRequest.requestId, openRequest)) {
+      return;
     }
     long leaseTicks =
         Math.max(
@@ -278,7 +274,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
                 P2PSystemProperties.VEHICLE_COMMIT_LEASE_TICKS,
                 DEFAULT_VEHICLE_COMMIT_LEASE_TICKS));
     busyUntilTick = currentSimulationTick + leaseTicks;
-    openRideRequests.remove(openRequest.requestId);
     openRequest.lastOfferAtTick = currentSimulationTick;
     // Discard any pending idle travel target – the taxi is now committed to a real ride.
     // Also clear persistent idle intent so no further idle targets are generated while busy.
@@ -388,7 +383,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     long nowTick = currentSimulationTick;
     Set<OpenRideRequest> eligibleRequests =
         openRideRequests.values().stream() // Worst-case O(n_openRequests) scan
-            .filter(request -> !committedByRequest.containsKey(request.requestId))
             .filter(
                 request -> {
                   if (!shouldOffer(request.payload)) {

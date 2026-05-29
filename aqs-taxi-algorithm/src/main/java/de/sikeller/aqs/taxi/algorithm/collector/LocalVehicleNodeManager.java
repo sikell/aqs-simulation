@@ -52,7 +52,8 @@ public class LocalVehicleNodeManager {
       return;
     }
 
-    Set<String> activeTaxiNames = world.getTaxis().stream().map(Taxi::getName).collect(Collectors.toSet());
+    Set<String> activeTaxiNames =
+        world.getTaxis().stream().map(Taxi::getName).collect(Collectors.toSet());
     if (localVehicleNodesByTaxiName.keySet().equals(activeTaxiNames)) {
       return;
     }
@@ -148,13 +149,13 @@ public class LocalVehicleNodeManager {
       Map<String, VehicleP2PService> localVehicleNodesByTaxiName) {
     if (localVehicleNodesByTaxiName.isEmpty()) {
       lastAppliedSpawnScenario = spawnScenario;
-      lastAppliedMapMaxX = world.getMaxX();
-      lastAppliedMapMaxY = world.getMaxY();
+      lastAppliedMapMaxX = world.getSize().getMaxX();
+      lastAppliedMapMaxY = world.getSize().getMaxY();
       return;
     }
 
-    int maxX = world.getMaxX();
-    int maxY = world.getMaxY();
+    int maxX = world.getSize().getMaxX();
+    int maxY = world.getSize().getMaxY();
     if (maxX != lastAppliedMapMaxX || maxY != lastAppliedMapMaxY) {
       localVehicleNodesByTaxiName.values().forEach(node -> node.setMapBounds(maxX, maxY));
       lastAppliedMapMaxX = maxX;
@@ -179,4 +180,3 @@ public class LocalVehicleNodeManager {
     lastAppliedMapMaxY = Integer.MIN_VALUE;
   }
 }
-

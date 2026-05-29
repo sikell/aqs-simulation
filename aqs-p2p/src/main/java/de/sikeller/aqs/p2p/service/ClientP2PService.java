@@ -3,17 +3,12 @@ package de.sikeller.aqs.p2p.service;
 import de.sikeller.aqs.p2p.api.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClientP2PService extends AbstractP2PNodeService {
-  // Track requests that have been committed so further commits are ignored (first-come-first-serve)
-  private final Set<String> committedRequestIds = ConcurrentHashMap.newKeySet();
-
   public ClientP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.CLIENT), network);
   }
@@ -96,10 +91,6 @@ public class ClientP2PService extends AbstractP2PNodeService {
   @Override
   protected void onMessage(P2PMessage message) {
     if (P2PTopics.RIDE_COMMIT.equals(message.topic())) {
-      if (message.requestId() != null && !message.requestId().isBlank()) {
-        // First commit wins; subsequent ones are silently discarded by the collector
-        committedRequestIds.add(message.requestId());
-      }
       log.info(
           "Client node {} commit received requestId={} payload={}",
           descriptor().id(),

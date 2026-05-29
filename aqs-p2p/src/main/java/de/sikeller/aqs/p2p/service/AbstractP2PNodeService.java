@@ -215,8 +215,12 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return;
     }
 
-    inbox.add(message);
-    inboxSize.incrementAndGet();
+    // Only CLIENT nodes (collector) drain inbox; VEHICLE nodes process inline to avoid
+    // unbounded queue growth under heavy message rates.
+    if (descriptor.role() == NodeRole.CLIENT) {
+      inbox.add(message);
+      inboxSize.incrementAndGet();
+    }
     onMessage(message);
   }
 
