@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Encapsulates commit handling logic extracted from the collector.
+ * Handles commit messages and applies taxi assignments.
  */
 final class CommitHandler {
 

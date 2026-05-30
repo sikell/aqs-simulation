@@ -1,27 +1,29 @@
 package de.sikeller.aqs.p2p.service.messaging;
 
 import de.sikeller.aqs.p2p.api.*;
-import de.sikeller.aqs.p2p.service.overlay.OverlaySelector;
+import java.util.List;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Default MessagePublisher implementation that uses the provided P2PNetwork and an OverlaySelector
- * to compute target peers.
+ * Default MessagePublisher implementation using the P2PNetwork and overlay ID provider.
  */
 public class MessagePublisherImpl implements MessagePublisher {
   private static final Logger log = LoggerFactory.getLogger(MessagePublisherImpl.class);
   private final NodeDescriptor descriptor;
   private final P2PNetwork network;
-  private final OverlaySelector overlaySelector;
+  private final BiFunction<String, List<NodeDescriptor>, Set<String>> overlayIdProvider;
 
   public MessagePublisherImpl(
-      NodeDescriptor descriptor, P2PNetwork network, OverlaySelector overlaySelector) {
+      NodeDescriptor descriptor,
+      P2PNetwork network,
+      BiFunction<String, List<NodeDescriptor>, Set<String>> overlayIdProvider) {
     this.descriptor = descriptor;
     this.network = network;
-    this.overlaySelector = overlaySelector;
+    this.overlayIdProvider = overlayIdProvider;
   }
 
   @Override
@@ -49,19 +51,18 @@ public class MessagePublisherImpl implements MessagePublisher {
         network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
     final Set<String> overlayIds = computeOverlayIds(topic, peers);
     if (overlayIds == null || overlayIds.isEmpty()) {
-      // fallback: no overlay filtering -> broadcast to all peers matching targetFilter
       network.broadcast(msg, targetFilter);
     } else {
       network.broadcast(msg, node -> targetFilter.test(node) && overlayIds.contains(node.id()));
     }
   }
 
-  private Set<String> computeOverlayIds(String topic, java.util.List<NodeDescriptor> peers) {
+  private Set<String> computeOverlayIds(String topic, List<NodeDescriptor> peers) {
     try {
-      return overlaySelector.overlayNeighborIds(topic, peers);
+      return overlayIdProvider.apply(topic, peers);
     } catch (Exception ex) {
       log.warn("[P2P-OVERLAY] overlay id computation failed topic={}: {}", topic, ex.toString());
-      return java.util.Collections.emptySet();
+      return Set.of();
     }
   }
 

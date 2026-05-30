@@ -86,7 +86,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String P2P_OVERLAY_SHORTCUT_STRATEGY = "p2pOverlayShortcutStrategy";
   private static final String P2P_IDLE_TRAVEL_ENABLED = "p2pIdleTravelEnabled";
   private static final String P2P_IDLE_TRAVEL_THRESHOLD_TICKS = "p2pIdleTravelThresholdTicks";
-  private static final String P2P_RQS_GRID_CELL_SIZE = "p2pRqsGridCellSize";
   private static final String KEY_SPAWN_SCENARIO = "spawnScenario";
   private static final String VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY =
       "aqs.p2p.vehicle.idleRoamingStrategy";
@@ -141,6 +140,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final int DEFAULT_VEHICLE_COMMIT_LEASE_TICKS = 20;
   private static final int DEFAULT_VEHICLE_REOFFER_INTERVAL_TICKS = 1;
   private static final int DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 120;
+  private static final int MIN_WAITING_CLIENTS_FOR_PARALLEL_ASSIGNMENT_PREP = 32;
+  private static final String P2P_TOPOLOGY_SCAN_ENABLED = "p2pTopologyScanEnabled";
   private String collectorNodeId = "";
   private CommitHandler commitHandler;
 
@@ -165,7 +166,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         new AlgorithmParameter(P2P_OVERLAY_POSITION_TTL_TICKS, 200),
         new AlgorithmParameter(P2P_OVERLAY_MAX_DISTANCE_FACTOR, 1),
         new AlgorithmParameter(P2P_OVERLAY_SHORTCUT_STRATEGY, 1),
-        // Enable idle random travel by default
         new AlgorithmParameter(P2P_IDLE_TRAVEL_ENABLED, 1),
         new AlgorithmParameter(P2P_IDLE_TRAVEL_THRESHOLD_TICKS, 10));
   }
@@ -189,7 +189,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     applyOverlayConfig(this.parameters);
 
     stepCounter = 0;
-    // instantiate coordinator (uses suppliers to avoid stale references)
+    // instantiate coordinator
     requestCoordinator =
         new RequestCoordinator(
             () -> clientNode,
@@ -199,7 +199,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
             rangeQuerySystem,
             taxiNameToVehicleNodeId,
             this::registerTaxiKnowledge,
-            this::refreshStatus);
+            this::refreshStatus,
+            this::resolveVehicleNode);
     commitHandler =
         new CommitHandler(
             runtimeState,
@@ -244,10 +245,14 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     ensureCollectorNode(parameters);
     rangeQuerySystem.setParameters(parameters);
     if (isEmbeddedSimulationMode(parameters)) {
+      localVehicleNodeManager.setDirectCommitReceiver(this::handleDirectCommit);
       ensureLocalVehicleNodes(world);
       syncLocalVehicleStates(world);
+      localVehicleNodesByTaxiName.values().forEach(VehicleP2PService::refreshCachedConfig);
     }
-    topologyManager.requestScanIfDue(true);
+    if (topologyManager != null && isTopologyScanEnabled()) {
+      topologyManager.requestScanIfDue(true);
+    }
     refreshStatus(EVENT_COLLECTOR_INITIALIZED);
   }
 
@@ -255,7 +260,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   protected AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     stepCounter++;
     cleanupNoLongerWaiting(waitingClients);
-    if (topologyManager != null) {
+    if (topologyManager != null && isTopologyScanEnabled()) {
       topologyManager.requestScanIfDue(false);
     }
     processNetworkCycle(world, waitingClients);
@@ -263,8 +268,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return ok();
     }
     int applied = applyCommittedAssignments(world, waitingClients);
-    // After committed assignments are applied, trigger idle travel so taxis that were just
-    // assigned do not receive idle targets in the same simulation tick.
     if (isEmbeddedSimulationMode()) {
       applyIdleTravelTargets(world);
     }
@@ -281,8 +284,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return;
     }
     if (isEmbeddedSimulationMode()) {
-      // Sync vehicle state with World; idle travel is triggered after committed assignments
-      // to avoid generating idle targets for taxis that are assigned in the same step.
       syncLocalVehicleStates(world);
     }
     requestCoordinator.retriggerRequestsIfNeeded(waitingClients);
@@ -300,7 +301,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
     int newMessages = delta.size();
     handleIncoming(world, waitingClients, delta);
-    log.info(
+    log.debug(
         "[P2P-COLLECTOR] event t={} peers={} waiting={} newMessages={}",
         world.getCurrentTime(),
         network.peers().size(),
@@ -321,14 +322,12 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   /**
-   * For each local vehicle node, triggers the idle travel check and - if a new idle target was
-   * generated - applies it to the real World taxi via WorldMutator#setIdleTarget. This makes idle
-   * taxis visibly move in the UI while they are waiting for requests.
+   * Triggers idle travel checks on local vehicle nodes and applies targets to World taxis.
    */
   private void applyIdleTravelTargets(World world) {
     Map<String, Taxi> taxiByName =
         world.getTaxis().stream().collect(Collectors.toMap(Taxi::getName, t -> t, (a, b) -> a));
-    // Embedded mode: ask local vehicle nodes to compute idle targets and consume them.
+    // Embedded mode: compute idle targets from local vehicle nodes
     if (isEmbeddedSimulationMode() && !localVehicleNodesByTaxiName.isEmpty()) {
       for (Map.Entry<String, VehicleP2PService> entry : localVehicleNodesByTaxiName.entrySet()) {
         VehicleP2PService vehicleNode = entry.getValue();
@@ -346,7 +345,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return;
     }
 
-    // Non-embedded mode: infer idle targets from P2P-published vehicle positions.
+    // Non-embedded mode: infer idle targets from P2P-published vehicle positions
     if (clientNode != null && network != null) {
       Map<String, de.sikeller.aqs.model.Position> overlayPositions =
           clientNode.vehiclePositionSnapshot();
@@ -358,16 +357,12 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
           String taxiName = vehicleNodeToTaxiName.getOrDefault(vehicleNodeId, vehicleNodeId);
           Taxi taxi = taxiByName.get(taxiName);
           if (taxi == null || !taxi.isEmpty()) {
-            continue; // only apply idle targets to empty taxis
+            continue;
           }
           de.sikeller.aqs.model.Position last = lastPublishedVehiclePositions.get(vehicleNodeId);
-          long lastTick =
-              last == null
-                  ? Long.MIN_VALUE
-                  : (last.getTick() == null ? Long.MIN_VALUE : last.getTick());
-          long thisTick = pos.getTick() == null ? Long.MIN_VALUE : pos.getTick();
+          long lastTick = last == null ? Long.MIN_VALUE : last.getTick();
+          long thisTick = pos.getTick();
           if (thisTick > lastTick) {
-            // fresh update -> apply as idle target
             world.mutate().setIdleTarget(taxi, pos);
             lastPublishedVehiclePositions.put(vehicleNodeId, pos);
           }
@@ -383,15 +378,13 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
     int applied = 0;
     List<String> assignedClients = new ArrayList<>();
-    for (Client client : waitingClients) {
-      TaxiCollectorRuntimeState.PendingRequest pending =
-          runtimeState.pendingForClient(client.getName());
-      if (pending == null || !pending.isCommitted() || pending.committedVehicleNodeId() == null) {
-        continue;
-      }
-      String mappedTaxiName =
-          vehicleNodeToTaxiName.getOrDefault(
-              pending.committedVehicleNodeId(), pending.committedVehicleNodeId());
+    List<Client> waitingClientList = new ArrayList<>(waitingClients);
+    List<AssignmentCandidate> candidates =
+        prepareAssignmentCandidates(waitingClientList, shouldPrepareAssignmentsInParallel(waitingClientList.size()));
+    for (AssignmentCandidate candidate : candidates) {
+      TaxiCollectorRuntimeState.PendingRequest pending = candidate.pending();
+      Client client = candidate.client();
+      String mappedTaxiName = candidate.mappedTaxiName();
       Taxi selectedTaxi = emptyTaxisByName.remove(mappedTaxiName);
       if (selectedTaxi == null) {
         continue;
@@ -418,6 +411,33 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     return applied;
   }
 
+  private List<AssignmentCandidate> prepareAssignmentCandidates(
+      List<Client> waitingClients, boolean parallel) {
+    java.util.stream.Stream<Client> stream = parallel ? waitingClients.parallelStream() : waitingClients.stream();
+    return stream
+        .map(
+            client -> {
+              TaxiCollectorRuntimeState.PendingRequest pending =
+                  runtimeState.pendingForClient(client.getName());
+              if (pending == null
+                  || !pending.isCommitted()
+                  || pending.committedVehicleNodeId() == null) {
+                return null;
+              }
+              String mappedTaxiName =
+                  vehicleNodeToTaxiName.getOrDefault(
+                      pending.committedVehicleNodeId(), pending.committedVehicleNodeId());
+              return new AssignmentCandidate(client, pending, mappedTaxiName);
+            })
+        .filter(java.util.Objects::nonNull)
+        .toList();
+  }
+
+  private boolean shouldPrepareAssignmentsInParallel(int waitingClientCount) {
+    return waitingClientCount >= MIN_WAITING_CLIENTS_FOR_PARALLEL_ASSIGNMENT_PREP
+        && Runtime.getRuntime().availableProcessors() > 1;
+  }
+
   private void applyVehicleDispatchConfig() {
     String strategy = resolveVehicleSelectionStrategy();
     System.setProperty(P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY, strategy);
@@ -431,7 +451,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
         String.valueOf(DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
 
-    // Idle random travel: propagate from simulation parameters to system properties
+    // Idle travel: propagate to system properties
     boolean idleTravelEnabled = parameters.getOrDefault(P2P_IDLE_TRAVEL_ENABLED, 1) == 1;
     System.setProperty(
         P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED, String.valueOf(idleTravelEnabled));
@@ -497,7 +517,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       TaxiCollectorRuntimeState.PendingRequest pending,
       World world,
       Collection<Client> waitingClients) {
-    // Register taxi knowledge from the commit payload before delegating
     Map<String, String> payload = KeyValuePayload.parse(message.payload());
     String vehicleNodeId = payload.getOrDefault(P2PPayloadKeys.VEHICLE, message.senderId());
     registerTaxiKnowledge(vehicleNodeId, pending.clientName());
@@ -509,8 +528,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         waitingClients.stream().map(Client::getName).collect(Collectors.toSet());
     for (String clientName : runtimeState.pendingClientNamesSnapshot()) {
       if (!waitingNames.contains(clientName)) {
-        runtimeState.pendingForClient(clientName);
-        // no-op: offers are not stored centrally
         runtimeState.removePendingForClient(clientName);
       }
     }
@@ -525,6 +542,40 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     }
     String taxiDisplayId = vehicleNodeToTaxiName.getOrDefault(vehicleNodeId, vehicleNodeId);
     runtimeState.registerTaxiKnowledge(taxiDisplayId, clientName);
+  }
+
+  /** Resolves a vehicle node ID to the local VehicleP2PService (embedded mode). */
+  private VehicleP2PService resolveVehicleNode(String vehicleNodeId) {
+    if (vehicleNodeId == null || vehicleNodeId.isBlank()) {
+      return null;
+    }
+    String taxiName = vehicleNodeToTaxiName.get(vehicleNodeId);
+    if (taxiName == null) {
+      return null;
+    }
+    return localVehicleNodesByTaxiName.get(taxiName);
+  }
+
+  /**
+   * Handles a direct commit from an embedded vehicle.
+   */
+  private void handleDirectCommit(String requestId, String vehicleNodeId, String taxiName) {
+    if (requestId == null || requestId.isBlank() || vehicleNodeId == null) {
+      return;
+    }
+    if (taxiName != null && !taxiName.isBlank()) {
+      vehicleNodeToTaxiName.put(vehicleNodeId, taxiName);
+      taxiNameToVehicleNodeId.put(taxiName, vehicleNodeId);
+    }
+    TaxiCollectorRuntimeState.PendingRequest pending = runtimeState.pendingForRequestId(requestId);
+    if (pending == null) {
+      return;
+    }
+    if (pending.committedVehicleNodeId() != null && !pending.committedVehicleNodeId().equals(vehicleNodeId)) {
+      return;
+    }
+    registerTaxiKnowledge(vehicleNodeId, pending.clientName());
+    pending.markCommitted(vehicleNodeId);
   }
 
   @Override
@@ -632,7 +683,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return false;
     }
     if (topologyManager != null) {
-      topologyManager.requestScanIfDue(true);
+      topologyManager.requestScanIfDue(true); // Manual scan always allowed
     }
     refreshStatus(EVENT_TOPOLOGY_SCAN_REQUESTED_MANUAL);
     return true;
@@ -649,7 +700,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     if (isEmbeddedSimulationMode() && !localVehicleNodesByTaxiName.isEmpty()) {
       refreshTopologyFromLocalNodes();
     } else {
-      if (topologyManager != null) {
+      if (topologyManager != null && isTopologyScanEnabled()) {
         topologyManager.requestScanIfDue(false);
         topologyManager.upsertLocalTopologyView();
       }
@@ -745,7 +796,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     System.setProperty(
         P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, String.valueOf(positionTtlTicks));
     System.setProperty(P2PSystemProperties.OVERLAY_MAX_DISTANCE, String.valueOf(maxDistance));
-    // 0 = ring, 1 = kleinberg (default); only set if no external JVM property is already present
     if (System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY) == null) {
       int strategyFlag = config.getOrDefault(P2P_OVERLAY_SHORTCUT_STRATEGY, 1);
       System.setProperty(
@@ -771,6 +821,11 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     return config.getOrDefault(EMBEDDED_MODE_PROPERTY, 1) == 1;
   }
 
+  /** Topology scans are disabled by default in embedded mode (only useful for visualization). */
+  private boolean isTopologyScanEnabled() {
+    return parameters.getOrDefault(P2P_TOPOLOGY_SCAN_ENABLED, 0) == 1;
+  }
+
   private String resolveMulticastGroup(Map<String, Integer> config) {
     int a = octet(config, P2P_MULTICAST_A, 239);
     int b = octet(config, P2P_MULTICAST_B, 255);
@@ -781,7 +836,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   private int octet(Map<String, Integer> config, String key, int defaultValue) {
     int value = config.getOrDefault(key, defaultValue);
-    return Math.max(0, Math.min(255, value));
+    return Math.clamp(value, 0, 255);
   }
 
   private void deriveTaxiCountFromNetwork(Map<String, Integer> prepared) {
@@ -821,15 +876,23 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     lastStatusEvent = event == null || event.isBlank() ? VALUE_UNKNOWN : event;
   }
 
-  /** Broadcasts RIDE_ASSIGNED to all vehicle peers so losers free their busy-lease immediately. */
+  /** Broadcasts RIDE_ASSIGNED so losers free their busy-lease immediately. */
   private void announceWinner(String requestId, String winnerVehicleNodeId) {
-    if (clientNode == null || requestId == null || requestId.isBlank()) {
+    if (requestId == null || requestId.isBlank()) {
       return;
     }
-    clientNode.announceWinner(requestId, winnerVehicleNodeId);
+    if (isEmbeddedSimulationMode() && !localVehicleNodesByTaxiName.isEmpty()) {
+      for (VehicleP2PService vehicle : localVehicleNodesByTaxiName.values()) {
+        vehicle.notifyRideAssigned(requestId, winnerVehicleNodeId);
+      }
+      return;
+    }
+    if (clientNode != null) {
+      clientNode.announceWinner(requestId, winnerVehicleNodeId);
+    }
   }
 
-  /** Register pickup position for return-to-hq strategy tracking. */
+  /** Register pickup position for return-to-hq strategy. */
   private void registerPickupPositionForVehicle(String vehicleNodeId, int pickupX, int pickupY) {
     if (vehicleNodeId == null || vehicleNodeId.isBlank()) {
       return;
@@ -895,4 +958,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
                   .collect(Collectors.toSet());
     }
   }
+
+  private record AssignmentCandidate(
+      Client client, TaxiCollectorRuntimeState.PendingRequest pending, String mappedTaxiName) {}
 }

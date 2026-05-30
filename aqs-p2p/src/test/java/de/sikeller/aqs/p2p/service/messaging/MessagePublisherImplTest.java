@@ -6,11 +6,10 @@ import de.sikeller.aqs.p2p.api.NodeDescriptor;
 import de.sikeller.aqs.p2p.api.NodeRole;
 import de.sikeller.aqs.p2p.api.P2PNetwork;
 import de.sikeller.aqs.p2p.api.P2PMessage;
-import de.sikeller.aqs.p2p.service.overlay.OverlaySelector;
-import de.sikeller.aqs.p2p.service.overlay.OverlaySelector.OverlaySelection;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class MessagePublisherImplTest {
@@ -50,10 +49,9 @@ class MessagePublisherImplTest {
 
     FakeNetwork net = new FakeNetwork(peers);
 
-    // simple overlay selector that returns all peers as neighbors
-    OverlaySelector sel = (topic, peerList) -> new OverlaySelection(new ArrayList<>(peerList), Set.of());
-
-    MessagePublisherImpl pub = new MessagePublisherImpl(self, net, sel);
+    // overlay provider that returns all peer IDs as neighbors
+    MessagePublisherImpl pub = new MessagePublisherImpl(self, net,
+        (topic, peerList) -> peerList.stream().map(NodeDescriptor::id).collect(Collectors.toSet()));
     pub.publish("TEST_TOPIC", "payload");
 
     assertNotNull(net.lastMessage, "message should have been broadcast");

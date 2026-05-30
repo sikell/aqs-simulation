@@ -91,7 +91,7 @@ public class ClientP2PService extends AbstractP2PNodeService {
   @Override
   protected void onMessage(P2PMessage message) {
     if (P2PTopics.RIDE_COMMIT.equals(message.topic())) {
-      log.info(
+      log.debug(
           "Client node {} commit received requestId={} payload={}",
           descriptor().id(),
           message.requestId(),

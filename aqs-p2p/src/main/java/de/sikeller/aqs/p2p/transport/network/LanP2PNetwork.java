@@ -19,10 +19,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +36,10 @@ public class LanP2PNetwork implements P2PNetwork {
   private static final String DISCOVERY_TYPE_ANNOUNCE = "ANNOUNCE";
   private static final String DISCOVERY_TYPE_GOODBYE = "GOODBYE";
   private static final long TCP_SERVER_START_TIMEOUT_MILLIS = 2_000;
+  private static final String IO_MAX_THREADS_PROPERTY = "aqs.p2p.lan.io.maxThreads";
+  private static final int DEFAULT_IO_MAX_THREADS =
+      Math.max(16, Runtime.getRuntime().availableProcessors() * 4);
+  private static final AtomicInteger IO_THREAD_COUNTER = new AtomicInteger();
 
   private final String multicastGroup;
   private final int discoveryPort;
@@ -49,12 +56,18 @@ public class LanP2PNetwork implements P2PNetwork {
   private final AtomicReference<IOException> tcpServerStartupError = new AtomicReference<>();
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
   private final ExecutorService ioExecutor =
-      Executors.newCachedThreadPool(
+      new ThreadPoolExecutor(
+          2,
+          Integer.getInteger(IO_MAX_THREADS_PROPERTY, DEFAULT_IO_MAX_THREADS),
+          60L,
+          TimeUnit.SECONDS,
+          new SynchronousQueue<>(),
           r -> {
-            Thread t = new Thread(r, "p2p-io");
+            Thread t = new Thread(r, "p2p-io-" + IO_THREAD_COUNTER.incrementAndGet());
             t.setDaemon(true);
             return t;
-          });
+          },
+          new ThreadPoolExecutor.CallerRunsPolicy());
   private final Map<String, PooledConnection> outboundConnections = new ConcurrentHashMap<>();
 
   private volatile NodeDescriptor localNode;
@@ -153,7 +166,7 @@ public class LanP2PNetwork implements P2PNetwork {
     }
 
     long sent = sentMessages.incrementAndGet();
-    log.info(
+    log.debug(
         "[P2P-NET] send from={} to={} topic={} peers={} sentTotal={}",
         localNode != null ? localNode.id() : "unknown",
         targetNodeId,
@@ -252,7 +265,7 @@ public class LanP2PNetwork implements P2PNetwork {
         }
         P2PMessage message = P2PMessageWireCodec.decode(line);
         long received = receivedMessages.incrementAndGet();
-        log.info(
+        log.debug(
             "[P2P-NET] recv at={} from={} topic={} peers={} recvTotal={}",
             localNode != null ? localNode.id() : "unknown",
             message.senderId(),

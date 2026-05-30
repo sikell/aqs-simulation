@@ -30,7 +30,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   private static final String STATUS_LOGGING_ENABLED_PROPERTY = "aqs.p2p.status.logging.enabled";
   private static final String STATUS_SCHEDULER_THREADS_PROPERTY = "aqs.p2p.status.scheduler.threads";
   private static final int DEFAULT_STATUS_SCHEDULER_THREADS =
-      Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors()));
+      Math.clamp(Runtime.getRuntime().availableProcessors(), 1, 4);
   private static final AtomicInteger STATUS_THREAD_COUNTER = new AtomicInteger();
   // Shared executor avoids one dedicated scheduler thread per node.
   private static final ScheduledExecutorService SHARED_STATUS_SCHEDULER =
@@ -43,8 +43,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
             return thread;
           });
 
-  // Cache expensive overlay selection results keyed by topic. The cache is keyed by
-  // a revision value composed from vehiclePositionRevision and a checksum of current peers.
+  // Cache expensive overlay selection results keyed by topic.
   private final ConcurrentMap<String, CachedOverlay> overlaySelectionCache =
       new ConcurrentHashMap<>();
 
@@ -57,13 +56,18 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   private volatile ScheduledFuture<?> statusTask;
   private volatile boolean running;
 
-  private PositionManager positionManager;
+  /** When true, position updates are stored locally but NOT broadcast to peers. */
+  private volatile boolean suppressPositionBroadcast = false;
+
+  private final PositionManager positionManager;
+  /** Optional shared position manager for overlay selection (embedded mode). */
+  private volatile PositionManager overlayPositionManager;
 
   private OverlaySelector overlaySelector;
 
   private MessagePublisher messagePublisher;
 
-  private P2PConfig configAdapter;
+  private final P2PConfig configAdapter;
 
   protected P2PConfig config() {
     return configAdapter;
@@ -77,7 +81,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     this.overlaySelector =
         new de.sikeller.aqs.p2p.service.overlay.OverlaySelectorImpl(
             descriptor, this.positionManager, this.configAdapter);
-    this.messagePublisher = new MessagePublisherImpl(descriptor, network, this.overlaySelector);
+    this.messagePublisher = new MessagePublisherImpl(descriptor, network,
+        (topic, peers) -> overlaySelector.overlayNeighborIds(topic, peers));
   }
 
   @Override
@@ -119,21 +124,40 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     log.info("Node {} left network", descriptor.id());
   }
 
+  /** Suppress position broadcasts (embedded mode). */
+  public void setSuppressPositionBroadcast(boolean suppress) {
+    this.suppressPositionBroadcast = suppress;
+  }
+
+  /**
+   * Set a shared PositionManager for overlay selection (embedded mode).
+   * All vehicles share the same position data, updated once per tick by the collector.
+   */
+  public void setSharedPositionManager(PositionManager shared) {
+    this.overlayPositionManager = shared;
+    this.overlaySelector =
+        new de.sikeller.aqs.p2p.service.overlay.OverlaySelectorImpl(
+            descriptor, shared, this.configAdapter);
+    this.messagePublisher = new MessagePublisherImpl(descriptor, network,
+        (topic, peers) -> overlaySelector.overlayNeighborIds(topic, peers));
+  }
+
+
   protected void updateVehiclePositionSnapshot(int x, int y, long simulationTick) {
     if (descriptor.role() != NodeRole.VEHICLE) {
       return;
     }
     boolean changed = positionManager.updatePosition(descriptor.id(), x, y, simulationTick);
-    // Only broadcast position when it actually changed - avoids flooding all peers
-    // every tick when a taxi is stationary (e.g. waiting at map edge)
-    if (changed) {
+    // Only broadcast position when it actually changed and broadcasting is not suppressed
+    if (changed && !suppressPositionBroadcast) {
       publishVehiclePosition(x, y, simulationTick);
     }
   }
 
   public Map<String, Position> vehiclePositionSnapshot() {
-    // delegate to PositionManager (which applies TTL semantics)
-    return positionManager.snapshot();
+    // Use shared position manager if available (embedded mode), otherwise local
+    PositionManager pm = overlayPositionManager != null ? overlayPositionManager : positionManager;
+    return pm.snapshot();
   }
 
   private void publishVehiclePosition(int x, int y, long simulationTick) {
@@ -165,7 +189,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   }
 
   public List<P2PMessage> inboxSnapshot() {
-    // Copying inbox: O(n_inbox)
     return new ArrayList<>(inbox);
   }
 
@@ -177,7 +200,6 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       drained.add(next);
       inboxSize.decrementAndGet();
     }
-    // Draining inbox: O(n_messages) where n_messages is number drained
     return drained;
   }
 
@@ -187,7 +209,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     return ids;
   }
 
-  /** Returns a live snapshot of this node's overlay neighbors and which of them are shortcuts. */
+  /** Returns a snapshot of this node's overlay neighbors and which are shortcuts. */
   public OverlayNeighborSnapshot overlayNeighborSnapshot() {
     OverlaySelection sel = overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE);
     Set<String> neighborIds = new HashSet<>();
@@ -200,11 +222,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   protected void handleIncoming(P2PMessage message) {
     messagesReceived.incrementAndGet();
 
-    // VEHICLE_POSITION and TOPOLOGY_SCAN_REQUEST are handled entirely inline.
-    // Do NOT add them to the inbox: vehicle nodes never drain their inbox, so these
-    // messages would accumulate unboundedly (100M+ objects over a long simulation run)
-    // causing severe GC pressure. Only messages that a consumer will actually drain
-    // belong in the inbox.
+    // Handle position and topology inline to avoid unbounded inbox growth
     if (P2PTopics.VEHICLE_POSITION.equals(message.topic())) {
       handleVehiclePosition(message);
       return;
@@ -215,8 +233,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return;
     }
 
-    // Only CLIENT nodes (collector) drain inbox; VEHICLE nodes process inline to avoid
-    // unbounded queue growth under heavy message rates.
+    // Only CLIENT nodes drain inbox; VEHICLE nodes process inline
     if (descriptor.role() == NodeRole.CLIENT) {
       inbox.add(message);
       inboxSize.incrementAndGet();
@@ -228,10 +245,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     Map<String, String> payload = new LinkedHashMap<>();
     payload.put(P2PPayloadKeys.ROLE, descriptor.role().name());
 
-    // overlaySelection cost can be expensive on cache miss: worst-case O(n_peers log n_peers) or
-    // dominated by distanceBoundOverlayPeers
-    OverlaySelection selection =
-        overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE); // Worst-case O(n_peers log n_peers)
+    OverlaySelection selection = overlaySelection(P2PTopics.TOPOLOGY_SCAN_RESPONSE);
 
     String neighbors =
         selection.peers().stream()
@@ -252,8 +266,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
         request.requestId());
   }
 
-  // Force overlay cache expiry every N ticks so position changes are picked up even when
-  // positionRevision doesn't bump (e.g. slow-moving vehicles with high throttle/minMove settings).
+  // Force overlay cache expiry every N ticks so position changes are picked up
   private static final long OVERLAY_CACHE_TICK_BUCKET = 3L;
 
   private OverlaySelection overlaySelection(String topic) {
@@ -263,9 +276,10 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return new OverlaySelection(List.of(), Set.of());
     }
 
+    PositionManager effectivePm = overlayPositionManager != null ? overlayPositionManager : positionManager;
     long peersChecksum = computePeersChecksum(peers);
-    long tickBucket = positionManager.currentMaxTick() / OVERLAY_CACHE_TICK_BUCKET;
-    long currentRevision = positionManager.currentRevision() ^ peersChecksum ^ tickBucket;
+    long tickBucket = effectivePm.currentMaxTick() / OVERLAY_CACHE_TICK_BUCKET;
+    long currentRevision = effectivePm.currentRevision() ^ peersChecksum ^ tickBucket;
 
     // Fast-path: return cached value when revision matches
     CachedOverlay cached = overlaySelectionCache.get(topic);
@@ -273,7 +287,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return cached.selection();
     }
 
-    // Compute selection and update cache (use put to avoid re-entrant mapping functions)
+    // Compute selection and update cache
     try {
       var sel = overlaySelector.select(topic, peers);
       OverlaySelection result = new OverlaySelection(sel.peers(), sel.shortcutPeerIds());
@@ -281,13 +295,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       overlaySelectionCache.put(topic, updated);
       return updated.selection();
     } catch (Throwable ex) {
-      // Do NOT cache on exception – returning all peers as fallback would mask overlay bugs
-      // and produce a spurious fully-connected topology view. Log and return empty instead.
       log.warn(
           "[P2P-OVERLAY] overlay selection failed for topic={} self={}: {}",
-          topic,
-          descriptor.id(),
-          ex.toString());
+          topic, descriptor.id(), ex.toString());
       return new OverlaySelection(List.of(), Set.of());
     }
   }
@@ -303,7 +313,7 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     if (x == null || y == null || tick == null) {
       return;
     }
-    // Delegate position updates to PositionManager which handles revision and TTL
+    // Delegate position updates to PositionManager
     positionManager.updatePosition(message.senderId(), x, y, tick);
   }
 
