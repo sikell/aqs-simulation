@@ -11,9 +11,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Encapsulates idle roaming state + target selection so node services keep orchestration only.
- */
+/** Encapsulates idle roaming state + target selection so node services keep orchestration only. */
 @Slf4j
 public class IdleRoamingController {
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
@@ -27,7 +25,7 @@ public class IdleRoamingController {
   private final AtomicReference<Position> currentIdleTarget = new AtomicReference<>();
   private volatile SpawnScenario activeSpawnScenario = SpawnScenario.BASELINE;
   private final List<int[]> pickupPositions = new ArrayList<>();
-  private volatile AtomicReference<int[]> cachedHqPosition = new AtomicReference<>();
+  private final AtomicReference<int[]> cachedHqPosition = new AtomicReference<>();
 
   public void setSpawnScenario(SpawnScenario scenario) {
     activeSpawnScenario = scenario == null ? SpawnScenario.BASELINE : scenario;
@@ -219,14 +217,22 @@ public class IdleRoamingController {
     if (hqPos != null) {
       int hqX = clampToMapX(hqPos[0], mapMaxX);
       int hqY = clampToMapY(hqPos[1], mapMaxY);
-      log.info("Vehicle returning to page-rank HQ position ({}, {}); computed from {} pickups", hqX, hqY, pickupPositions.size());
+      log.info(
+          "Vehicle returning to page-rank HQ position ({}, {}); computed from {} pickups",
+          hqX,
+          hqY,
+          pickupPositions.size());
       return new Position(hqX, hqY);
     }
-    log.info("No page-rank HQ recorded yet (0 pickups), falling back to random roaming");
-    return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
+    log.info(
+        "No page-rank HQ recorded yet (0 pickups), waiting at spawn point ({}, {})",
+        currentX,
+        currentY);
+    return new Position(currentX, currentY);
   }
 
-  private Position nearestSpatialIslandCenter(int currentX, int currentY, int mapMaxX, int mapMaxY) {
+  private Position nearestSpatialIslandCenter(
+      int currentX, int currentY, int mapMaxX, int mapMaxY) {
     int[][] centers = islandCentres(mapMaxX, mapMaxY);
     int bestX = clampToMapX(mapMaxX / 2, mapMaxX);
     int bestY = clampToMapY(mapMaxY / 2, mapMaxY);
@@ -258,7 +264,8 @@ public class IdleRoamingController {
     };
   }
 
-  private Position generateRandomTargetWithinRadius(int currentX, int currentY, int mapMaxX, int mapMaxY) {
+  private Position generateRandomTargetWithinRadius(
+      int currentX, int currentY, int mapMaxX, int mapMaxY) {
     int maxDistanceMeters =
         Math.max(
             1,
@@ -295,4 +302,3 @@ public class IdleRoamingController {
     return Math.max(0, Math.min(Math.max(0, mapMaxY - 1), value));
   }
 }
-
