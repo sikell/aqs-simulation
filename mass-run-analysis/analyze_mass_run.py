@@ -171,6 +171,8 @@ def load_data(csv_path: Path) -> pd.DataFrame:
     for col in ["algorithm", "p2pStrategy", "metric", "spawnScenario", "idleRoamingMode"]:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip()
+    if "p2pStrategy" in df.columns:
+        df["p2pStrategy"] = df["p2pStrategy"].apply(_normalize_strategy)
 
     df = df.dropna(subset=["avg", "algorithm", "metric", "kHops", "runIndex"])
     df = _enrich(df)
@@ -179,6 +181,21 @@ def load_data(csv_path: Path) -> pd.DataFrame:
 
 def _is_collector(name: str) -> bool:
     return "p2pcollector" in str(name).lower()
+
+
+def _is_single_passenger(name: str) -> bool:
+    return "singlepassenger" in str(name).lower()
+
+
+def _normalize_strategy(value: object) -> str:
+    s = str(value).strip()
+    if not s or s.lower() in {"nan", "none", "null"}:
+        return "n/a"
+    return s
+
+
+def _is_real_strategy(value: object) -> bool:
+    return _normalize_strategy(value).lower() != "n/a"
 
 
 def _fmt_khops(v: object) -> str:
@@ -202,7 +219,7 @@ def _enrich(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["algorithm_base"] = df["algorithm"].str.strip()
     df["strategy_eff"] = df.apply(
-        lambda r: str(r["p2pStrategy"]).strip() if _is_collector(r["algorithm_base"]) else "n/a",
+        lambda r: _normalize_strategy(r["p2pStrategy"]) if _is_collector(r["algorithm_base"]) else "n/a",
         axis=1,
     )
     df["variant"] = df.apply(
@@ -373,6 +390,53 @@ def _algo_k_legend_handles(base_style: dict[str, tuple[str, str]]) -> list:
     return handles
 
 
+def _strip_variant_params(label: str) -> str:
+    return re.sub(r"\s*\([^)]*\)\s*$", "", str(label).strip()).strip()
+
+
+def _algo_family_from_label(label: str) -> str:
+    base = _strip_variant_params(label)
+    return base.split("+", 1)[0].strip()
+
+
+def _group_visual_maps_by_algo(groups: list[str]) -> tuple[dict[str, tuple], dict[str, tuple[str, str]], list, list]:
+    """Return style maps for dim-effect plots.
+
+    - Farbe kodiert primär die Algorithmus-Familie.
+    - Linienstil/Marker differenzieren Varianten nur innerhalb derselben Familie.
+    """
+    ordered_groups = _sorted_variants(groups)
+    families = sorted({_algo_family_from_label(g) for g in ordered_groups}, key=_vk_sort)
+    family_palette = sns.color_palette("Set2", n_colors=max(len(families), 1))
+    family_cmap = {fam: family_palette[i] for i, fam in enumerate(families)}
+
+    linestyles = ["-", "--", "-.", ":"]
+    markers = ["o", "s", "^", "D", "v", "P", "X", "*", "h", "<", ">", "x", "+"]
+
+    groups_by_family: dict[str, list[str]] = {}
+    for g in ordered_groups:
+        groups_by_family.setdefault(_algo_family_from_label(g), []).append(g)
+
+    group_style: dict[str, tuple[str, str]] = {}
+    for fam, fam_groups in groups_by_family.items():
+        for i, g in enumerate(fam_groups):
+            ls = linestyles[i % len(linestyles)]
+            mk = markers[(i // len(linestyles)) % len(markers)]
+            group_style[g] = (ls, mk)
+
+    group_color = {g: family_cmap[_algo_family_from_label(g)] for g in ordered_groups}
+    color_handles = [
+        plt.Line2D([0], [0], color=family_cmap[fam], linewidth=3.0, label=fam)
+        for fam in families
+    ]
+    style_handles = [
+        plt.Line2D([0], [0], color="#444444", linestyle=group_style[g][0], marker=group_style[g][1],
+                   linewidth=2.2, label=g)
+        for g in ordered_groups
+    ]
+    return group_color, group_style, color_handles, style_handles
+
+
 def _annotate_bars(ax: plt.Axes, bars, values: pd.Series) -> None:
     ymax = ax.get_ylim()[1]
     for bar, val in zip(bars, values):
@@ -478,10 +542,9 @@ def plot_dim_effect(df: pd.DataFrame, dim: str, vdims: dict, plots_dir: Path, me
         if mdf[dim].dropna().nunique() < 2:
             continue
         groups = _sorted_variants(mdf[group_col].dropna().unique())
-        cmap = _group_color_map(groups)
-        rqs_handles = _rqs_legend_handles(groups, cmap)
-        gstyle, base_style = _group_style_maps(groups)
-        algo_handles = _algo_k_legend_handles(base_style)
+        if not groups:
+            continue
+        cmap, gstyle, algo_color_handles, style_handles = _group_visual_maps_by_algo(groups)
 
         for scenario in scenarios:
             sub = mdf[mdf["spawnScenario"] == scenario] if "spawnScenario" in mdf.columns else mdf
@@ -514,15 +577,15 @@ def plot_dim_effect(df: pd.DataFrame, dim: str, vdims: dict, plots_dir: Path, me
             ax.set_xlabel(dim_label, fontsize=11)
             ax.set_ylabel(metric)
             ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
-            if rqs_handles:
-                lg_rqs = ax.legend(handles=rqs_handles, title="RQS-Radius", fontsize=8,
-                                   loc="center left", bbox_to_anchor=(1.02, 0.72), borderaxespad=0.0)
-                ax.add_artist(lg_rqs)
-                ax.legend(handles=algo_handles, title="Algorithmus/k", fontsize=7,
-                          loc="center left", bbox_to_anchor=(1.02, 0.25), borderaxespad=0.0)
-            else:
-                ax.legend(title="Variante", fontsize=8,
-                          loc="center left", bbox_to_anchor=(1.02, 0.5), borderaxespad=0.0)
+            if algo_color_handles:
+                lg_algo = ax.legend(handles=algo_color_handles, title="Algorithmus (Farbe)", fontsize=8,
+                                    loc="center left", bbox_to_anchor=(1.02, 0.74), borderaxespad=0.0,
+                                    handlelength=3.6)
+                ax.add_artist(lg_algo)
+            if style_handles:
+                ax.legend(handles=style_handles, title="Variante (Linie/Punkt)", fontsize=7,
+                          loc="center left", bbox_to_anchor=(1.02, 0.26), borderaxespad=0.0,
+                          handlelength=4.4, markerscale=1.1)
             ax.set_title(_wrap(f"{dim_label} -> {metric}  [Spawn: {scenario}]"), fontsize=12)
             _save(fig, plots_dir / f"dim_{_safe(dim)}_{_safe(scenario)}_{_safe(metric)}.png")
 
@@ -1215,29 +1278,59 @@ def plot_impact_by_rqs(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics: 
                           [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
 
     for metric in metrics:
-        mdf = _collector_focus(df[df["metric"] == metric])
-        algos = _sorted_variants(mdf["variant_k"].dropna().unique())
-        n_a, n_r = len(algos), len(rqs_vals)
+        metric_df = df[df["metric"] == metric].copy()
+        if metric_df.empty:
+            continue
+
+        collector_df = metric_df[metric_df["algorithm_base"].apply(_is_collector)].copy()
+        central_df = metric_df[metric_df["algorithm_base"].apply(_is_single_passenger)].copy()
+        if collector_df.empty:
+            continue
+
+        collector_algos = _sorted_variants(collector_df["variant_k"].dropna().unique())
+        central_algos = _sorted_variants(central_df["variant_short"].dropna().unique())
+        central_labels = [f"[Central] {a}" for a in central_algos]
+
+        n_c, n_r = len(collector_algos), len(rqs_vals)
+        all_labels = collector_algos + central_labels
+        if not all_labels:
+            continue
+
         bar_w = 0.8 / max(n_r, 1)
-        x_base = np.arange(n_a)
+        x_base = np.arange(len(all_labels))
 
         for scenario in scenarios:
-            sub = mdf[mdf["spawnScenario"] == scenario] if "spawnScenario" in mdf.columns else mdf
-            fig, ax = plt.subplots(figsize=(max(9, 2.0 * n_a), 5))
+            sub_col = (collector_df[collector_df["spawnScenario"] == scenario]
+                       if "spawnScenario" in collector_df.columns else collector_df)
+            sub_central = (central_df[central_df["spawnScenario"] == scenario]
+                           if "spawnScenario" in central_df.columns else central_df)
+
+            fig, ax = plt.subplots(figsize=(max(9, 2.0 * len(all_labels)), 5))
             for ri, rqs_val in enumerate(rqs_vals):
                 vals, cis = [], []
-                for algo in algos:
-                    s = sub[(sub["variant_k"] == algo) & (sub["p2pRqsRadius"] == rqs_val)]["avg"]
+                for algo in collector_algos:
+                    s = sub_col[(sub_col["variant_k"] == algo) & (sub_col["p2pRqsRadius"] == rqs_val)]["avg"]
                     vals.append(float(s.mean()) if not s.empty else 0.0)
                     cis.append(_ci95(s))
                 offset = (ri - n_r / 2 + 0.5) * bar_w
-                ax.bar(x_base + offset, vals, yerr=cis, width=bar_w * 0.88,
+                ax.bar(x_base[:n_c] + offset, vals, yerr=cis, width=bar_w * 0.88,
                        label=f"RQS={rqs_val}", color=rqs_cmap[rqs_val], capsize=3,
                        error_kw={"elinewidth": 1.0, "ecolor": "#333"})
+
+            if central_labels:
+                c_vals, c_cis = [], []
+                for algo in central_algos:
+                    s = sub_central[sub_central["variant_short"] == algo]["avg"]
+                    c_vals.append(float(s.mean()) if not s.empty else 0.0)
+                    c_cis.append(_ci95(s))
+                ax.bar(x_base[n_c:], c_vals, yerr=c_cis, width=0.62,
+                       label="Zentral (RQS-unabhaengig)", color="#6f6f6f", hatch="//", capsize=3,
+                       error_kw={"elinewidth": 1.0, "ecolor": "#333"})
+
             ax.set_xticks(x_base)
-            ax.set_xticklabels(algos, rotation=35, ha="right", fontsize=8)
+            ax.set_xticklabels(all_labels, rotation=35, ha="right", fontsize=8)
             ax.set_ylabel(metric)
-            ax.legend(title="RQS-Radius", fontsize=8,
+            ax.legend(title="RQS / Zentral", fontsize=8,
                       loc="center left", bbox_to_anchor=(1.01, 0.5))
             ax.set_title(_wrap(f"RQS-Einfluss: {metric}  [Spawn: {scenario}]"), fontsize=12)
             _save(fig, plots_dir / f"impact_rqs_{_safe(scenario)}_{_safe(metric)}.png")
@@ -1255,31 +1348,58 @@ def plot_impact_by_khop(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics:
                           [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
 
     for metric in metrics:
-        mdf = df[df["metric"] == metric]
-        algos = _sorted_variants(mdf["variant_short"].dropna().unique())
-        n_a, n_k = len(algos), len(khop_vals)
+        metric_df = df[df["metric"] == metric].copy()
+        if metric_df.empty:
+            continue
+
+        collector_df = metric_df[metric_df["algorithm_base"].apply(_is_collector)].copy()
+        central_df = metric_df[metric_df["algorithm_base"].apply(_is_single_passenger)].copy()
+
+        collector_algos = _sorted_variants(collector_df["variant_short"].dropna().unique()) if not collector_df.empty else []
+        central_algos = _sorted_variants(central_df["variant_short"].dropna().unique()) if not central_df.empty else []
+        central_labels = [f"[Central] {a}" for a in central_algos]
+        all_labels = collector_algos + central_labels
+        if not all_labels:
+            continue
+
+        n_c, n_k = len(collector_algos), len(khop_vals)
         bar_w = 0.8 / max(n_k, 1)
-        x_base = np.arange(n_a)
+        x_base = np.arange(len(all_labels))
 
         for scenario in scenarios:
-            sub = mdf[mdf["spawnScenario"] == scenario] if "spawnScenario" in mdf.columns else mdf
-            fig, ax = plt.subplots(figsize=(max(9, 2.0 * n_a), 5))
+            sub_col = (collector_df[collector_df["spawnScenario"] == scenario]
+                       if "spawnScenario" in collector_df.columns else collector_df)
+            sub_central = (central_df[central_df["spawnScenario"] == scenario]
+                           if "spawnScenario" in central_df.columns else central_df)
+
+            fig, ax = plt.subplots(figsize=(max(9, 2.0 * len(all_labels)), 5))
             for ki, kval in enumerate(khop_vals):
                 label = f"k={_fmt_khops(kval)}"
                 color = khop_cmap[kval]
                 vals, cis = [], []
-                for algo in algos:
-                    s = sub[(sub["variant_short"] == algo) & (sub["kHops"] == kval)]["avg"]
+                for algo in collector_algos:
+                    s = sub_col[(sub_col["variant_short"] == algo) & (sub_col["kHops"] == kval)]["avg"]
                     vals.append(float(s.mean()) if not s.empty else 0.0)
                     cis.append(_ci95(s))
                 offset = (ki - n_k / 2 + 0.5) * bar_w
-                ax.bar(x_base + offset, vals, yerr=cis, width=bar_w * 0.88,
+                ax.bar(x_base[:n_c] + offset, vals, yerr=cis, width=bar_w * 0.88,
                        label=label, color=color, capsize=3,
                        error_kw={"elinewidth": 1.0, "ecolor": "#333"})
+
+            if central_labels:
+                c_vals, c_cis = [], []
+                for algo in central_algos:
+                    s = sub_central[sub_central["variant_short"] == algo]["avg"]
+                    c_vals.append(float(s.mean()) if not s.empty else 0.0)
+                    c_cis.append(_ci95(s))
+                ax.bar(x_base[n_c:], c_vals, yerr=c_cis, width=0.62,
+                       label="Zentral (k-unabhaengig)", color="#6f6f6f", hatch="//", capsize=3,
+                       error_kw={"elinewidth": 1.0, "ecolor": "#333"})
+
             ax.set_xticks(x_base)
-            ax.set_xticklabels(algos, rotation=35, ha="right", fontsize=8)
+            ax.set_xticklabels(all_labels, rotation=35, ha="right", fontsize=8)
             ax.set_ylabel(metric)
-            ax.legend(title="k-Hop", fontsize=8,
+            ax.legend(title="k-Hop / Zentral", fontsize=8,
                       loc="center left", bbox_to_anchor=(1.01, 0.5))
             ax.set_title(_wrap(f"k-Hop-Einfluss: {metric}  [Spawn: {scenario}]"), fontsize=12)
             _save(fig, plots_dir / f"impact_khop_{_safe(scenario)}_{_safe(metric)}.png")
@@ -1287,17 +1407,23 @@ def plot_impact_by_khop(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics:
 
 def plot_impact_by_strategy(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics: list[str]) -> None:
     """Grouped bar: x=algo, groups=p2pStrategy. Shows strategy (nearest/greedy) impact."""
-    if "p2pStrategy" not in vdims or len(vdims["p2pStrategy"]) < 2:
+    if "p2pStrategy" not in df.columns:
         return
     sns.set_theme(style="whitegrid")
-    strats = sorted(vdims["p2pStrategy"])
-    strat_palette = _palette(len(strats))
-    strat_cmap = {s: strat_palette[i] for i, s in enumerate(strats)}
     scenarios = vdims.get("spawnScenario",
                           [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
 
     for metric in metrics:
-        mdf = df[df["metric"] == metric]
+        mdf = _collector_focus(df[df["metric"] == metric]).copy()
+        if mdf.empty:
+            continue
+        mdf = mdf[mdf["strategy_eff"].apply(_is_real_strategy)].copy()
+        strats = sorted(mdf["strategy_eff"].dropna().unique().tolist())
+        if len(strats) < 2:
+            continue
+
+        strat_palette = _palette(len(strats))
+        strat_cmap = {s: strat_palette[i] for i, s in enumerate(strats)}
         algos = _sorted_variants(mdf["algo_short"].dropna().unique())
         n_a, n_s = len(algos), len(strats)
         bar_w = 0.8 / max(n_s, 1)
@@ -1309,7 +1435,7 @@ def plot_impact_by_strategy(df: pd.DataFrame, vdims: dict, plots_dir: Path, metr
             for si, strat in enumerate(strats):
                 vals, cis = [], []
                 for algo in algos:
-                    s = sub[(sub["algo_short"] == algo) & (sub["p2pStrategy"] == strat)]["avg"]
+                    s = sub[(sub["algo_short"] == algo) & (sub["strategy_eff"] == strat)]["avg"]
                     vals.append(float(s.mean()) if not s.empty else 0.0)
                     cis.append(_ci95(s))
                 offset = (si - n_s / 2 + 0.5) * bar_w
@@ -1326,25 +1452,18 @@ def plot_impact_by_strategy(df: pd.DataFrame, vdims: dict, plots_dir: Path, metr
 
 
 def plot_collector_all_params_categorical(df: pd.DataFrame, vdims: dict, plots_dir: Path, metrics: list[str]) -> None:
-    """Comprehensive comparison: all varying collector parameter combinations as categorical.
+    """Comprehensive comparison of all varying collector parameters as 2D plots.
 
-    Builds one bar category per *actually varying* collector-dimension combination
-    (szenario-spezifisch), inkl. Idle-Roaming, und stellt diese den zentralen
-    Algorithmen gegenüber.
-
-    Wenn sowohl Taxi- als auch Client-Anzahl variieren, wird statt 2D-Balken ein
-    3D-Plot genutzt (x=Taxi, y=Client, z=Metric), damit diese Achsen nicht im
-    Kategorienamen untergehen.
+    If taxiCount and clientCount vary, we split the view into one subplot per
+    Taxi/Client combination (stacked vertically) to avoid crowded 3D views.
     """
-    # Work with full dataframe to keep both collector and non-collector data
     if df.empty:
         return
-    
-    # Check if we have collector data at all
+
     has_collector = df["algorithm_base"].astype(str).str.contains("p2pcollector", case=False, na=False).any()
     if not has_collector:
         return
-    
+
     collector_candidate_dims = [
         "kHops",
         "p2pRqsRadius",
@@ -1394,131 +1513,151 @@ def plot_collector_all_params_categorical(df: pd.DataFrame, vdims: dict, plots_d
             except Exception:
                 return str(value)
         return str(value)
-    
+
     sns.set_theme(style="whitegrid")
     scenarios = vdims.get("spawnScenario",
                           [df["spawnScenario"].iloc[0]] if "spawnScenario" in df.columns else ["BASELINE"])
-    
+
     for metric in metrics:
         metric_df = df[df["metric"] == metric].copy()
         if metric_df.empty:
             continue
-        
-        # Separate collector and non-collector from the start
+
         is_collector = metric_df["algorithm_base"].astype(str).str.contains("p2pcollector", case=False, na=False)
         collector_df = metric_df[is_collector].copy()
         non_collector_df = metric_df[~is_collector].copy()
-        
+
         if collector_df.empty:
             continue
-        
+
         for scenario in scenarios:
-            sub_collector = collector_df[collector_df["spawnScenario"] == scenario].copy() if "spawnScenario" in collector_df.columns else collector_df.copy()
-            sub_non_coll = non_collector_df[non_collector_df["spawnScenario"] == scenario] if "spawnScenario" in non_collector_df.columns else non_collector_df
-            if sub_collector.empty:
+            scenario_collector = (collector_df[collector_df["spawnScenario"] == scenario].copy()
+                                  if "spawnScenario" in collector_df.columns else collector_df.copy())
+            scenario_non_coll_all = (non_collector_df[non_collector_df["spawnScenario"] == scenario].copy()
+                                     if "spawnScenario" in non_collector_df.columns else non_collector_df.copy())
+            if scenario_collector.empty:
                 continue
 
-            # Nur Dimensionen berücksichtigen, die in diesem Szenario bei Collector wirklich variieren.
-            scenario_dims = [d for d in global_relevant_dims if d in sub_collector.columns and sub_collector[d].dropna().nunique() > 1]
-            use_3d_for_scale = "taxiCount" in scenario_dims and "clientCount" in scenario_dims
-            dims_for_category = [d for d in scenario_dims if d not in {"taxiCount", "clientCount"}] if use_3d_for_scale else scenario_dims
+            scenario_dims = [
+                d for d in global_relevant_dims
+                if d in scenario_collector.columns and scenario_collector[d].dropna().nunique() > 1
+            ]
+            split_by_scale = "taxiCount" in scenario_dims and "clientCount" in scenario_dims
+            dims_for_category = [d for d in scenario_dims if d not in {"taxiCount", "clientCount"}] if split_by_scale else scenario_dims
 
-            if dims_for_category:
-                sub_collector["_category"] = sub_collector.apply(
-                    lambda r: " ".join(
-                        f"{abbrev[d]}={_fmt_dim_value(d, r[d])}"
-                        for d in dims_for_category
-                    ),
-                    axis=1,
+            if split_by_scale:
+                pairs_df = (
+                    scenario_collector[["taxiCount", "clientCount"]]
+                    .dropna()
+                    .drop_duplicates()
+                    .sort_values(["taxiCount", "clientCount"])
                 )
+                scale_pairs = [(r["taxiCount"], r["clientCount"]) for _, r in pairs_df.iterrows()]
             else:
-                sub_collector["_category"] = "Collector"
+                scale_pairs = [None]
 
-            collector_categories = sorted(sub_collector["_category"].dropna().unique().tolist())
-            if not collector_categories:
+            if not scale_pairs:
                 continue
 
-            non_coll_algos = _sorted_variants(sub_non_coll["algo_short"].dropna().unique()) if not sub_non_coll.empty else []
-            non_coll_categories = [f"[Central] {algo}" for algo in non_coll_algos]
+            fig, axes = plt.subplots(len(scale_pairs), 1, figsize=(12, 4.2 * len(scale_pairs)), squeeze=False)
+            has_axis_content = False
 
-            all_categories = collector_categories + non_coll_categories
-            n_total_cats = len(all_categories)
-            if n_total_cats < 2:
-                continue
-
-            collector_palette = _palette(max(1, len(collector_categories)))
-            central_palette = sns.color_palette("Set2", n_colors=max(len(non_coll_categories), 1))
-            cmap_collector = {cat: collector_palette[i] for i, cat in enumerate(collector_categories)}
-            cmap_central = {cat: central_palette[i] for i, cat in enumerate(non_coll_categories)}
-
-            if use_3d_for_scale:
-                sub_collector_3d = sub_collector.copy()
-                sub_collector_3d["_bar_group"] = sub_collector_3d["_category"]
-
-                if not sub_non_coll.empty:
-                    sub_non_coll_3d = sub_non_coll.copy()
-                    sub_non_coll_3d["_bar_group"] = sub_non_coll_3d["algo_short"].apply(lambda a: f"[Central] {a}")
-                    sub_plot = pd.concat([sub_collector_3d, sub_non_coll_3d], ignore_index=True)
+            for ri, pair in enumerate(scale_pairs):
+                ax = axes[ri][0]
+                if pair is None:
+                    sub_collector = scenario_collector.copy()
+                    sub_non_coll = scenario_non_coll_all.copy()
+                    pair_label = ""
                 else:
-                    sub_plot = sub_collector_3d
-
-                taxi_vals = sorted(sub_plot["taxiCount"].dropna().unique().tolist())
-                client_vals = sorted(sub_plot["clientCount"].dropna().unique().tolist())
-                if len(taxi_vals) < 2 or len(client_vals) < 2:
-                    use_3d_for_scale = False
-                else:
-                    taxi_step = (max(taxi_vals) - min(taxi_vals)) / max(len(taxi_vals) - 1, 1) if len(taxi_vals) > 1 else 1.0
-                    client_step = (max(client_vals) - min(client_vals)) / max(len(client_vals) - 1, 1) if len(client_vals) > 1 else 1.0
-                    bar_groups = collector_categories + non_coll_categories
-                    cmap_groups = {**cmap_collector, **cmap_central}
-                    varied_dims_label = ", ".join(DIM_LABELS.get(d, d) for d in dims_for_category) if dims_for_category else "(keine)"
-                    _build_3d_figure(
-                        sub_plot,
-                        bar_groups,
-                        "_bar_group",
-                        cmap_groups,
-                        taxi_vals,
-                        client_vals,
-                        taxi_step,
-                        client_step,
-                        metric,
-                        f"3D Alle Collector-Parameter (+ Zentral): {metric}  [Spawn: {scenario}]  [Var. ohne Taxi/Client: {varied_dims_label}]",
-                        plots_dir,
-                        f"collector_all_params_{_safe(scenario)}_{_safe(metric)}.png",
+                    taxi_v, client_v = pair
+                    sub_collector = scenario_collector[
+                        (scenario_collector["taxiCount"] == taxi_v) &
+                        (scenario_collector["clientCount"] == client_v)
+                    ].copy()
+                    sub_non_coll = scenario_non_coll_all[
+                        (scenario_non_coll_all["taxiCount"] == taxi_v) &
+                        (scenario_non_coll_all["clientCount"] == client_v)
+                    ].copy()
+                    pair_label = (
+                        f"Taxi={_fmt_dim_value('taxiCount', taxi_v)}, "
+                        f"Client={_fmt_dim_value('clientCount', client_v)}"
                     )
+
+                if sub_collector.empty:
+                    ax.set_visible(False)
                     continue
-            
-            fig, ax = plt.subplots(figsize=(max(10, 2.2 * n_total_cats), 5.5))
-            x = np.arange(n_total_cats)
-            
-            means = []
-            cis = []
-            colors = []
-            
-            # Plot collector categories
-            for cat in collector_categories:
-                cat_data = sub_collector[sub_collector["_category"] == cat]["avg"]
-                means.append(float(cat_data.mean()) if not cat_data.empty else 0.0)
-                cis.append(_ci95(cat_data))
-                colors.append(cmap_collector[cat])
-            
-            # Add central algorithm categories
-            for algo in non_coll_categories:
-                algo_name = algo.replace("[Central] ", "")
-                algo_data = sub_non_coll[sub_non_coll["algo_short"] == algo_name]["avg"]
-                means.append(float(algo_data.mean()) if not algo_data.empty else 0.0)
-                cis.append(_ci95(algo_data))
-                colors.append(cmap_central[algo])
-            
-            bars = ax.bar(x, means, yerr=cis, color=colors, capsize=4, 
-                         error_kw={"elinewidth": 1.0, "ecolor": "#333"}, width=0.75)
-            _annotate_bars(ax, bars, pd.Series(means))
-            
-            ax.set_xticks(x)
-            ax.set_xticklabels(all_categories, rotation=45, ha="right", fontsize=8)
-            ax.set_ylabel(metric)
+
+                if dims_for_category:
+                    sub_collector["_category"] = sub_collector.apply(
+                        lambda r: " ".join(f"{abbrev[d]}={_fmt_dim_value(d, r[d])}" for d in dims_for_category),
+                        axis=1,
+                    )
+                else:
+                    sub_collector["_category"] = "Collector"
+
+                collector_categories = sorted(sub_collector["_category"].dropna().unique().tolist())
+                if not collector_categories:
+                    ax.set_visible(False)
+                    continue
+
+                central_single = sub_non_coll[sub_non_coll["algorithm_base"].apply(_is_single_passenger)].copy()
+                central_algos = _sorted_variants(central_single["algo_short"].dropna().unique()) if not central_single.empty else []
+                central_categories = [f"[Central] {algo}" for algo in central_algos]
+
+                all_categories = collector_categories + central_categories
+                if len(all_categories) < 2:
+                    ax.set_visible(False)
+                    continue
+
+                collector_palette = _palette(max(1, len(collector_categories)))
+                cmap_collector = {cat: collector_palette[i] for i, cat in enumerate(collector_categories)}
+                cmap_central = {cat: "#6f6f6f" for cat in central_categories}
+
+                means: list[float] = []
+                cis: list[float] = []
+                colors: list = []
+                hatches: list[str] = []
+
+                for cat in collector_categories:
+                    cat_data = sub_collector[sub_collector["_category"] == cat]["avg"]
+                    means.append(float(cat_data.mean()) if not cat_data.empty else 0.0)
+                    cis.append(_ci95(cat_data))
+                    colors.append(cmap_collector[cat])
+                    hatches.append("")
+
+                for algo in central_categories:
+                    algo_name = algo.replace("[Central] ", "")
+                    algo_data = central_single[central_single["algo_short"] == algo_name]["avg"]
+                    means.append(float(algo_data.mean()) if not algo_data.empty else 0.0)
+                    cis.append(_ci95(algo_data))
+                    colors.append(cmap_central[algo])
+                    hatches.append("//")
+
+                x = np.arange(len(all_categories))
+                bars = ax.bar(x, means, yerr=cis, color=colors, capsize=4,
+                              error_kw={"elinewidth": 1.0, "ecolor": "#333"}, width=0.75)
+                for bar, hatch in zip(bars, hatches):
+                    if hatch:
+                        bar.set_hatch(hatch)
+                _annotate_bars(ax, bars, pd.Series(means))
+
+                ax.set_xticks(x)
+                ax.set_xticklabels(all_categories, rotation=45, ha="right", fontsize=8)
+                ax.set_ylabel(metric)
+                varied_dims_label = ", ".join(DIM_LABELS.get(d, d) for d in dims_for_category) if dims_for_category else "(nur Taxi/Client)"
+                row_title = f"Variiert: {varied_dims_label}"
+                if pair_label:
+                    row_title = f"{pair_label} | {row_title}"
+                ax.set_title(_wrap(row_title), fontsize=10)
+                has_axis_content = True
+
+            if not has_axis_content:
+                plt.close(fig)
+                continue
+
             varied_dims_label = ", ".join(DIM_LABELS.get(d, d) for d in scenario_dims) if scenario_dims else "(keine)"
-            ax.set_title(_wrap(f"Alle Collector-Parameter (+ Zentral): {metric}  [Spawn: {scenario}]  [Var.: {varied_dims_label}]"), fontsize=12)
+            fig.suptitle(_wrap(f"Alle Collector-Parameter (+ Zentral): {metric}  [Spawn: {scenario}]  [Var.: {varied_dims_label}]"),
+                         y=1.01, fontsize=13)
             _save(fig, plots_dir / f"collector_all_params_{_safe(scenario)}_{_safe(metric)}.png")
 
 

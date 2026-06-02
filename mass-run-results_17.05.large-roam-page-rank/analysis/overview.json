@@ -53,7 +53,7 @@
     ],
     "p2pStrategy": [
       "greedy",
-      "nan",
+      "n/a",
       "nearest"
     ],
     "spawnScenario": [
