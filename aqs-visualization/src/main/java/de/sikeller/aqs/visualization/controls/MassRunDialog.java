@@ -54,6 +54,9 @@ final class MassRunDialog extends JDialog {
   private final JTextField mapSizeField;
   // P2P Collector Options
   private final JTextField idleRoamingModesField;
+  private final JTextField requestRepublishTicksField;
+  private final JTextField topologyScanTicksField;
+  private final JTextField overlayMaxDistanceFactorField;
   private final JTextField idleThresholdField;
   private final JTextField idleCheckThrottleField;
   private final JTextField randomTravelMaxDistanceField;
@@ -108,6 +111,9 @@ final class MassRunDialog extends JDialog {
     overlayMinNeighborsField = new JTextField(defaults.overlayMinNeighborsCsv());
     overlayMaxNeighborsField = new JTextField(defaults.overlayMaxNeighborsCsv());
     overlayShortcutsField = new JTextField(defaults.overlayShortcutsCsv());
+    requestRepublishTicksField = new JTextField(defaults.requestRepublishTicksCsv());
+    topologyScanTicksField = new JTextField(defaults.topologyScanTicksCsv());
+    overlayMaxDistanceFactorField = new JTextField(defaults.overlayMaxDistanceFactorCsv());
     idleRoamingModesField = new JTextField(defaults.idleRoamingModesCsv());
     idleThresholdField = new JTextField(String.valueOf(defaults.idleThresholdTicks()));
     idleCheckThrottleField = new JTextField(String.valueOf(defaults.idleCheckThrottleTicks()));
@@ -117,6 +123,9 @@ final class MassRunDialog extends JDialog {
     addRow(collectorPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
     addRow(collectorPanel, "Overlay max neighbors (CSV)", overlayMaxNeighborsField);
     addRow(collectorPanel, "Overlay shortcuts (CSV)", overlayShortcutsField);
+    addRow(collectorPanel, "Request republish ticks (CSV)", requestRepublishTicksField);
+    addRow(collectorPanel, "Topology scan ticks (CSV)", topologyScanTicksField);
+    addRow(collectorPanel, "Overlay max distance factor (CSV)", overlayMaxDistanceFactorField);
     addRow(collectorPanel, "Idle roaming mode (CSV: none,random,return-to-hq,page-rank)", idleRoamingModesField);
     addRow(collectorPanel, "Idle threshold [ticks]", idleThresholdField);
     addRow(collectorPanel, "Idle check throttle [ticks]", idleCheckThrottleField);
@@ -230,6 +239,12 @@ final class MassRunDialog extends JDialog {
           parseCsvInts(overlayMaxNeighborsField.getText(), 1, "overlay max neighbors");
       List<Integer> overlayShortcutsValues =
           parseCsvInts(overlayShortcutsField.getText(), 0, "overlay shortcuts");
+      List<Integer> requestRepublishTicksValues =
+          parseCsvInts(requestRepublishTicksField.getText(), 1, "request republish ticks");
+      List<Integer> topologyScanTicksValues =
+          parseCsvInts(topologyScanTicksField.getText(), 1, "topology scan ticks");
+      List<Integer> overlayMaxDistanceFactorValues =
+          parseCsvInts(overlayMaxDistanceFactorField.getText(), 1, "overlay max distance factor");
       int runs = parseInt(runsField.getText(), 1);
       int baseSeed = Integer.parseInt(baseSeedField.getText().trim());
       String outputDir = outputDirField.getText().trim();
@@ -268,6 +283,9 @@ final class MassRunDialog extends JDialog {
               overlayMinNeighborsValues,
               overlayMaxNeighborsValues,
               overlayShortcutsValues,
+              requestRepublishTicksValues,
+              topologyScanTicksValues,
+              overlayMaxDistanceFactorValues,
               spawnScenarios,
               runs,
               baseSeed,
@@ -327,6 +345,9 @@ final class MassRunDialog extends JDialog {
     props.setProperty("overlayMinNeighbors", overlayMinNeighborsField.getText());
     props.setProperty("overlayMaxNeighbors", overlayMaxNeighborsField.getText());
     props.setProperty("overlayShortcuts", overlayShortcutsField.getText());
+    props.setProperty("requestRepublishTicks", requestRepublishTicksField.getText());
+    props.setProperty("topologyScanTicks", topologyScanTicksField.getText());
+    props.setProperty("overlayMaxDistanceFactor", overlayMaxDistanceFactorField.getText());
     props.setProperty("idleRoamingModes", idleRoamingModesField.getText());
     props.setProperty("idleThresholdTicks", idleThresholdField.getText());
     props.setProperty("idleCheckThrottleTicks", idleCheckThrottleField.getText());
@@ -370,6 +391,21 @@ final class MassRunDialog extends JDialog {
     setFieldIfPresent(overlayMinNeighborsField, props, "overlayMinNeighbors");
     setFieldIfPresent(overlayMaxNeighborsField, props, "overlayMaxNeighbors");
     setFieldIfPresent(overlayShortcutsField, props, "overlayShortcuts");
+    if (props.containsKey("requestRepublishTicks")) {
+      requestRepublishTicksField.setText(props.getProperty("requestRepublishTicks"));
+    } else {
+      setFieldIfPresent(requestRepublishTicksField, props, "p2pRequestRepublishTicks");
+    }
+    if (props.containsKey("topologyScanTicks")) {
+      topologyScanTicksField.setText(props.getProperty("topologyScanTicks"));
+    } else {
+      setFieldIfPresent(topologyScanTicksField, props, "p2pTopologyScanTicks");
+    }
+    if (props.containsKey("overlayMaxDistanceFactor")) {
+      overlayMaxDistanceFactorField.setText(props.getProperty("overlayMaxDistanceFactor"));
+    } else {
+      setFieldIfPresent(overlayMaxDistanceFactorField, props, "p2pOverlayMaxDistanceFactor");
+    }
     if (props.containsKey("idleRoamingModes")) {
       idleRoamingModesField.setText(props.getProperty("idleRoamingModes"));
     } else {
@@ -523,6 +559,9 @@ final class MassRunDialog extends JDialog {
       String overlayMinNeighborsCsv,
       String overlayMaxNeighborsCsv,
       String overlayShortcutsCsv,
+      String requestRepublishTicksCsv,
+      String topologyScanTicksCsv,
+      String overlayMaxDistanceFactorCsv,
       String spawnScenariosCsv,
       int runs,
       int baseSeed,
@@ -548,6 +587,9 @@ final class MassRunDialog extends JDialog {
       List<Integer> overlayMinNeighborsValues,
       List<Integer> overlayMaxNeighborsValues,
       List<Integer> overlayShortcutsValues,
+      List<Integer> requestRepublishTicksValues,
+      List<Integer> topologyScanTicksValues,
+      List<Integer> overlayMaxDistanceFactorValues,
       List<String> spawnScenarios,
       int runs,
       int baseSeed,

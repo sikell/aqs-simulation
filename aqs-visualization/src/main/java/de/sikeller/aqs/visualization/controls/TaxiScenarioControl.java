@@ -30,6 +30,7 @@ import java.util.*;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.Timer;
@@ -114,7 +115,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String DEFAULT_TAXI_COUNT_TOOLTIP =
       "Set the count of taxis to be spawned in the simulation run";
   private static final long MASS_RUN_ITERATION_TIMEOUT_MS =
-      Long.getLong("aqs.massRun.iterationTimeoutMs", 600_000L * 3); // 30 min
+      Long.getLong("aqs.massRun.iterationTimeoutMs", 600_000L * 3 * 2); // 60 min
   private static final long MASS_RUN_WAIT_POLL_MS = 20L;
 
   public TaxiScenarioControl(SimulationControl simulation) {
@@ -575,8 +576,9 @@ public class TaxiScenarioControl extends AbstractControl {
                                 .sorted()
                                 .toList()));
         visualizationProperties.setTaxiKnownClientIds(taxiKnowledge);
-        String activeRoamingStrategy = System.getProperty(
-            P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM);
+        String activeRoamingStrategy =
+            System.getProperty(
+                P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM);
         visualizationProperties.setTaxiPageRankHqPositions(
             IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(activeRoamingStrategy)
                 ? provider.getPageRankHqPositions()
@@ -871,7 +873,9 @@ public class TaxiScenarioControl extends AbstractControl {
   private MassRunDialog.Defaults defaultMassRunDialogValues() {
     List<String> availableAlgorithms = resolveAlgorithmSimpleNames();
     int defaultKHops = readSpinnerValue("p2pRequestForwardHops", 1);
+    int defaultRequestRepublishTicks = readSpinnerValue("p2pRequestRepublishTicks", 3);
     int defaultRqsRadius = readSpinnerValue("p2pFixedSearchRadius", 500);
+    int defaultTopologyScanTicks = readSpinnerValue("p2pTopologyScanTicks", 20);
     int taxiCount = readSpinnerValue("taxiCount", 5);
     int clientCount = readSpinnerValue("clientCount", 100);
     int clientSpawnWindow = readSpinnerValue("clientSpawnWindow", 10000);
@@ -881,6 +885,7 @@ public class TaxiScenarioControl extends AbstractControl {
     int simulationSpeed = 100;
     int mapSize = readSpinnerValue("mapSize", 40000);
     int defaultOverlayMaxNeighbors = readSpinnerValue("p2pOverlayMaxNeighbors", 5);
+    int defaultOverlayMaxDistanceFactor = readSpinnerValue("p2pOverlayMaxDistanceFactor", 1);
     boolean idleRoamingEnabled = readCheckboxValue("p2pIdleRandomTravelEnabled", true);
     String idleRoamingStrategy =
         p2pIdleRoamingStrategyBox != null
@@ -903,6 +908,9 @@ public class TaxiScenarioControl extends AbstractControl {
         String.valueOf(readSpinnerValue("p2pOverlayMinNeighbors", 1)),
         String.valueOf(defaultOverlayMaxNeighbors),
         String.valueOf(readSpinnerValue("p2pOverlayShortcuts", 1)),
+        String.valueOf(defaultRequestRepublishTicks),
+        String.valueOf(defaultTopologyScanTicks),
+        String.valueOf(defaultOverlayMaxDistanceFactor),
         "BASELINE",
         10,
         1,
@@ -951,24 +959,44 @@ public class TaxiScenarioControl extends AbstractControl {
       p2pStatusTimer.stop();
     }
 
+    List<MassRunCsvWriter.RunMetricRow> runRows = Collections.synchronizedList(new ArrayList<>());
+    Object snapshotSaveLock = new Object();
+    AtomicBoolean manualSaveInProgress = new AtomicBoolean(false);
     JDialog progressDialog = createMassRunProgressDialog();
-    SwingWorker<MassRunCsvWriter.OutputFiles, int[]> worker =
+    attachMassRunSaveNowAction(
+        progressDialog,
+        () ->
+            requestManualMassRunSnapshotSave(
+                progressDialog, config, runRows, snapshotSaveLock, manualSaveInProgress));
+    SwingWorker<MassRunCsvWriter.OutputFiles, MassRunProgressUpdate> worker =
         new SwingWorker<>() {
           @Override
           protected MassRunCsvWriter.OutputFiles doInBackground() throws Exception {
-            List<MassRunCsvWriter.RunMetricRow> runRows = new ArrayList<>();
+            int nextAutoSavePercent = 25;
             int totalRuns =
                 config.algorithms().stream()
                     .mapToInt(
                         algorithmSimpleName ->
                             effectiveKHopsForAlgorithm(algorithmSimpleName, config).size()
+                                * effectiveRequestRepublishTicksForAlgorithm(
+                                        algorithmSimpleName, config)
+                                    .size()
                                 * effectiveRqsRadiusForAlgorithm(algorithmSimpleName, config).size()
                                 * effectiveStrategiesForAlgorithm(algorithmSimpleName, config)
                                     .size()
                                 * effectiveOverlayMinNeighborsForAlgorithm(
                                         algorithmSimpleName, config)
                                     .size()
+                                * effectiveOverlayMaxNeighborsForAlgorithm(
+                                        algorithmSimpleName, config)
+                                    .size()
                                 * effectiveOverlayShortcutsForAlgorithm(algorithmSimpleName, config)
+                                    .size()
+                                * effectiveOverlayMaxDistanceFactorForAlgorithm(
+                                        algorithmSimpleName, config)
+                                    .size()
+                                * effectiveTopologyScanTicksForAlgorithm(
+                                        algorithmSimpleName, config)
                                     .size()
                                 * effectiveIdleRoamingModesForAlgorithm(algorithmSimpleName, config)
                                     .size()
@@ -979,89 +1007,177 @@ public class TaxiScenarioControl extends AbstractControl {
                     .sum();
             int doneRuns = 0;
 
-            for (String algorithmSimpleName : config.algorithms()) {
-              List<Integer> effectiveKHops =
-                  effectiveKHopsForAlgorithm(algorithmSimpleName, config);
-              List<Integer> effectiveRqsRadius =
-                  effectiveRqsRadiusForAlgorithm(algorithmSimpleName, config);
-              List<String> effectiveStrategies =
-                  effectiveStrategiesForAlgorithm(algorithmSimpleName, config);
-              List<Integer> effectiveOverlayMinNeighbors =
-                  effectiveOverlayMinNeighborsForAlgorithm(algorithmSimpleName, config);
-              List<Integer> effectiveOverlayMaxNeighbors =
-                  effectiveOverlayMaxNeighborsForAlgorithm(algorithmSimpleName, config);
-              List<Integer> effectiveOverlayShortcuts =
-                  effectiveOverlayShortcutsForAlgorithm(algorithmSimpleName, config);
-              List<String> effectiveIdleRoamingModes =
-                  effectiveIdleRoamingModesForAlgorithm(algorithmSimpleName, config);
-              for (int kHops : effectiveKHops) {
-                for (int rqsRadius : effectiveRqsRadius) {
-                  for (String p2pStrategy : effectiveStrategies) {
-                    for (int overlayMinNeighbors : effectiveOverlayMinNeighbors) {
-                      for (int overlayMaxNeighbors : effectiveOverlayMaxNeighbors) {
-                        for (int overlayShortcuts : effectiveOverlayShortcuts) {
-                          for (String idleRoamingMode : effectiveIdleRoamingModes) {
-                            for (String spawnScenario : config.spawnScenarios()) {
-                              for (int pairIndex = 0;
-                                  pairIndex < config.taxiCounts().size();
-                                  pairIndex++) {
-                                int taxiCount = config.taxiCounts().get(pairIndex);
-                                int clientCount = config.clientCounts().get(pairIndex);
-                                int mapSize =
-                                    config.mapSizes().size() == 1
-                                        ? config.mapSizes().get(0)
-                                        : config.mapSizes().get(pairIndex);
-                                for (int taxiSeatCount : config.taxiSeatCounts()) {
-                                  for (int runIndex = 1; runIndex <= config.runs(); runIndex++) {
-                                    int seed = config.baseSeed() + (runIndex - 1);
-                                    MassRunIterationResult result =
-                                        executeMassRunIteration(
-                                            config,
-                                            algorithmSimpleName,
-                                            kHops,
-                                            rqsRadius,
-                                            p2pStrategy,
-                                            overlayMinNeighbors,
-                                            overlayMaxNeighbors,
-                                            overlayShortcuts,
-                                            idleRoamingMode,
-                                            spawnScenario,
-                                            taxiCount,
-                                            clientCount,
-                                            taxiSeatCount,
-                                            mapSize,
-                                            seed);
-                                    String timestamp = java.time.Instant.now().toString();
-                                    runRows.addAll(
-                                        MassRunCsvWriter.toRunRows(
-                                            result.table(),
-                                            result.executedAlgorithm(),
-                                            kHops,
-                                            result.executedRqsRadius(),
-                                            taxiCount,
-                                            clientCount,
-                                            taxiSeatCount,
-                                            result.executedStrategy(),
-                                            result.executedOverlayMinNeighbors(),
-                                            result.executedOverlayMaxNeighbors(),
-                                            result.executedOverlayShortcuts(),
-                                            result.executedIdleRoamingEnabled(),
-                                            result.executedIdleRoamingStrategy(),
-                                            result.executedIdleRoamingMode(),
-                                            result.executedSpawnScenario(),
-                                            runIndex,
-                                            seed,
-                                            timestamp));
+            try {
+              for (String algorithmSimpleName : config.algorithms()) {
+                List<Integer> effectiveKHops =
+                    effectiveKHopsForAlgorithm(algorithmSimpleName, config);
+                List<Integer> effectiveRequestRepublishTicks =
+                    effectiveRequestRepublishTicksForAlgorithm(algorithmSimpleName, config);
+                List<Integer> effectiveRqsRadius =
+                    effectiveRqsRadiusForAlgorithm(algorithmSimpleName, config);
+                List<String> effectiveStrategies =
+                    effectiveStrategiesForAlgorithm(algorithmSimpleName, config);
+                List<Integer> effectiveOverlayMinNeighbors =
+                    effectiveOverlayMinNeighborsForAlgorithm(algorithmSimpleName, config);
+                List<Integer> effectiveOverlayMaxNeighbors =
+                    effectiveOverlayMaxNeighborsForAlgorithm(algorithmSimpleName, config);
+                List<Integer> effectiveOverlayShortcuts =
+                    effectiveOverlayShortcutsForAlgorithm(algorithmSimpleName, config);
+                List<Integer> effectiveOverlayMaxDistanceFactor =
+                    effectiveOverlayMaxDistanceFactorForAlgorithm(algorithmSimpleName, config);
+                List<Integer> effectiveTopologyScanTicks =
+                    effectiveTopologyScanTicksForAlgorithm(algorithmSimpleName, config);
+                List<String> effectiveIdleRoamingModes =
+                    effectiveIdleRoamingModesForAlgorithm(algorithmSimpleName, config);
+                for (int kHops : effectiveKHops) {
+                  for (int requestRepublishTicks : effectiveRequestRepublishTicks) {
+                    for (int rqsRadius : effectiveRqsRadius) {
+                      for (String p2pStrategy : effectiveStrategies) {
+                        for (int overlayMinNeighbors : effectiveOverlayMinNeighbors) {
+                          for (int overlayMaxNeighbors : effectiveOverlayMaxNeighbors) {
+                            for (int overlayShortcuts : effectiveOverlayShortcuts) {
+                              for (int overlayMaxDistanceFactor :
+                                  effectiveOverlayMaxDistanceFactor) {
+                                for (int topologyScanTicks : effectiveTopologyScanTicks) {
+                                  for (String idleRoamingMode : effectiveIdleRoamingModes) {
+                                    for (String spawnScenario : config.spawnScenarios()) {
+                                      for (int pairIndex = 0;
+                                          pairIndex < config.taxiCounts().size();
+                                          pairIndex++) {
+                                        int taxiCount = config.taxiCounts().get(pairIndex);
+                                        int clientCount = config.clientCounts().get(pairIndex);
+                                        int mapSize =
+                                            config.mapSizes().size() == 1
+                                                ? config.mapSizes().get(0)
+                                                : config.mapSizes().get(pairIndex);
+                                        for (int taxiSeatCount : config.taxiSeatCounts()) {
+                                          for (int runIndex = 1;
+                                              runIndex <= config.runs();
+                                              runIndex++) {
+                                            int seed = config.baseSeed() + (runIndex - 1);
+                                            String currentRunParams =
+                                                formatMassRunParams(
+                                                    algorithmSimpleName,
+                                                    runIndex,
+                                                    config.runs(),
+                                                    seed,
+                                                    kHops,
+                                                    requestRepublishTicks,
+                                                    rqsRadius,
+                                                    p2pStrategy,
+                                                    overlayMinNeighbors,
+                                                    overlayMaxNeighbors,
+                                                    overlayShortcuts,
+                                                    overlayMaxDistanceFactor,
+                                                    topologyScanTicks,
+                                                    idleRoamingMode,
+                                                    spawnScenario,
+                                                    taxiCount,
+                                                    clientCount,
+                                                    taxiSeatCount,
+                                                    mapSize);
+                                            publish(
+                                                new MassRunProgressUpdate(
+                                                    doneRuns,
+                                                    totalRuns,
+                                                    (int)
+                                                        Math.round(
+                                                            doneRuns
+                                                                * 100.0
+                                                                / Math.max(1, totalRuns)),
+                                                    currentRunParams));
+                                            MassRunIterationResult result =
+                                                executeMassRunIteration(
+                                                    config,
+                                                    algorithmSimpleName,
+                                                    kHops,
+                                                    requestRepublishTicks,
+                                                    rqsRadius,
+                                                    p2pStrategy,
+                                                    overlayMinNeighbors,
+                                                    overlayMaxNeighbors,
+                                                    overlayShortcuts,
+                                                    overlayMaxDistanceFactor,
+                                                    topologyScanTicks,
+                                                    idleRoamingMode,
+                                                    spawnScenario,
+                                                    taxiCount,
+                                                    clientCount,
+                                                    taxiSeatCount,
+                                                    mapSize,
+                                                    seed);
+                                            String timestamp = java.time.Instant.now().toString();
+                                            runRows.addAll(
+                                                MassRunCsvWriter.toRunRows(
+                                                    result.table(),
+                                                    result.executedAlgorithm(),
+                                                    kHops,
+                                                    result.executedRequestRepublishTicks(),
+                                                    result.executedRqsRadius(),
+                                                    taxiCount,
+                                                    clientCount,
+                                                    taxiSeatCount,
+                                                    result.executedStrategy(),
+                                                    result.executedOverlayMinNeighbors(),
+                                                    result.executedOverlayMaxNeighbors(),
+                                                    result.executedOverlayShortcuts(),
+                                                    result.executedOverlayMaxDistanceFactor(),
+                                                    result.executedTopologyScanTicks(),
+                                                    result.executedIdleRoamingEnabled(),
+                                                    result.executedIdleRoamingStrategy(),
+                                                    result.executedIdleRoamingMode(),
+                                                    result.executedSpawnScenario(),
+                                                    runIndex,
+                                                    seed,
+                                                    timestamp));
 
-                                    // Fortschritt pro abgeschlossener Iteration aktualisieren
-                                    doneRuns++;
-                                    int progress =
-                                        (int) Math.round(doneRuns * 100.0 / Math.max(1, totalRuns));
-                                    setProgress(Math.max(0, Math.min(100, progress)));
-                                    publish(
-                                        new int[] {
-                                          doneRuns, totalRuns, Math.max(0, Math.min(100, progress))
-                                        });
+                                            // Fortschritt pro abgeschlossener Iteration
+                                            // aktualisieren
+                                            doneRuns++;
+                                            int progress =
+                                                (int)
+                                                    Math.round(
+                                                        doneRuns * 100.0 / Math.max(1, totalRuns));
+                                            while (nextAutoSavePercent <= 100
+                                                && progress >= nextAutoSavePercent) {
+                                              int marker = nextAutoSavePercent;
+                                              try {
+                                                int savedRows =
+                                                    saveMassRunSnapshot(
+                                                        config, runRows, snapshotSaveLock);
+                                                SwingUtilities.invokeLater(
+                                                    () ->
+                                                        updateMassRunSaveStatus(
+                                                            progressDialog,
+                                                            "Last save: auto "
+                                                                + marker
+                                                                + "% ("
+                                                                + savedRows
+                                                                + " rows)"));
+                                              } catch (Exception saveEx) {
+                                                log.warn("Auto-save at {}% failed", marker, saveEx);
+                                                SwingUtilities.invokeLater(
+                                                    () ->
+                                                        updateMassRunSaveStatus(
+                                                            progressDialog,
+                                                            "Auto-save failed at "
+                                                                + marker
+                                                                + "%: "
+                                                                + saveEx.getMessage()));
+                                              }
+                                              nextAutoSavePercent += 25;
+                                            }
+                                            setProgress(Math.max(0, Math.min(100, progress)));
+                                            publish(
+                                                new MassRunProgressUpdate(
+                                                    doneRuns,
+                                                    totalRuns,
+                                                    Math.max(0, Math.min(100, progress)),
+                                                    currentRunParams));
+                                          }
+                                        }
+                                      }
+                                    }
                                   }
                                 }
                               }
@@ -1073,27 +1189,60 @@ public class TaxiScenarioControl extends AbstractControl {
                   }
                 }
               }
-            }
 
-            // write config file for reproducibility
-            MassRunCsvWriter.OutputFiles csvOutput =
-                MassRunCsvWriter.write(config.outputDir(), runRows);
-            java.nio.file.Path configFile =
-                MassRunCsvWriter.writeConfig(config.outputDir(), config);
-            return new MassRunCsvWriter.OutputFiles(
-                csvOutput.runCsv(), csvOutput.aggregateCsv(), configFile);
+              // write config file for reproducibility
+              List<MassRunCsvWriter.RunMetricRow> finalSnapshot;
+              synchronized (runRows) {
+                finalSnapshot = new ArrayList<>(runRows);
+              }
+              MassRunCsvWriter.OutputFiles csvOutput;
+              java.nio.file.Path configFile;
+              synchronized (snapshotSaveLock) {
+                csvOutput = MassRunCsvWriter.write(config.outputDir(), finalSnapshot);
+                configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
+              }
+              return new MassRunCsvWriter.OutputFiles(
+                  csvOutput.runCsv(), csvOutput.aggregateCsv(), configFile);
+            } catch (Exception ex) {
+              if (!isMassRunTimeoutException(ex)) {
+                throw ex;
+              }
+              try {
+                int savedRows = saveMassRunSnapshot(config, runRows, snapshotSaveLock);
+                throw new IllegalStateException(
+                    ex.getMessage()
+                        + " Partial results were saved to "
+                        + config.outputDir()
+                        + " (rows="
+                        + savedRows
+                        + ").",
+                    ex);
+              } catch (IOException saveEx) {
+                IllegalStateException wrapped =
+                    new IllegalStateException(
+                        ex.getMessage() + " Partial-result save failed: " + saveEx.getMessage(),
+                        ex);
+                wrapped.addSuppressed(saveEx);
+                throw wrapped;
+              }
+            }
           }
 
           @Override
-          protected void process(List<int[]> chunks) {
+          protected void process(List<MassRunProgressUpdate> chunks) {
             if (chunks == null || chunks.isEmpty()) {
               return;
             }
-            int[] last = chunks.get(chunks.size() - 1);
-            if (last == null || last.length < 3) {
+            MassRunProgressUpdate last = chunks.get(chunks.size() - 1);
+            if (last == null) {
               return;
             }
-            updateMassRunProgress(progressDialog, last[2], last[0], last[1]);
+            updateMassRunProgress(
+                progressDialog,
+                last.progressPercent(),
+                last.doneRuns(),
+                last.totalRuns(),
+                last.currentRunParams());
           }
 
           @Override
@@ -1131,11 +1280,14 @@ public class TaxiScenarioControl extends AbstractControl {
       MassRunDialog.MassRunConfig config,
       String algorithmSimpleName,
       int kHops,
+      int requestRepublishTicks,
       int rqsRadius,
       String p2pStrategy,
       int overlayMinNeighbors,
       int overlayMaxNeighbors,
       int overlayShortcuts,
+      int overlayMaxDistanceFactor,
+      int topologyScanTicks,
       String idleRoamingMode,
       String spawnScenario,
       int taxiCount,
@@ -1161,19 +1313,25 @@ public class TaxiScenarioControl extends AbstractControl {
                   de.sikeller.aqs.model.SpawnScenario.fromLabel(spawnScenario).ordinal());
               String executedAlgorithm = simulation.getAlgorithm().get().getClass().getSimpleName();
               String executedStrategy = "n/a";
+              int executedRequestRepublishTicks = -1;
               int executedRqsRadius = -1;
               int executedOverlayMinNeighbors = -1;
               int executedOverlayMaxNeighbors = -1;
               int executedOverlayShortcuts = -1;
+              int executedOverlayMaxDistanceFactor = -1;
+              int executedTopologyScanTicks = -1;
               boolean executedIdleRoamingEnabled = false;
               String executedIdleRoamingStrategy = "n/a";
               String executedIdleRoamingMode = "n/a";
               if (isCollectorAlgorithmName(executedAlgorithm)) {
                 setSpinnerValueIfPresent("p2pRequestForwardHops", kHops);
+                setSpinnerValueIfPresent("p2pRequestRepublishTicks", requestRepublishTicks);
                 setSpinnerValueIfPresent("p2pFixedSearchRadius", rqsRadius);
                 setSpinnerValueIfPresent("p2pOverlayMinNeighbors", overlayMinNeighbors);
                 setSpinnerValueIfPresent("p2pOverlayMaxNeighbors", overlayMaxNeighbors);
                 setSpinnerValueIfPresent("p2pOverlayShortcuts", overlayShortcuts);
+                setSpinnerValueIfPresent("p2pOverlayMaxDistanceFactor", overlayMaxDistanceFactor);
+                setSpinnerValueIfPresent("p2pTopologyScanTicks", topologyScanTicks);
                 String normalizedRoamingMode = normalizedMassRunRoamingMode(idleRoamingMode);
                 boolean idleRoamingEnabled = !"none".equals(normalizedRoamingMode);
                 String idleRoamingStrategy =
@@ -1209,10 +1367,13 @@ public class TaxiScenarioControl extends AbstractControl {
                     "p2pRandomTravelMaxDistanceMeters", config.randomTravelMaxDistanceMeters());
                 // Mass-runs: keep topology scan ticks as configured to ensure proper protocol
                 // behavior.
+                executedRequestRepublishTicks = requestRepublishTicks;
                 executedRqsRadius = rqsRadius;
                 executedOverlayMinNeighbors = overlayMinNeighbors;
                 executedOverlayMaxNeighbors = overlayMaxNeighbors;
                 executedOverlayShortcuts = overlayShortcuts;
+                executedOverlayMaxDistanceFactor = overlayMaxDistanceFactor;
+                executedTopologyScanTicks = topologyScanTicks;
                 executedIdleRoamingEnabled = idleRoamingEnabled;
                 executedIdleRoamingStrategy = idleRoamingEnabled ? idleRoamingStrategy : "none";
                 executedIdleRoamingMode = normalizedRoamingMode;
@@ -1225,10 +1386,13 @@ public class TaxiScenarioControl extends AbstractControl {
                   null,
                   executedAlgorithm,
                   executedStrategy,
+                  executedRequestRepublishTicks,
                   executedRqsRadius,
                   executedOverlayMinNeighbors,
                   executedOverlayMaxNeighbors,
                   executedOverlayShortcuts,
+                  executedOverlayMaxDistanceFactor,
+                  executedTopologyScanTicks,
                   executedIdleRoamingEnabled,
                   executedIdleRoamingStrategy,
                   executedIdleRoamingMode,
@@ -1243,14 +1407,17 @@ public class TaxiScenarioControl extends AbstractControl {
         throw new IllegalStateException(
             String.format(
                 Locale.ROOT,
-                "Mass-run iteration timeout after %d ms (algorithm=%s, kHops=%d, rqsRadius=%d, overlayMinNeighbors=%d, overlayMaxNeighbors=%d, overlayShortcuts=%d, taxiCount=%d, clientCount=%d, taxiSeatCount=%d, seed=%d)",
+                "Mass-run iteration timeout after %d ms (algorithm=%s, kHops=%d, requestRepublishTicks=%d, rqsRadius=%d, overlayMinNeighbors=%d, overlayMaxNeighbors=%d, overlayShortcuts=%d, overlayMaxDistanceFactor=%d, topologyScanTicks=%d, taxiCount=%d, clientCount=%d, taxiSeatCount=%d, seed=%d)",
                 timeoutMs,
                 algorithmSimpleName,
                 kHops,
+                requestRepublishTicks,
                 rqsRadius,
                 overlayMinNeighbors,
                 overlayMaxNeighbors,
                 overlayShortcuts,
+                overlayMaxDistanceFactor,
+                topologyScanTicks,
                 taxiCount,
                 clientCount,
                 taxiSeatCount,
@@ -1267,10 +1434,13 @@ public class TaxiScenarioControl extends AbstractControl {
         table,
         result.executedAlgorithm(),
         result.executedStrategy(),
+        result.executedRequestRepublishTicks(),
         result.executedRqsRadius(),
         result.executedOverlayMinNeighbors(),
         result.executedOverlayMaxNeighbors(),
         result.executedOverlayShortcuts(),
+        result.executedOverlayMaxDistanceFactor(),
+        result.executedTopologyScanTicks(),
         result.executedIdleRoamingEnabled(),
         result.executedIdleRoamingStrategy(),
         result.executedIdleRoamingMode(),
@@ -1427,6 +1597,14 @@ public class TaxiScenarioControl extends AbstractControl {
     return List.of(0);
   }
 
+  private List<Integer> effectiveRequestRepublishTicksForAlgorithm(
+      String algorithmSimpleName, MassRunDialog.MassRunConfig config) {
+    if (isCollectorAlgorithmName(algorithmSimpleName)) {
+      return config.requestRepublishTicksValues();
+    }
+    return List.of(-1);
+  }
+
   private List<Integer> effectiveRqsRadiusForAlgorithm(
       String algorithmSimpleName, MassRunDialog.MassRunConfig config) {
     if (isCollectorAlgorithmName(algorithmSimpleName)) {
@@ -1467,6 +1645,22 @@ public class TaxiScenarioControl extends AbstractControl {
     return List.of(-1);
   }
 
+  private List<Integer> effectiveOverlayMaxDistanceFactorForAlgorithm(
+      String algorithmSimpleName, MassRunDialog.MassRunConfig config) {
+    if (isCollectorAlgorithmName(algorithmSimpleName)) {
+      return config.overlayMaxDistanceFactorValues();
+    }
+    return List.of(-1);
+  }
+
+  private List<Integer> effectiveTopologyScanTicksForAlgorithm(
+      String algorithmSimpleName, MassRunDialog.MassRunConfig config) {
+    if (isCollectorAlgorithmName(algorithmSimpleName)) {
+      return config.topologyScanTicksValues();
+    }
+    return List.of(-1);
+  }
+
   private List<String> effectiveIdleRoamingModesForAlgorithm(
       String algorithmSimpleName, MassRunDialog.MassRunConfig config) {
     if (isCollectorAlgorithmName(algorithmSimpleName)) {
@@ -1494,14 +1688,20 @@ public class TaxiScenarioControl extends AbstractControl {
       ResultTable table,
       String executedAlgorithm,
       String executedStrategy,
+      int executedRequestRepublishTicks,
       int executedRqsRadius,
       int executedOverlayMinNeighbors,
       int executedOverlayMaxNeighbors,
       int executedOverlayShortcuts,
+      int executedOverlayMaxDistanceFactor,
+      int executedTopologyScanTicks,
       boolean executedIdleRoamingEnabled,
       String executedIdleRoamingStrategy,
       String executedIdleRoamingMode,
       String executedSpawnScenario) {}
+
+  private record MassRunProgressUpdate(
+      int doneRuns, int totalRuns, int progressPercent, String currentRunParams) {}
 
   private void setControlsEnabledForMassRun(boolean enabled) {
     for (Component component : buttons.getComponents()) {
@@ -1530,26 +1730,200 @@ public class TaxiScenarioControl extends AbstractControl {
     progressBar.setString("0% (0/0)");
     JLabel counterLabel = new JLabel("Runs: 0 / 0");
     counterLabel.setName("massRunCounterLabel");
+    JTextArea paramsArea = new JTextArea("Current run: -");
+    paramsArea.setName("massRunCurrentParamsArea");
+    paramsArea.setEditable(false);
+    paramsArea.setFocusable(false);
+    paramsArea.setRows(4);
+    paramsArea.setColumns(90);
+    paramsArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+    paramsArea.setLineWrap(true);
+    paramsArea.setWrapStyleWord(true);
+    JScrollPane paramsScroll = new JScrollPane(paramsArea);
+    paramsScroll.setBorder(BorderFactory.createEmptyBorder());
+    paramsScroll.setPreferredSize(new Dimension(880, 90));
+    paramsScroll.setMinimumSize(new Dimension(700, 80));
+    JButton saveNowButton = new JButton("Save now");
+    saveNowButton.setName("massRunSaveNowButton");
+    saveNowButton.setToolTipText("Write current partial mass-run results to CSV immediately.");
+    JLabel saveStatusLabel = new JLabel("Last save: -");
+    saveStatusLabel.setName("massRunSaveStatusLabel");
     dialog.getContentPane().add(new JLabel("Running mass simulation..."), BorderLayout.NORTH);
     dialog.getContentPane().add(progressBar, BorderLayout.CENTER);
-    dialog.getContentPane().add(counterLabel, BorderLayout.SOUTH);
+    JPanel statusPanel = new JPanel(new BorderLayout(0, 6));
+    statusPanel.add(counterLabel, BorderLayout.NORTH);
+    statusPanel.add(paramsScroll, BorderLayout.CENTER);
+    JPanel savePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+    savePanel.add(saveNowButton);
+    savePanel.add(saveStatusLabel);
+    statusPanel.add(savePanel, BorderLayout.SOUTH);
+    dialog.getContentPane().add(statusPanel, BorderLayout.SOUTH);
+    dialog.setPreferredSize(new Dimension(940, 260));
+    dialog.setMinimumSize(new Dimension(760, 220));
     dialog.pack();
+    dialog.setSize(
+        Math.max(dialog.getWidth(), 900),
+        Math.max(dialog.getHeight(), 240));
     dialog.setLocationRelativeTo(this);
     return dialog;
   }
 
-  private void updateMassRunProgress(JDialog dialog, int progress, int doneRuns, int totalRuns) {
+  private void attachMassRunSaveNowAction(JDialog dialog, Runnable action) {
+    if (dialog == null || action == null) {
+      return;
+    }
+    forEachComponent(
+        dialog.getContentPane(),
+        component -> {
+          if (component instanceof JButton button
+              && "massRunSaveNowButton".equals(button.getName())) {
+            button.addActionListener(e -> action.run());
+          }
+        });
+  }
+
+  private void requestManualMassRunSnapshotSave(
+      JDialog dialog,
+      MassRunDialog.MassRunConfig config,
+      List<MassRunCsvWriter.RunMetricRow> runRows,
+      Object snapshotSaveLock,
+      AtomicBoolean manualSaveInProgress) {
+    if (!manualSaveInProgress.compareAndSet(false, true)) {
+      updateMassRunSaveStatus(dialog, "Save already running...");
+      return;
+    }
+    updateMassRunSaveStatus(dialog, "Saving snapshot...");
+    Thread saveThread =
+        new Thread(
+            () -> {
+              try {
+                int savedRows = saveMassRunSnapshot(config, runRows, snapshotSaveLock);
+                SwingUtilities.invokeLater(
+                    () ->
+                        updateMassRunSaveStatus(
+                            dialog, "Last save: manual (" + savedRows + " rows)"));
+              } catch (Exception ex) {
+                log.warn("Manual mass-run snapshot save failed", ex);
+                SwingUtilities.invokeLater(
+                    () ->
+                        updateMassRunSaveStatus(dialog, "Manual save failed: " + ex.getMessage()));
+              } finally {
+                manualSaveInProgress.set(false);
+              }
+            },
+            "mass-run-manual-save");
+    saveThread.setDaemon(true);
+    saveThread.start();
+  }
+
+  private int saveMassRunSnapshot(
+      MassRunDialog.MassRunConfig config,
+      List<MassRunCsvWriter.RunMetricRow> runRows,
+      Object snapshotSaveLock)
+      throws IOException {
+    List<MassRunCsvWriter.RunMetricRow> snapshot;
+    synchronized (runRows) {
+      snapshot = new ArrayList<>(runRows);
+    }
+    synchronized (snapshotSaveLock) {
+      MassRunCsvWriter.write(config.outputDir(), snapshot);
+      MassRunCsvWriter.writeConfig(config.outputDir(), config);
+    }
+    return snapshot.size();
+  }
+
+  private boolean isMassRunTimeoutException(Exception ex) {
+    if (ex == null) {
+      return false;
+    }
+    String message = ex.getMessage();
+    return ex instanceof IllegalStateException
+        && message != null
+        && message.contains("Mass-run iteration timeout");
+  }
+
+  private void updateMassRunProgress(
+      JDialog dialog, int progress, int doneRuns, int totalRuns, String currentRunParams) {
     int safeTotal = Math.max(0, totalRuns);
     int safeDone = Math.max(0, Math.min(doneRuns, safeTotal));
-    for (Component component : dialog.getContentPane().getComponents()) {
-      if (component instanceof JProgressBar progressBar) {
-        progressBar.setValue(progress);
-        progressBar.setString(progress + "% (" + safeDone + "/" + safeTotal + ")");
-      }
-      if (component instanceof JLabel label && "massRunCounterLabel".equals(label.getName())) {
-        label.setText("Runs: " + safeDone + " / " + safeTotal);
-      }
+    forEachComponent(
+        dialog.getContentPane(),
+        component -> {
+          if (component instanceof JProgressBar progressBar) {
+            progressBar.setValue(progress);
+            progressBar.setString(progress + "% (" + safeDone + "/" + safeTotal + ")");
+          }
+          if (component instanceof JLabel label && "massRunCounterLabel".equals(label.getName())) {
+            label.setText("Runs: " + safeDone + " / " + safeTotal);
+          }
+          if (component instanceof JTextArea textArea
+              && "massRunCurrentParamsArea".equals(textArea.getName())) {
+            textArea.setText(
+                "Current run: "
+                    + (currentRunParams == null || currentRunParams.isBlank()
+                        ? "-"
+                        : currentRunParams));
+          }
+        });
+  }
+
+  private void updateMassRunSaveStatus(JDialog dialog, String text) {
+    if (dialog == null) {
+      return;
     }
+    String message = (text == null || text.isBlank()) ? "Last save: -" : text;
+    forEachComponent(
+        dialog.getContentPane(),
+        component -> {
+          if (component instanceof JLabel label
+              && "massRunSaveStatusLabel".equals(label.getName())) {
+            label.setText(message);
+          }
+        });
+  }
+
+  private String formatMassRunParams(
+      String algorithmSimpleName,
+      int runIndex,
+      int runs,
+      int seed,
+      int kHops,
+      int requestRepublishTicks,
+      int rqsRadius,
+      String p2pStrategy,
+      int overlayMinNeighbors,
+      int overlayMaxNeighbors,
+      int overlayShortcuts,
+      int overlayMaxDistanceFactor,
+      int topologyScanTicks,
+      String idleRoamingMode,
+      String spawnScenario,
+      int taxiCount,
+      int clientCount,
+      int taxiSeatCount,
+      int mapSize) {
+    return String.format(
+        Locale.ROOT,
+        "algo=%s | run=%d/%d | seed=%d | k=%d repub=%d rqs=%d | strategy=%s | ovl=%d/%d/%d/%d topo=%d | idle=%s | scenario=%s | taxis=%d clients=%d seats=%d map=%d",
+        algorithmSimpleName,
+        runIndex,
+        runs,
+        seed,
+        kHops,
+        requestRepublishTicks,
+        rqsRadius,
+        p2pStrategy,
+        overlayMinNeighbors,
+        overlayMaxNeighbors,
+        overlayShortcuts,
+        overlayMaxDistanceFactor,
+        topologyScanTicks,
+        idleRoamingMode,
+        spawnScenario,
+        taxiCount,
+        clientCount,
+        taxiSeatCount,
+        mapSize);
   }
 
   private void ensureScrollbarsHaveButtons(Container root) {
@@ -2068,18 +2442,18 @@ public class TaxiScenarioControl extends AbstractControl {
       JLabel idleRoamingStrategyLabel = new JLabel("Roaming strategy");
       idleRoamingStrategyLabel.setName("p2pIdleRoamingStrategyLabel");
       idleTravelGroup.add(idleRoamingStrategyLabel);
-       p2pIdleRoamingStrategyBox = new JComboBox<>();
-       p2pIdleRoamingStrategyBox.setName("p2pIdleRoamingStrategy");
-       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RANDOM);
-       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RETURN_TO_HQ);
-       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAGE_RANK);
-       String idleStrategyDefault =
-           normalizedIdleRoamingStrategy(
-               System.getProperty(
-                   P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM));
-       p2pIdleRoamingStrategyBox.setSelectedItem(idleStrategyDefault);
-       p2pIdleRoamingStrategyBox.setToolTipText(
-           "Idle roaming target strategy: random exploration, return-to-hq (scenario centers), or page-rank (pickup average)");
+      p2pIdleRoamingStrategyBox = new JComboBox<>();
+      p2pIdleRoamingStrategyBox.setName("p2pIdleRoamingStrategy");
+      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RANDOM);
+      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RETURN_TO_HQ);
+      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAGE_RANK);
+      String idleStrategyDefault =
+          normalizedIdleRoamingStrategy(
+              System.getProperty(
+                  P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM));
+      p2pIdleRoamingStrategyBox.setSelectedItem(idleStrategyDefault);
+      p2pIdleRoamingStrategyBox.setToolTipText(
+          "Idle roaming target strategy: random exploration, return-to-hq (scenario centers), or page-rank (pickup average)");
       p2pIdleRoamingStrategyBox.addActionListener(
           e ->
               System.setProperty(
@@ -2520,16 +2894,16 @@ public class TaxiScenarioControl extends AbstractControl {
     return P2P_STRATEGY_GREEDY.equals(key) ? P2P_STRATEGY_GREEDY : P2P_STRATEGY_NEAREST;
   }
 
-   private String normalizedIdleRoamingStrategy(String value) {
-     String key = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
-     if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(key)) {
-       return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
-     }
-     if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(key)) {
-       return IDLE_ROAMING_STRATEGY_PAGE_RANK;
-     }
-     return IDLE_ROAMING_STRATEGY_RANDOM;
-   }
+  private String normalizedIdleRoamingStrategy(String value) {
+    String key = value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(key)) {
+      return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(key)) {
+      return IDLE_ROAMING_STRATEGY_PAGE_RANK;
+    }
+    return IDLE_ROAMING_STRATEGY_RANDOM;
+  }
 
   private boolean isP2PMulticastOctet(String parameterName) {
     return "p2pMulticastA".equals(parameterName)

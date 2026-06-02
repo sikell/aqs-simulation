@@ -25,8 +25,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -48,12 +48,21 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private volatile int cachedReofferMoveDistanceM = DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M;
   private volatile long cachedRequestCacheTtlTicks = DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS;
   private volatile boolean cachedAllowOutsideClientRange = false;
-  /** When true, skip isBestKnownVehicle — collector selects winner from multiple commits. */
-  private volatile boolean embeddedMode = false;
+
+  /**
+   * When true, skip isBestKnownVehicle — collector selects winner from multiple commits. -- SETTER
+   * -- Enable embedded mode: skips isBestKnownVehicle (collector picks winner).
+   */
+  @Setter private volatile boolean embeddedMode = false;
+
   /** Direct commit callback for embedded mode: (requestId, vehicleNodeId, taxiName). */
-  private volatile TriConsumer<String, String, String> directCommitCallback;
-  /** Resolves peer vehicle node IDs to local instances for direct forwarding. */
-  private volatile Function<String, VehicleP2PService> peerResolver;
+  @Setter private volatile TriConsumer<String, String, String> directCommitCallback;
+
+  /**
+   * Resolves peer vehicle node IDs to local instances for direct forwarding. -- SETTER -- Set a
+   * resolver to find peer vehicles for direct forwarding (embedded mode).
+   */
+  @Setter private volatile Function<String, VehicleP2PService> peerResolver;
 
   // Track first-seen tick per requestId for deduplication and eviction
   private final ConcurrentMap<String, Long> seenRideRequests = new ConcurrentHashMap<>();
@@ -67,9 +76,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private volatile long lastCleanupTick = 0L;
   private volatile long lastActivityTick = -1L;
 
-  /**
-   * -- GETTER --
-   */
+  /** -- GETTER -- */
   @Getter private final IdleRoamingController idleRoamingController = new IdleRoamingController();
 
   private volatile int mapMaxX = 0;
@@ -85,40 +92,45 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     idleRoamingController.setSpawnScenario(scenario);
   }
 
-  /** Enable embedded mode: skips isBestKnownVehicle (collector picks winner). */
-  public void setEmbeddedMode(boolean embedded) {
-    this.embeddedMode = embedded;
-  }
-
   @FunctionalInterface
   public interface TriConsumer<A, B, C> {
     void accept(A a, B b, C c);
   }
 
-  public void setDirectCommitCallback(TriConsumer<String, String, String> callback) {
-    this.directCommitCallback = callback;
-  }
-
-  /** Set a resolver to find peer vehicles for direct forwarding (embedded mode). */
-  public void setPeerResolver(Function<String, VehicleP2PService> resolver) {
-    this.peerResolver = resolver;
-  }
-
   /** Refresh cached config from system properties. Call once at init. */
   public void refreshCachedConfig() {
-    cachedCommitLeaseTicks = Math.max(1L,
-        Long.getLong(P2PSystemProperties.VEHICLE_COMMIT_LEASE_TICKS, DEFAULT_VEHICLE_COMMIT_LEASE_TICKS));
-    cachedReofferMinIntervalTicks = Math.max(0L,
-        Long.getLong(P2PSystemProperties.VEHICLE_REOFFER_MIN_INTERVAL_TICKS, DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS));
-    cachedReofferMoveDistanceM = Math.max(1,
-        Integer.getInteger(P2PSystemProperties.VEHICLE_REOFFER_MOVE_DISTANCE_METERS, DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M));
-    cachedRequestCacheTtlTicks = Math.max(1L,
-        Long.getLong(P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS, DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
-    cachedAllowOutsideClientRange = Boolean.parseBoolean(
-        System.getProperty(P2PSystemProperties.VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE, "false"));
+    cachedCommitLeaseTicks =
+        Math.max(
+            1L,
+            Long.getLong(
+                P2PSystemProperties.VEHICLE_COMMIT_LEASE_TICKS,
+                DEFAULT_VEHICLE_COMMIT_LEASE_TICKS));
+    cachedReofferMinIntervalTicks =
+        Math.max(
+            0L,
+            Long.getLong(
+                P2PSystemProperties.VEHICLE_REOFFER_MIN_INTERVAL_TICKS,
+                DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS));
+    cachedReofferMoveDistanceM =
+        Math.max(
+            1,
+            Integer.getInteger(
+                P2PSystemProperties.VEHICLE_REOFFER_MOVE_DISTANCE_METERS,
+                DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M));
+    cachedRequestCacheTtlTicks =
+        Math.max(
+            1L,
+            Long.getLong(
+                P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
+                DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
+    cachedAllowOutsideClientRange =
+        Boolean.parseBoolean(
+            System.getProperty(P2PSystemProperties.VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE, "false"));
     String speedStr = System.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS);
-    cachedAssumedSpeedMps = (speedStr == null || speedStr.isBlank())
-        ? DEFAULT_ASSUMED_SPEED_MPS : Math.max(0.1, Double.parseDouble(speedStr.trim()));
+    cachedAssumedSpeedMps =
+        (speedStr == null || speedStr.isBlank())
+            ? DEFAULT_ASSUMED_SPEED_MPS
+            : Math.max(0.1, Double.parseDouble(speedStr.trim()));
   }
 
   public VehicleP2PService(String nodeId, P2PNetwork network) {
@@ -129,7 +141,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   /** Sends a RIDE_COMMIT to the origin node. */
   private void sendDirectCommit(String targetNodeId, String requestId) {
     String nodeId = descriptor().id();
-    String taxiName = nodeId.startsWith("vehicle-") ? nodeId.substring("vehicle-".length()) : nodeId;
+    String taxiName =
+        nodeId.startsWith("vehicle-") ? nodeId.substring("vehicle-".length()) : nodeId;
 
     var callback = directCommitCallback;
     if (embeddedMode && callback != null) {
@@ -198,9 +211,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
   }
 
-  /**
-   * Direct notification that a ride was assigned (embedded mode).
-   */
+  /** Direct notification that a ride was assigned (embedded mode). */
   public void notifyRideAssigned(String requestId, String winnerVehicleId) {
     if (requestId == null || requestId.isBlank()) {
       return;
@@ -217,10 +228,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   }
 
   /**
-   * Direct ride request delivery for embedded mode. Bypasses P2P message construction
-   * and triggers k-hop forwarding via direct calls to overlay neighbors.
+   * Direct ride request delivery for embedded mode. Bypasses P2P message construction and triggers
+   * k-hop forwarding via direct calls to overlay neighbors.
    */
-  public void deliverRideRequestDirect(String requestId, String originNodeId, Map<String, String> payload) {
+  public void deliverRideRequestDirect(
+      String requestId, String originNodeId, Map<String, String> payload) {
     if (requestId == null || requestId.isBlank()) {
       return;
     }
@@ -261,9 +273,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
   }
 
-  /**
-   * Handles RIDE_ASSIGNED: drops request from queue and frees busy-lease for losers.
-   */
+  /** Handles RIDE_ASSIGNED: drops request from queue and frees busy-lease for losers. */
   private void handleRideAssigned(P2PMessage message) {
     String requestId = message.requestId();
     if (requestId == null || requestId.isBlank()) {
@@ -280,10 +290,13 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       busyUntilTick = 0L;
       log.debug(
           "Vehicle {} released busy-lease (lost requestId={} winner={})",
-          descriptor().id(), requestId, winnerVehicleId);
+          descriptor().id(),
+          requestId,
+          winnerVehicleId);
     } else {
       idleRoamingController.clearAll();
-      log.debug("Vehicle {} received own win announcement requestId={}", descriptor().id(), requestId);
+      log.debug(
+          "Vehicle {} received own win announcement requestId={}", descriptor().id(), requestId);
     }
   }
 
@@ -318,8 +331,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   }
 
   /**
-   * Autonomous commit decision: evaluates fitness and commits.
-   * In embedded mode, isBestKnownVehicle is skipped (collector resolves conflicts).
+   * Autonomous commit decision: evaluates fitness and commits. In embedded mode, isBestKnownVehicle
+   * is skipped (collector resolves conflicts).
    */
   private void commitForRequestIfBest(OpenRideRequest openRequest, String trigger) {
     if (openRequest == null) {
@@ -352,7 +365,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     sendDirectCommit(openRequest.originNodeId, openRequest.requestId);
     log.debug(
         "Vehicle {} autonomously committed requestId={} to origin={} trigger={}",
-        descriptor().id(), openRequest.requestId, openRequest.originNodeId, trigger);
+        descriptor().id(),
+        openRequest.requestId,
+        openRequest.originNodeId,
+        trigger);
   }
 
   private boolean isBestKnownVehicleForRequest(OpenRideRequest openRequest, int selfEtaSeconds) {
@@ -382,8 +398,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       if (peerPosition == null) {
         continue;
       }
-      int peerEtaSeconds = estimateEtaSecondsFromPosition(
-          peerPosition.getX(), peerPosition.getY(), reqX, reqY);
+      int peerEtaSeconds =
+          estimateEtaSecondsFromPosition(peerPosition.getX(), peerPosition.getY(), reqX, reqY);
       if (peerEtaSeconds < bestEtaSeconds
           || (peerEtaSeconds == bestEtaSeconds && neighborId.compareTo(bestNodeId) < 0)) {
         bestEtaSeconds = peerEtaSeconds;
@@ -445,8 +461,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     var strategy = VehicleRequestSelectionStrategies.resolve(strategyKey);
 
     Optional<VehicleRequestCandidate> selectedCandidate =
-        strategy.select(
-            eligibleRequests.stream().map(this::toCandidate).toList());
+        strategy.select(eligibleRequests.stream().map(this::toCandidate).toList());
     if (selectedCandidate.isEmpty()) {
       return null;
     }
@@ -492,8 +507,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
   private void cleanupStaleOpenRequests() {
     long nowTick = currentSimulationTick;
-    openRideRequests.entrySet().removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > cachedRequestCacheTtlTicks);
-    seenRideRequests.entrySet().removeIf(entry -> nowTick - entry.getValue() > cachedRequestCacheTtlTicks);
+    openRideRequests
+        .entrySet()
+        .removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > cachedRequestCacheTtlTicks);
+    seenRideRequests
+        .entrySet()
+        .removeIf(entry -> nowTick - entry.getValue() > cachedRequestCacheTtlTicks);
     if (forwardedPayloadCache.size() > MAX_FORWARDED_PAYLOAD_CACHE_SIZE) {
       forwardedPayloadCache.clear();
     }
@@ -526,8 +545,13 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
     Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X));
     Integer reqY = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_Y));
-    Integer searchRadius = parseNonNegativeIntOrNull(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS));
-    if (reqX == null || reqY == null || searchRadius == null || simulationX == null || simulationY == null) {
+    Integer searchRadius =
+        parseNonNegativeIntOrNull(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS));
+    if (reqX == null
+        || reqY == null
+        || searchRadius == null
+        || simulationX == null
+        || simulationY == null) {
       return true;
     }
 

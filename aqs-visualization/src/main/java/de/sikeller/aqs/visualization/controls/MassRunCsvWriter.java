@@ -21,6 +21,7 @@ final class MassRunCsvWriter {
       ResultTable table,
       String algorithm,
       int kHops,
+      int requestRepublishTicks,
       int rqsRadius,
       int taxiCount,
       int clientCount,
@@ -29,6 +30,8 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      int p2pOverlayMaxDistanceFactor,
+      int p2pTopologyScanTicks,
       boolean idleRoamingEnabled,
       String idleRoamingStrategy,
       String idleRoamingMode,
@@ -52,14 +55,17 @@ final class MassRunCsvWriter {
               timestamp,
               algorithm,
               kHops,
+              requestRepublishTicks,
               rqsRadius,
               taxiCount,
               clientCount,
               taxiSeatCount,
               p2pStrategy,
-               p2pOverlayMinNeighbors,
-               p2pOverlayMaxNeighbors,
-               p2pOverlayShortcuts,
+              p2pOverlayMinNeighbors,
+              p2pOverlayMaxNeighbors,
+              p2pOverlayShortcuts,
+              p2pOverlayMaxDistanceFactor,
+              p2pTopologyScanTicks,
               idleRoamingEnabled,
               idleRoamingStrategy,
               idleRoamingMode,
@@ -103,6 +109,9 @@ final class MassRunCsvWriter {
     props.setProperty("overlayMinNeighbors", config.overlayMinNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     props.setProperty("overlayMaxNeighbors", config.overlayMaxNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     props.setProperty("overlayShortcuts", config.overlayShortcutsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("requestRepublishTicks", config.requestRepublishTicksValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("topologyScanTicks", config.topologyScanTicksValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty("overlayMaxDistanceFactor", config.overlayMaxDistanceFactorValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     props.setProperty("idleRoamingModes", String.join(",", config.idleRoamingModes()));
     if (!config.idleRoamingModes().isEmpty()) {
       String firstMode = config.idleRoamingModes().getFirst();
@@ -145,6 +154,8 @@ final class MassRunCsvWriter {
               + "|"
               + row.kHops()
               + "|"
+              + row.requestRepublishTicks()
+              + "|"
               + row.rqsRadius()
               + "|"
               + row.taxiCount()
@@ -160,6 +171,10 @@ final class MassRunCsvWriter {
               + row.p2pOverlayMaxNeighbors()
               + "|"
               + row.p2pOverlayShortcuts()
+              + "|"
+              + row.p2pOverlayMaxDistanceFactor()
+              + "|"
+              + row.p2pTopologyScanTicks()
               + "|"
               + row.idleRoamingEnabled()
               + "|"
@@ -180,6 +195,7 @@ final class MassRunCsvWriter {
       }
       String algorithm = group.get(0).algorithm();
       int kHops = group.get(0).kHops();
+      int requestRepublishTicks = group.get(0).requestRepublishTicks();
       int rqsRadius = group.get(0).rqsRadius();
       int taxiCount = group.get(0).taxiCount();
       int clientCount = group.get(0).clientCount();
@@ -188,6 +204,8 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors = group.get(0).p2pOverlayMinNeighbors();
       int p2pOverlayMaxNeighbors = group.get(0).p2pOverlayMaxNeighbors();
       int p2pOverlayShortcuts = group.get(0).p2pOverlayShortcuts();
+      int p2pOverlayMaxDistanceFactor = group.get(0).p2pOverlayMaxDistanceFactor();
+      int p2pTopologyScanTicks = group.get(0).p2pTopologyScanTicks();
       boolean idleRoamingEnabled = group.get(0).idleRoamingEnabled();
       String idleRoamingStrategy = group.get(0).idleRoamingStrategy();
       String idleRoamingMode = group.get(0).idleRoamingMode();
@@ -199,14 +217,17 @@ final class MassRunCsvWriter {
           new AggregateMetricRow(
               algorithm,
               kHops,
+              requestRepublishTicks,
               rqsRadius,
               taxiCount,
               clientCount,
               taxiSeatCount,
               p2pStrategy,
-               p2pOverlayMinNeighbors,
-               p2pOverlayMaxNeighbors,
-               p2pOverlayShortcuts,
+              p2pOverlayMinNeighbors,
+              p2pOverlayMaxNeighbors,
+              p2pOverlayShortcuts,
+              p2pOverlayMaxDistanceFactor,
+              p2pTopologyScanTicks,
               idleRoamingEnabled,
               idleRoamingStrategy,
               idleRoamingMode,
@@ -227,21 +248,24 @@ final class MassRunCsvWriter {
   private static void writeRunCsv(Path file, List<RunMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "timestamp,algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
+        "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
     for (RunMetricRow row : rows) {
       lines.add(
           csv(
               row.timestamp(),
               row.algorithm(),
               row.kHops(),
+              row.requestRepublishTicks(),
               row.rqsRadius(),
               row.taxiCount(),
               row.clientCount(),
               row.taxiSeatCount(),
               row.p2pStrategy(),
-               row.p2pOverlayMinNeighbors(),
-               row.p2pOverlayMaxNeighbors(),
-               row.p2pOverlayShortcuts(),
+              row.p2pOverlayMinNeighbors(),
+              row.p2pOverlayMaxNeighbors(),
+              row.p2pOverlayShortcuts(),
+              row.p2pOverlayMaxDistanceFactor(),
+              row.p2pTopologyScanTicks(),
               row.idleRoamingEnabled(),
               row.idleRoamingStrategy(),
               row.idleRoamingMode(),
@@ -262,20 +286,23 @@ final class MassRunCsvWriter {
   private static void writeAggregateCsv(Path file, List<AggregateMetricRow> rows) throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
-        "algorithm,kHops,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
+        "algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
     for (AggregateMetricRow row : rows) {
       lines.add(
           csv(
               row.algorithm(),
               row.kHops(),
+              row.requestRepublishTicks(),
               row.rqsRadius(),
               row.taxiCount(),
               row.clientCount(),
               row.taxiSeatCount(),
               row.p2pStrategy(),
-               row.p2pOverlayMinNeighbors(),
-               row.p2pOverlayMaxNeighbors(),
-               row.p2pOverlayShortcuts(),
+              row.p2pOverlayMinNeighbors(),
+              row.p2pOverlayMaxNeighbors(),
+              row.p2pOverlayShortcuts(),
+              row.p2pOverlayMaxDistanceFactor(),
+              row.p2pTopologyScanTicks(),
               row.idleRoamingEnabled(),
               row.idleRoamingStrategy(),
               row.idleRoamingMode(),
@@ -361,6 +388,7 @@ final class MassRunCsvWriter {
       String timestamp,
       String algorithm,
       int kHops,
+      int requestRepublishTicks,
       int rqsRadius,
       int taxiCount,
       int clientCount,
@@ -369,6 +397,8 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      int p2pOverlayMaxDistanceFactor,
+      int p2pTopologyScanTicks,
       boolean idleRoamingEnabled,
       String idleRoamingStrategy,
       String idleRoamingMode,
@@ -386,6 +416,7 @@ final class MassRunCsvWriter {
   record AggregateMetricRow(
       String algorithm,
       int kHops,
+      int requestRepublishTicks,
       int rqsRadius,
       int taxiCount,
       int clientCount,
@@ -394,6 +425,8 @@ final class MassRunCsvWriter {
       int p2pOverlayMinNeighbors,
       int p2pOverlayMaxNeighbors,
       int p2pOverlayShortcuts,
+      int p2pOverlayMaxDistanceFactor,
+      int p2pTopologyScanTicks,
       boolean idleRoamingEnabled,
       String idleRoamingStrategy,
       String idleRoamingMode,
