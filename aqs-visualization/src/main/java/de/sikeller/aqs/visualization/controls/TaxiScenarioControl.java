@@ -50,7 +50,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String P2P_STRATEGY_GREEDY = "greedy";
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
   private static final String IDLE_ROAMING_STRATEGY_RETURN_TO_HQ = "return-to-hq";
-  private static final String IDLE_ROAMING_STRATEGY_PAGE_RANK = "page-rank";
+  private static final String IDLE_ROAMING_STRATEGY_PAST_AVG = "past-avg";
   private static final String P2P_MULTICAST_GROUP_FIELD = "p2pMulticastGroup";
   private static final Set<String> P2P_PORT_FIELDS = Set.of("p2pTcpPort", "p2pDiscoveryPort");
   private static final Set<String> P2P_CORE_PARAMETERS =
@@ -580,7 +580,7 @@ public class TaxiScenarioControl extends AbstractControl {
             System.getProperty(
                 P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM);
         visualizationProperties.setTaxiPageRankHqPositions(
-            IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(activeRoamingStrategy)
+            IDLE_ROAMING_STRATEGY_PAST_AVG.equals(activeRoamingStrategy)
                 ? provider.getPageRankHqPositions()
                 : Map.of());
       }
@@ -1677,8 +1677,8 @@ public class TaxiScenarioControl extends AbstractControl {
     if ("none".equals(normalized)) {
       return "none";
     }
-    return IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)
-        ? IDLE_ROAMING_STRATEGY_PAGE_RANK
+    return IDLE_ROAMING_STRATEGY_PAST_AVG.equals(normalized)
+        ? IDLE_ROAMING_STRATEGY_PAST_AVG
         : IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(normalized)
             ? IDLE_ROAMING_STRATEGY_RETURN_TO_HQ
             : IDLE_ROAMING_STRATEGY_RANDOM;
@@ -1761,9 +1761,7 @@ public class TaxiScenarioControl extends AbstractControl {
     dialog.setPreferredSize(new Dimension(940, 260));
     dialog.setMinimumSize(new Dimension(760, 220));
     dialog.pack();
-    dialog.setSize(
-        Math.max(dialog.getWidth(), 900),
-        Math.max(dialog.getHeight(), 240));
+    dialog.setSize(Math.max(dialog.getWidth(), 900), Math.max(dialog.getHeight(), 240));
     dialog.setLocationRelativeTo(this);
     return dialog;
   }
@@ -2446,14 +2444,14 @@ public class TaxiScenarioControl extends AbstractControl {
       p2pIdleRoamingStrategyBox.setName("p2pIdleRoamingStrategy");
       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RANDOM);
       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RETURN_TO_HQ);
-      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAGE_RANK);
+      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAST_AVG);
       String idleStrategyDefault =
           normalizedIdleRoamingStrategy(
               System.getProperty(
                   P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM));
       p2pIdleRoamingStrategyBox.setSelectedItem(idleStrategyDefault);
       p2pIdleRoamingStrategyBox.setToolTipText(
-          "Idle roaming target strategy: random exploration, return-to-hq (scenario centers), or page-rank (pickup average)");
+          "Idle roaming target strategy: random exploration, return-to-hq (scenario centers), or past-avg (pickup average)");
       p2pIdleRoamingStrategyBox.addActionListener(
           e ->
               System.setProperty(
@@ -2899,8 +2897,8 @@ public class TaxiScenarioControl extends AbstractControl {
     if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(key)) {
       return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
     }
-    if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(key)) {
-      return IDLE_ROAMING_STRATEGY_PAGE_RANK;
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG.equals(key)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG;
     }
     return IDLE_ROAMING_STRATEGY_RANDOM;
   }

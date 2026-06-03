@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 public class IdleRoamingController {
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
   private static final String IDLE_ROAMING_STRATEGY_RETURN_TO_HQ = "return-to-hq";
-  private static final String IDLE_ROAMING_STRATEGY_PAGE_RANK = "page-rank";
+  private static final String IDLE_ROAMING_STRATEGY_PAST_AVG = "past-avg";
 
   private volatile long lastIdleCheckTick = 0L;
   private volatile long lastIdleTravelPublishTick = 0L;
@@ -71,8 +71,8 @@ public class IdleRoamingController {
   }
 
   /**
-   * Returns the current average pickup position (page-rank HQ) as [x, y], or null if no pickups
-   * have been registered yet.
+   * Returns the current average pickup position (past-avg HQ) as [x, y], or null if no pickups have
+   * been registered yet.
    */
   public int[] getHqPositionSnapshot() {
     return getHqPosition();
@@ -180,7 +180,7 @@ public class IdleRoamingController {
     if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(strategy)) {
       return generateReturnToHqTarget(currentX, currentY, mapMaxX, mapMaxY);
     }
-    if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(strategy)) {
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG.equals(strategy)) {
       return generatePageRankTarget(currentX, currentY, mapMaxX, mapMaxY);
     }
     return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
@@ -197,8 +197,8 @@ public class IdleRoamingController {
     if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(normalized)) {
       return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
     }
-    if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)) {
-      return IDLE_ROAMING_STRATEGY_PAGE_RANK;
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG;
     }
     return IDLE_ROAMING_STRATEGY_RANDOM;
   }
@@ -218,14 +218,14 @@ public class IdleRoamingController {
       int hqX = clampToMapX(hqPos[0], mapMaxX);
       int hqY = clampToMapY(hqPos[1], mapMaxY);
       log.info(
-          "Vehicle returning to page-rank HQ position ({}, {}); computed from {} pickups",
+          "Vehicle returning to past-avg HQ position ({}, {}); computed from {} pickups",
           hqX,
           hqY,
           pickupPositions.size());
       return new Position(hqX, hqY);
     }
     log.info(
-        "No page-rank HQ recorded yet (0 pickups), waiting at spawn point ({}, {})",
+        "No past-avg HQ recorded yet (0 pickups), waiting at spawn point ({}, {})",
         currentX,
         currentY);
     return new Position(currentX, currentY);

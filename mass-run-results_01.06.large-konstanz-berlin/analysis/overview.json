@@ -61,7 +61,7 @@
     "idleRoamingMode": [
       "nan",
       "none",
-      "page-rank",
+      "past-avg",
       "return-to-hq"
     ]
   },

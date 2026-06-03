@@ -20,7 +20,7 @@ public interface P2PStatusProvider {
   }
 
   /**
-   * Returns the current page-rank HQ position per taxi name as [x, y], or an empty map if not
+   * Returns the current past-avg HQ position per taxi name as [x, y], or an empty map if not
    * available.
    */
   default Map<String, int[]> getPageRankHqPositions() {
@@ -46,4 +46,3 @@ public interface P2PStatusProvider {
     return clientToTaxis;
   }
 }
-

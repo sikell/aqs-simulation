@@ -23,12 +23,12 @@ public class VisualizationControl extends AbstractControl {
     controls.setLayout(new GridLayout(0, 2, GAP, GAP));
 
     controls.add(
-            checkBox(
-                    "Enable realtime visualization",
-                    "enableRealTimeVisualization",
-                    "Enable the visualization feature - or disable completely for performance reasons",
-                    properties.isEnableRealtimeVisualization(),
-                    properties::setEnableRealtimeVisualization));
+        checkBox(
+            "Enable realtime visualization",
+            "enableRealTimeVisualization",
+            "Enable the visualization feature - or disable completely for performance reasons",
+            properties.isEnableRealtimeVisualization(),
+            properties::setEnableRealtimeVisualization));
     controls.add(placeholder());
 
     controls.add(label("Scale", "scaleLabel"));
@@ -51,12 +51,12 @@ public class VisualizationControl extends AbstractControl {
             properties::setShowClientPaths));
 
     controls.add(
-            checkBox(
-                    "Show client positions",
-                    "showClientPositions",
-                    "Display the client positions.",
-                    properties.isShowClientPositions(),
-                    properties::setShowClientPositions));
+        checkBox(
+            "Show client positions",
+            "showClientPositions",
+            "Display the client positions.",
+            properties.isShowClientPositions(),
+            properties::setShowClientPositions));
 
     controls.add(
         checkBox(
@@ -114,7 +114,6 @@ public class VisualizationControl extends AbstractControl {
             properties.isShowTime(),
             properties::setShowTime));
 
-
     showP2PRqsRangeCheckBox =
         checkBox(
             "Show RQS range overlay",
@@ -142,9 +141,9 @@ public class VisualizationControl extends AbstractControl {
 
     controls.add(
         checkBox(
-            "Show page-rank HQ markers",
+            "Show past-avg HQ markers",
             "showPageRankHq",
-            "Display the average pickup position (page-rank HQ) for each taxi as a small triangle.",
+            "Display the average pickup position (past-avg HQ) for each taxi as a small triangle.",
             properties.isShowPageRankHq(),
             properties::setShowPageRankHq));
 

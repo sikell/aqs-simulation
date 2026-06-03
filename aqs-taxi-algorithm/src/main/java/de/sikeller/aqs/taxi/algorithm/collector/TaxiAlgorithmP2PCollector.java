@@ -91,7 +91,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       "aqs.p2p.vehicle.idleRoamingStrategy";
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
   private static final String IDLE_ROAMING_STRATEGY_RETURN_TO_HQ = "return-to-hq";
-  private static final String IDLE_ROAMING_STRATEGY_PAGE_RANK = "page-rank";
+  private static final String IDLE_ROAMING_STRATEGY_PAST_AVG = "past-avg";
   private static final String EMBEDDED_MODE_PROPERTY = "p2pEmbeddedSimulation";
   private static final String STATUS_MODE = "mode";
   private static final String STATUS_COLLECTOR_NODE = "collectorNode";
@@ -321,9 +321,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         localClientNode.runtimeStatus().asLogLine());
   }
 
-  /**
-   * Triggers idle travel checks on local vehicle nodes and applies targets to World taxis.
-   */
+  /** Triggers idle travel checks on local vehicle nodes and applies targets to World taxis. */
   private void applyIdleTravelTargets(World world) {
     Map<String, Taxi> taxiByName =
         world.getTaxis().stream().collect(Collectors.toMap(Taxi::getName, t -> t, (a, b) -> a));
@@ -380,7 +378,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     List<String> assignedClients = new ArrayList<>();
     List<Client> waitingClientList = new ArrayList<>(waitingClients);
     List<AssignmentCandidate> candidates =
-        prepareAssignmentCandidates(waitingClientList, shouldPrepareAssignmentsInParallel(waitingClientList.size()));
+        prepareAssignmentCandidates(
+            waitingClientList, shouldPrepareAssignmentsInParallel(waitingClientList.size()));
     for (AssignmentCandidate candidate : candidates) {
       TaxiCollectorRuntimeState.PendingRequest pending = candidate.pending();
       Client client = candidate.client();
@@ -413,7 +412,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   private List<AssignmentCandidate> prepareAssignmentCandidates(
       List<Client> waitingClients, boolean parallel) {
-    java.util.stream.Stream<Client> stream = parallel ? waitingClients.parallelStream() : waitingClients.stream();
+    java.util.stream.Stream<Client> stream =
+        parallel ? waitingClients.parallelStream() : waitingClients.stream();
     return stream
         .map(
             client -> {
@@ -472,8 +472,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(normalized)) {
       return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
     }
-    if (IDLE_ROAMING_STRATEGY_PAGE_RANK.equals(normalized)) {
-      return IDLE_ROAMING_STRATEGY_PAGE_RANK;
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG;
     }
     return IDLE_ROAMING_STRATEGY_RANDOM;
   }
@@ -556,9 +556,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     return localVehicleNodesByTaxiName.get(taxiName);
   }
 
-  /**
-   * Handles a direct commit from an embedded vehicle.
-   */
+  /** Handles a direct commit from an embedded vehicle. */
   private void handleDirectCommit(String requestId, String vehicleNodeId, String taxiName) {
     if (requestId == null || requestId.isBlank() || vehicleNodeId == null) {
       return;
@@ -571,7 +569,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     if (pending == null) {
       return;
     }
-    if (pending.committedVehicleNodeId() != null && !pending.committedVehicleNodeId().equals(vehicleNodeId)) {
+    if (pending.committedVehicleNodeId() != null
+        && !pending.committedVehicleNodeId().equals(vehicleNodeId)) {
       return;
     }
     registerTaxiKnowledge(vehicleNodeId, pending.clientName());
@@ -912,7 +911,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     if (vehicleNode != null) {
       vehicleNode.getIdleRoamingController().registerPickupPosition(pickupX, pickupY);
       log.info(
-          "[P2P-COLLECTOR] Registered page-rank pickup position ({}, {}) for vehicleNodeId={} taxiName={}",
+          "[P2P-COLLECTOR] Registered past-avg pickup position ({}, {}) for vehicleNodeId={} taxiName={}",
           pickupX,
           pickupY,
           vehicleNodeId,

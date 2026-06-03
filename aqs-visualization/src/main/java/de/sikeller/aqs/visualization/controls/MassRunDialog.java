@@ -64,7 +64,8 @@ final class MassRunDialog extends JDialog {
 
   private MassRunDialog(Component parent, List<String> availableAlgorithms, Defaults defaults) {
     super(JOptionPane.getFrameForComponent(parent), "Mass Run", true);
-    this.availableAlgorithms = availableAlgorithms == null ? List.of() : List.copyOf(availableAlgorithms);
+    this.availableAlgorithms =
+        availableAlgorithms == null ? List.of() : List.copyOf(availableAlgorithms);
 
     JPanel content = new JPanel();
     content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
@@ -117,7 +118,8 @@ final class MassRunDialog extends JDialog {
     idleRoamingModesField = new JTextField(defaults.idleRoamingModesCsv());
     idleThresholdField = new JTextField(String.valueOf(defaults.idleThresholdTicks()));
     idleCheckThrottleField = new JTextField(String.valueOf(defaults.idleCheckThrottleTicks()));
-    randomTravelMaxDistanceField = new JTextField(String.valueOf(defaults.randomTravelMaxDistanceMeters()));
+    randomTravelMaxDistanceField =
+        new JTextField(String.valueOf(defaults.randomTravelMaxDistanceMeters()));
     addRow(collectorPanel, "k-Hops (CSV)", kHopsField);
     addRow(collectorPanel, "RQS radius (CSV)", rqsRadiusField);
     addRow(collectorPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
@@ -126,7 +128,10 @@ final class MassRunDialog extends JDialog {
     addRow(collectorPanel, "Request republish ticks (CSV)", requestRepublishTicksField);
     addRow(collectorPanel, "Topology scan ticks (CSV)", topologyScanTicksField);
     addRow(collectorPanel, "Overlay max distance factor (CSV)", overlayMaxDistanceFactorField);
-    addRow(collectorPanel, "Idle roaming mode (CSV: none,random,return-to-hq,page-rank)", idleRoamingModesField);
+    addRow(
+        collectorPanel,
+        "Idle roaming mode (CSV: none,random,return-to-hq,past-avg)",
+        idleRoamingModesField);
     addRow(collectorPanel, "Idle threshold [ticks]", idleThresholdField);
     addRow(collectorPanel, "Idle check throttle [ticks]", idleCheckThrottleField);
     addRow(collectorPanel, "Random travel max distance [m]", randomTravelMaxDistanceField);
@@ -252,7 +257,8 @@ final class MassRunDialog extends JDialog {
       List<Integer> clientCounts = parseCsvIntList(clientCountsField.getText(), 1, "client count");
       int clientSpawnWindow = parseInt(clientSpawnWindowField.getText(), 0);
       int clientSpeed = parseInt(clientSpeedField.getText(), 0);
-      List<Integer> taxiSeatCounts = parseCsvInts(taxiSeatCountsField.getText(), 1, "taxi seat count");
+      List<Integer> taxiSeatCounts =
+          parseCsvInts(taxiSeatCountsField.getText(), 1, "taxi seat count");
       int taxiSpeed = parseInt(taxiSpeedField.getText(), 1);
       int simulationSpeed = parseInt(simulationSpeedField.getText(), 1);
       List<Integer> mapSizes = parseCsvIntList(mapSizeField.getText(), 1, "map size");
@@ -271,7 +277,8 @@ final class MassRunDialog extends JDialog {
       if (mapSizes.size() != 1 && mapSizes.size() != taxiCounts.size()) {
         throw new IllegalArgumentException(
             "Map sizes must be either a single value (used for all pairs) or pairwise with taxi/client counts ("
-                + taxiCounts.size() + " entries expected)");
+                + taxiCounts.size()
+                + " entries expected)");
       }
 
       result =
@@ -304,7 +311,8 @@ final class MassRunDialog extends JDialog {
               randomTravelMaxDistance);
       dispose();
     } catch (Exception ex) {
-      JOptionPane.showMessageDialog(this, ex.getMessage(), "Invalid mass run config", JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(
+          this, ex.getMessage(), "Invalid mass run config", JOptionPane.ERROR_MESSAGE);
     }
   }
 
@@ -313,7 +321,8 @@ final class MassRunDialog extends JDialog {
       String text = serializeConfig();
       Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
     } catch (Exception ex) {
-      JOptionPane.showMessageDialog(this, "Failed to copy config: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(
+          this, "Failed to copy config: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
     }
   }
 
@@ -325,20 +334,30 @@ final class MassRunDialog extends JDialog {
       }
       applyConfig(text);
     } catch (Exception ex) {
-      JOptionPane.showMessageDialog(this, "Failed to paste config: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(
+          this, "Failed to paste config: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
     }
   }
 
   String serializeConfig() {
     Properties props = new Properties();
     List<String> checkedAlgos = new ArrayList<>();
-    algorithmChecks.forEach((k, v) -> { if (v.isSelected()) checkedAlgos.add(k); });
+    algorithmChecks.forEach(
+        (k, v) -> {
+          if (v.isSelected()) checkedAlgos.add(k);
+        });
     props.setProperty("algorithms", String.join(",", checkedAlgos));
     List<String> checkedStrategies = new ArrayList<>();
-    strategyChecks.forEach((k, v) -> { if (v.isSelected()) checkedStrategies.add(k); });
+    strategyChecks.forEach(
+        (k, v) -> {
+          if (v.isSelected()) checkedStrategies.add(k);
+        });
     props.setProperty("p2pStrategies", String.join(",", checkedStrategies));
     List<String> checkedScenarios = new ArrayList<>();
-    spawnScenarioChecks.forEach((k, v) -> { if (v.isSelected()) checkedScenarios.add(k); });
+    spawnScenarioChecks.forEach(
+        (k, v) -> {
+          if (v.isSelected()) checkedScenarios.add(k);
+        });
     props.setProperty("spawnScenarios", String.join(",", checkedScenarios));
     props.setProperty("kHops", kHopsField.getText());
     props.setProperty("rqsRadius", rqsRadiusField.getText());
@@ -377,7 +396,8 @@ final class MassRunDialog extends JDialog {
     try {
       props.load(new StringReader(configText));
     } catch (IOException e) {
-      JOptionPane.showMessageDialog(this, "Failed to parse config: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+      JOptionPane.showMessageDialog(
+          this, "Failed to parse config: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
       return;
     }
     Set<String> algos = parseCsvStringsOrEmpty(props.getProperty("algorithms", ""));
@@ -452,7 +472,8 @@ final class MassRunDialog extends JDialog {
     for (Map.Entry<String, JCheckBox> entry : spawnScenarioChecks.entrySet()) {
       if (entry.getValue().isSelected()) selected.add(entry.getKey());
     }
-    if (selected.isEmpty()) throw new IllegalArgumentException("Select at least one spawn scenario");
+    if (selected.isEmpty())
+      throw new IllegalArgumentException("Select at least one spawn scenario");
     return selected;
   }
 
@@ -475,7 +496,8 @@ final class MassRunDialog extends JDialog {
       String trimmed = part.trim();
       if (!trimmed.isBlank()) values.add(Math.max(min, parseIntToken(trimmed, label)));
     }
-    if (values.isEmpty()) throw new IllegalArgumentException("At least one " + label + " value is required");
+    if (values.isEmpty())
+      throw new IllegalArgumentException("At least one " + label + " value is required");
     return new ArrayList<>(values);
   }
 
@@ -485,15 +507,17 @@ final class MassRunDialog extends JDialog {
       String trimmed = part.trim();
       if (!trimmed.isBlank()) values.add(Math.max(min, parseIntToken(trimmed, label)));
     }
-    if (values.isEmpty()) throw new IllegalArgumentException("At least one " + label + " value is required");
+    if (values.isEmpty())
+      throw new IllegalArgumentException("At least one " + label + " value is required");
     return values;
   }
 
   private static int parseIntToken(String token, String label) {
     if (token == null) throw new IllegalArgumentException("Invalid " + label + " value: null");
     String n = token.trim();
-    if (n.equalsIgnoreCase("INF") || n.equalsIgnoreCase("MAX") || n.equalsIgnoreCase("Integer.MAX_VALUE"))
-      return Integer.MAX_VALUE;
+    if (n.equalsIgnoreCase("INF")
+        || n.equalsIgnoreCase("MAX")
+        || n.equalsIgnoreCase("Integer.MAX_VALUE")) return Integer.MAX_VALUE;
     return Integer.parseInt(n);
   }
 
@@ -518,8 +542,8 @@ final class MassRunDialog extends JDialog {
     if ("return-to-hq".equals(normalized)) {
       return "return-to-hq";
     }
-    if ("page-rank".equals(normalized)) {
-      return "page-rank";
+    if ("past-avg".equals(normalized)) {
+      return "past-avg";
     }
     return "random";
   }
