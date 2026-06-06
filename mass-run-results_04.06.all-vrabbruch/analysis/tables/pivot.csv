@@ -1,0 +1,62 @@
+variant_k,kHops,spawnScenario,taxiCount,taxiSeatCount,p2pRqsRadius,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,idleRoamingMode,Calculation Time [millis],Client Travel Time [min],Client Waiting Time [min],Simulation Time [millis],Taxi Travel Distance [km]
+P2PCollector+nearest (k=0),0,BASELINE,60,1,1000,1,4,0,past-avg,0.03,328.45,1.56,0.04,135.03
+P2PCollector+nearest (k=0),0,BASELINE,60,1,2000,1,4,0,past-avg,0.01,306.81,1.17,0.01,116.49
+P2PCollector+nearest (k=0),0,BASELINE,600,1,1000,1,4,0,past-avg,0.2,266.64,0.53,0.29,105.28
+P2PCollector+nearest (k=0),0,BASELINE,600,1,2000,1,4,0,past-avg,0.18,295.42,1.01,0.27,101.03
+P2PCollector+nearest (k=0),0,BASELINE,2750,1,1000,1,4,0,past-avg,8.81,761.37,0.99,9.56,285.55
+P2PCollector+nearest (k=0),0,BASELINE,2750,1,2000,1,4,0,past-avg,4.24,765.1,1.03,4.83,251.02
+P2PCollector+nearest (k=0),0,RUSH_HOUR,60,1,1000,1,4,0,past-avg,0.02,386.56,2.56,0.03,122.1
+P2PCollector+nearest (k=0),0,RUSH_HOUR,60,1,2000,1,4,0,past-avg,0.01,298.91,1.12,0.01,111.86
+P2PCollector+nearest (k=0),0,RUSH_HOUR,600,1,1000,1,4,0,past-avg,0.17,266.29,0.53,0.27,102.98
+P2PCollector+nearest (k=0),0,RUSH_HOUR,600,1,2000,1,4,0,past-avg,0.2,295.98,1.03,0.3,103.13
+P2PCollector+nearest (k=0),0,RUSH_HOUR,2750,1,1000,1,4,0,past-avg,19.01,951.94,4.35,19.66,231.42
+P2PCollector+nearest (k=0),0,RUSH_HOUR,2750,1,2000,1,4,0,past-avg,9.57,814.21,1.95,10.22,232.35
+P2PCollector+nearest (k=0),0,SPATIAL_IMBALANCE,60,1,1000,1,4,0,past-avg,0.02,279.13,1.31,0.02,117.45
+P2PCollector+nearest (k=0),0,SPATIAL_IMBALANCE,60,1,2000,1,4,0,past-avg,0.0,265.6,1.06,0.01,102.93
+P2PCollector+nearest (k=0),0,SPATIAL_IMBALANCE,600,1,1000,1,4,0,past-avg,0.17,232.69,0.53,0.26,99.29
+P2PCollector+nearest (k=0),0,SPATIAL_IMBALANCE,600,1,2000,1,4,0,past-avg,0.18,264.21,1.06,0.28,98.9
+P2PCollector+nearest (k=0),0,SPATIAL_IMBALANCE,2750,1,1000,1,4,0,past-avg,10.18,666.75,1.16,11.09,247.43
+P2PCollector+nearest (k=0),0,SPATIAL_IMBALANCE,2750,1,2000,1,4,0,past-avg,4.74,665.77,1.12,5.33,229.7
+P2PCollector+nearest (k=0),0,SPATIAL_ISLANDS,60,1,1000,1,4,0,past-avg,0.02,304.93,1.37,0.03,127.11
+P2PCollector+nearest (k=0),0,SPATIAL_ISLANDS,60,1,2000,1,4,0,past-avg,0.0,292.66,1.13,0.01,117.06
+P2PCollector+nearest (k=0),0,SPATIAL_ISLANDS,600,1,1000,1,4,0,past-avg,0.24,257.35,0.56,0.34,118.01
+P2PCollector+nearest (k=0),0,SPATIAL_ISLANDS,600,1,2000,1,4,0,past-avg,0.18,290.75,1.12,0.28,112.94
+P2PCollector+nearest (k=0),0,SPATIAL_ISLANDS,2750,1,1000,1,4,0,past-avg,190.79,3279.18,45.4,191.74,215.01
+P2PCollector+nearest (k=0),0,SPATIAL_ISLANDS,2750,1,2000,1,4,0,past-avg,144.71,2709.28,35.27,145.58,224.36
+P2PCollector+nearest (k=1),1,BASELINE,60,1,1000,1,4,0,past-avg,0.02,328.45,1.56,0.03,135.03
+P2PCollector+nearest (k=1),1,BASELINE,60,1,2000,1,4,0,past-avg,0.01,306.81,1.17,0.01,116.49
+P2PCollector+nearest (k=1),1,BASELINE,600,1,1000,1,4,0,past-avg,0.47,266.71,0.53,0.56,105.89
+P2PCollector+nearest (k=1),1,BASELINE,600,1,2000,1,4,0,past-avg,1.16,295.32,1.0,1.25,101.16
+P2PCollector+nearest (k=1),1,BASELINE,2750,1,1000,1,4,0,past-avg,12.33,761.9,1.0,13.05,286.35
+P2PCollector+nearest (k=1),1,BASELINE,2750,1,2000,1,4,0,past-avg,14.55,765.14,1.03,15.16,251.46
+P2PCollector+nearest (k=1),1,RUSH_HOUR,60,1,1000,1,4,0,past-avg,0.02,393.61,2.68,0.03,122.35
+P2PCollector+nearest (k=1),1,RUSH_HOUR,60,1,2000,1,4,0,past-avg,0.01,298.63,1.12,0.01,110.78
+P2PCollector+nearest (k=1),1,RUSH_HOUR,600,1,1000,1,4,0,past-avg,0.46,266.47,0.53,0.55,103.27
+P2PCollector+nearest (k=1),1,RUSH_HOUR,600,1,2000,1,4,0,past-avg,1.09,296.05,1.03,1.18,102.95
+P2PCollector+nearest (k=1),1,RUSH_HOUR,2750,1,1000,1,4,0,past-avg,21.06,947.47,4.28,21.68,232.28
+P2PCollector+nearest (k=1),1,RUSH_HOUR,2750,1,2000,1,4,0,past-avg,16.45,820.36,2.06,17.05,232.3
+P2PCollector+nearest (k=1),1,SPATIAL_IMBALANCE,60,1,1000,1,4,0,past-avg,0.02,279.13,1.31,0.02,117.45
+P2PCollector+nearest (k=1),1,SPATIAL_IMBALANCE,60,1,2000,1,4,0,past-avg,0.01,267.72,1.09,0.01,102.67
+P2PCollector+nearest (k=1),1,SPATIAL_IMBALANCE,600,1,1000,1,4,0,past-avg,0.57,232.73,0.53,0.66,99.67
+P2PCollector+nearest (k=1),1,SPATIAL_IMBALANCE,600,1,2000,1,4,0,past-avg,1.55,264.39,1.06,1.65,99.43
+P2PCollector+nearest (k=1),1,SPATIAL_IMBALANCE,2750,1,1000,1,4,0,past-avg,12.7,666.73,1.16,13.36,246.98
+P2PCollector+nearest (k=1),1,SPATIAL_IMBALANCE,2750,1,2000,1,4,0,past-avg,16.93,666.77,1.14,17.53,229.75
+P2PCollector+nearest (k=1),1,SPATIAL_ISLANDS,60,1,1000,1,4,0,past-avg,0.02,304.81,1.37,0.02,126.19
+P2PCollector+nearest (k=1),1,SPATIAL_ISLANDS,60,1,2000,1,4,0,past-avg,0.01,292.66,1.13,0.01,117.06
+P2PCollector+nearest (k=1),1,SPATIAL_ISLANDS,600,1,1000,1,4,0,past-avg,0.45,257.48,0.56,0.54,117.64
+P2PCollector+nearest (k=1),1,SPATIAL_ISLANDS,600,1,2000,1,4,0,past-avg,1.36,290.38,1.11,1.45,113.19
+P2PCollector+nearest (k=1),1,SPATIAL_ISLANDS,2750,1,1000,1,4,0,past-avg,186.92,3253.04,44.93,187.81,215.39
+P2PCollector+nearest (k=1),1,SPATIAL_ISLANDS,2750,1,2000,1,4,0,past-avg,140.78,2656.06,34.3,141.63,225.87
+SinglePassenger,0,BASELINE,60,1,-1,-1,-1,-1,nan,0.0,283.35,0.78,0.01,83.52
+SinglePassenger,0,BASELINE,600,1,-1,-1,-1,-1,nan,0.06,249.18,0.24,0.15,73.34
+SinglePassenger,0,BASELINE,2750,1,-1,-1,-1,-1,nan,0.5,725.07,0.37,0.95,175.28
+SinglePassenger,0,RUSH_HOUR,60,1,-1,-1,-1,-1,nan,0.0,278.12,0.77,0.01,81.93
+SinglePassenger,0,RUSH_HOUR,600,1,-1,-1,-1,-1,nan,0.06,250.33,0.26,0.14,73.56
+SinglePassenger,0,RUSH_HOUR,2750,1,-1,-1,-1,-1,nan,0.49,2740.05,33.78,0.98,157.08
+SinglePassenger,0,SPATIAL_IMBALANCE,60,1,-1,-1,-1,-1,nan,0.0,295.97,1.56,0.01,87.26
+SinglePassenger,0,SPATIAL_IMBALANCE,600,1,-1,-1,-1,-1,nan,0.07,287.31,1.44,0.17,84.68
+SinglePassenger,0,SPATIAL_IMBALANCE,2750,1,-1,-1,-1,-1,nan,0.5,848.11,4.16,0.95,205.2
+SinglePassenger,0,SPATIAL_ISLANDS,60,1,-1,-1,-1,-1,nan,0.0,336.88,1.86,0.01,99.43
+SinglePassenger,0,SPATIAL_ISLANDS,600,1,-1,-1,-1,-1,nan,0.06,327.26,1.73,0.15,96.53
+SinglePassenger,0,SPATIAL_ISLANDS,2750,1,-1,-1,-1,-1,nan,0.49,972.17,5.05,0.97,235.3
+VehicleRouting,0,BASELINE,60,1,-1,-1,-1,-1,nan,0.74,298.83,2.96,0.74,84.28
