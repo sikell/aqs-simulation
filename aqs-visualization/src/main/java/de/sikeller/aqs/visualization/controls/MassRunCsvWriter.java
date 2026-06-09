@@ -129,6 +129,7 @@ final class MassRunCsvWriter {
     props.setProperty("idleThresholdTicks", String.valueOf(config.idleThresholdTicks()));
     props.setProperty("idleCheckThrottleTicks", String.valueOf(config.idleCheckThrottleTicks()));
     props.setProperty("randomTravelMaxDistanceMeters", String.valueOf(config.randomTravelMaxDistanceMeters()));
+    props.setProperty("seenClientTtlTicks", String.valueOf(config.seenClientTtlTicks()));
     props.setProperty("runs", String.valueOf(config.runs()));
     props.setProperty("baseSeed", String.valueOf(config.baseSeed()));
     props.setProperty("outputDir", config.outputDir());

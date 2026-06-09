@@ -60,6 +60,7 @@ final class MassRunDialog extends JDialog {
   private final JTextField idleThresholdField;
   private final JTextField idleCheckThrottleField;
   private final JTextField randomTravelMaxDistanceField;
+  private final JTextField seenClientTtlField;
   private MassRunConfig result;
 
   private MassRunDialog(Component parent, List<String> availableAlgorithms, Defaults defaults) {
@@ -120,6 +121,7 @@ final class MassRunDialog extends JDialog {
     idleCheckThrottleField = new JTextField(String.valueOf(defaults.idleCheckThrottleTicks()));
     randomTravelMaxDistanceField =
         new JTextField(String.valueOf(defaults.randomTravelMaxDistanceMeters()));
+    seenClientTtlField = new JTextField(String.valueOf(defaults.seenClientTtlTicks()));
     addRow(collectorPanel, "k-Hops (CSV)", kHopsField);
     addRow(collectorPanel, "RQS radius (CSV)", rqsRadiusField);
     addRow(collectorPanel, "Overlay min neighbors (CSV)", overlayMinNeighborsField);
@@ -130,11 +132,12 @@ final class MassRunDialog extends JDialog {
     addRow(collectorPanel, "Overlay max distance factor (CSV)", overlayMaxDistanceFactorField);
     addRow(
         collectorPanel,
-        "Idle roaming mode (CSV: none,random,return-to-hq,past-avg)",
+        "Idle roaming mode (CSV: none,random,return-to-hq,past-avg,past-avg-total,past-avg-revisit)",
         idleRoamingModesField);
     addRow(collectorPanel, "Idle threshold [ticks]", idleThresholdField);
     addRow(collectorPanel, "Idle check throttle [ticks]", idleCheckThrottleField);
     addRow(collectorPanel, "Random travel max distance [m]", randomTravelMaxDistanceField);
+    addRow(collectorPanel, "Seen client TTL [ticks]", seenClientTtlField);
 
     content.add(selectionPanel);
     content.add(runPanel);
@@ -266,6 +269,7 @@ final class MassRunDialog extends JDialog {
       int idleThresholdTicks = parseInt(idleThresholdField.getText(), 1);
       int idleCheckThrottleTicks = parseInt(idleCheckThrottleField.getText(), 1);
       int randomTravelMaxDistance = parseInt(randomTravelMaxDistanceField.getText(), 1);
+      int seenClientTtlTicks = parseInt(seenClientTtlField.getText(), 1);
 
       if (outputDir.isBlank()) {
         throw new IllegalArgumentException("Output dir must not be blank");
@@ -308,7 +312,8 @@ final class MassRunDialog extends JDialog {
               idleRoamingModes,
               idleThresholdTicks,
               idleCheckThrottleTicks,
-              randomTravelMaxDistance);
+              randomTravelMaxDistance,
+              seenClientTtlTicks);
       dispose();
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(
@@ -371,6 +376,7 @@ final class MassRunDialog extends JDialog {
     props.setProperty("idleThresholdTicks", idleThresholdField.getText());
     props.setProperty("idleCheckThrottleTicks", idleCheckThrottleField.getText());
     props.setProperty("randomTravelMaxDistanceMeters", randomTravelMaxDistanceField.getText());
+    props.setProperty("seenClientTtlTicks", seenClientTtlField.getText());
     props.setProperty("runs", runsField.getText());
     props.setProperty("baseSeed", baseSeedField.getText());
     props.setProperty("outputDir", outputDirField.getText());
@@ -439,6 +445,7 @@ final class MassRunDialog extends JDialog {
     setFieldIfPresent(idleThresholdField, props, "idleThresholdTicks");
     setFieldIfPresent(idleCheckThrottleField, props, "idleCheckThrottleTicks");
     setFieldIfPresent(randomTravelMaxDistanceField, props, "randomTravelMaxDistanceMeters");
+    setFieldIfPresent(seenClientTtlField, props, "seenClientTtlTicks");
     setFieldIfPresent(runsField, props, "runs");
     setFieldIfPresent(baseSeedField, props, "baseSeed");
     setFieldIfPresent(outputDirField, props, "outputDir");
@@ -536,16 +543,18 @@ final class MassRunDialog extends JDialog {
       return "random";
     }
     String normalized = value.trim().toLowerCase();
-    if ("none".equals(normalized)) {
-      return "none";
-    }
-    if ("return-to-hq".equals(normalized)) {
-      return "return-to-hq";
-    }
-    if ("past-avg".equals(normalized)) {
-      return "past-avg";
-    }
-    return "random";
+    return switch (normalized) {
+      case "none" -> "none";
+      case "random" -> "random";
+      case "return-to-hq" -> "return-to-hq";
+      case "past-avg" -> "past-avg";
+      case "past-avg-total" -> "past-avg-total";
+      case "past-avg-revisit" -> "past-avg-revisit";
+
+      // Legacy support: page-rank is now past-avg
+      case "page-rank" -> "past-avg";
+      default -> "random";
+    };
   }
 
   private static List<String> parseIdleRoamingModes(String csv) {
@@ -601,7 +610,8 @@ final class MassRunDialog extends JDialog {
       String idleRoamingModesCsv,
       int idleThresholdTicks,
       int idleCheckThrottleTicks,
-      int randomTravelMaxDistanceMeters) {}
+      int randomTravelMaxDistanceMeters,
+      int seenClientTtlTicks) {}
 
   record MassRunConfig(
       List<String> algorithms,
@@ -629,5 +639,6 @@ final class MassRunDialog extends JDialog {
       List<String> idleRoamingModes,
       int idleThresholdTicks,
       int idleCheckThrottleTicks,
-      int randomTravelMaxDistanceMeters) {}
+      int randomTravelMaxDistanceMeters,
+      int seenClientTtlTicks) {}
 }

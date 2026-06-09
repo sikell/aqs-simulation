@@ -338,8 +338,32 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (openRequest == null) {
       return;
     }
-    boolean inRange = shouldOffer(openRequest.payload);
-    if (isVehicleBusy() || !inRange) {
+    log.debug(
+        "Vehicle {} evaluating commit requestId={} trigger={} busy={} payload={}",
+        descriptor().id(),
+        openRequest.requestId,
+        trigger,
+        isVehicleBusy(),
+        openRequest.payload);
+    if (isVehicleBusy() || !shouldOffer(openRequest.payload)) {
+      log.debug(
+          "Vehicle {} skipping requestId={} (busy={} inRange={})",
+          descriptor().id(),
+          openRequest.requestId,
+          isVehicleBusy(),
+          shouldOffer(openRequest.payload));
+      // Register out-of-range clients as "seen but not served" for past-avg-total / past-avg-revisit.
+      // (Busy case is already registered in commitForRequestIfPossible before reaching here.)
+      if (!isVehicleBusy()) {
+        String rawX = openRequest.payload.get(P2PPayloadKeys.REQUEST_X);
+        String rawY = openRequest.payload.get(P2PPayloadKeys.REQUEST_Y);
+        if (rawX != null && rawY != null) {
+          try {
+            idleRoamingController.registerSeenClientPosition(
+                Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
+          } catch (NumberFormatException ignored) {}
+        }
+      }
       return;
     }
 
@@ -437,8 +461,20 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   }
 
   private void commitForRequestIfPossible(String requestId) {
-    OpenRideRequest request = openRideRequests.get(requestId);
-    if (request == null || isVehicleBusy()) {
+    OpenRideRequest request = openRideRequests.get(requestId); // O(1)
+    if (request == null) {
+      return;
+    }
+    if (isVehicleBusy()) {
+      // Register seen-but-unserved client position for past-avg-total / past-avg-revisit strategies
+      String rawX = request.payload.get(P2PPayloadKeys.REQUEST_X);
+      String rawY = request.payload.get(P2PPayloadKeys.REQUEST_Y);
+      if (rawX != null && rawY != null) {
+        try {
+          idleRoamingController.registerSeenClientPosition(
+              Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
+        } catch (NumberFormatException ignored) {}
+      }
       return;
     }
     commitForRequestIfBest(request, TRIGGER_INCOMING);

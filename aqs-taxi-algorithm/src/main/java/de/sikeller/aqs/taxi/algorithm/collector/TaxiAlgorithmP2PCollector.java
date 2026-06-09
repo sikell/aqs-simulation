@@ -12,6 +12,7 @@ import de.sikeller.aqs.p2p.service.ClientP2PService;
 import de.sikeller.aqs.p2p.service.KeyValuePayload;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import de.sikeller.aqs.p2p.service.strategy.NearestVehicleRequestSelectionStrategy;
+import de.sikeller.aqs.p2p.util.IdleRoamingController;
 import de.sikeller.aqs.taxi.algorithm.AbstractTaxiAlgorithm;
 import de.sikeller.aqs.taxi.algorithm.distributed.rqs.RangeQuerySystem;
 import de.sikeller.aqs.taxi.algorithm.distributed.rqs.SimulatedRangeQuerySystem;
@@ -92,6 +93,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
   private static final String IDLE_ROAMING_STRATEGY_RETURN_TO_HQ = "return-to-hq";
   private static final String IDLE_ROAMING_STRATEGY_PAST_AVG = "past-avg";
+  private static final String IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL = "past-avg-total";
+  private static final String IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT = "past-avg-revisit";
   private static final String EMBEDDED_MODE_PROPERTY = "p2pEmbeddedSimulation";
   private static final String STATUS_MODE = "mode";
   private static final String STATUS_COLLECTOR_NODE = "collectorNode";
@@ -395,7 +398,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
           pending.requestId(),
           client.getName(),
           pending.committedVehicleNodeId());
-      // Register pickup position for return-to-hq strategy
+      // Register pickup position for past-avg strategy
       Position clientPos = client.getPosition();
       if (clientPos != null) {
         registerPickupPositionForVehicle(
@@ -474,6 +477,12 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     }
     if (IDLE_ROAMING_STRATEGY_PAST_AVG.equals(normalized)) {
       return IDLE_ROAMING_STRATEGY_PAST_AVG;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT;
     }
     return IDLE_ROAMING_STRATEGY_RANDOM;
   }
@@ -665,12 +674,28 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     if (!isEmbeddedSimulationMode() || localVehicleNodesByTaxiName.isEmpty()) {
       return Map.of();
     }
+    String strategy =
+        System.getProperty(
+            P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM);
     Map<String, int[]> result = new LinkedHashMap<>();
     localVehicleNodesByTaxiName.forEach(
         (taxiName, vehicleNode) -> {
-          int[] hq = vehicleNode.getIdleRoamingController().getHqPositionSnapshot();
-          if (hq != null) {
-            result.put(taxiName, hq);
+          IdleRoamingController ctrl = vehicleNode.getIdleRoamingController();
+          int[] pos = null;
+          if (IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(strategy)) {
+            // Show last seen-but-unserved client; fall back to pickup avg if none yet
+            pos = ctrl.getRevisitTargetSnapshot();
+            if (pos == null) pos = ctrl.getHqPositionSnapshot();
+          } else if (IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(strategy)) {
+            // Show combined average of pickups + seen clients
+            pos = ctrl.getAvgTotalPositionSnapshot();
+            if (pos == null) pos = ctrl.getHqPositionSnapshot();
+          } else {
+            // past-avg: show pickup average only
+            pos = ctrl.getHqPositionSnapshot();
+          }
+          if (pos != null) {
+            result.put(taxiName, pos);
           }
         });
     return result;

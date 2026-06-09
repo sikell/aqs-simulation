@@ -51,6 +51,8 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String IDLE_ROAMING_STRATEGY_RANDOM = "random";
   private static final String IDLE_ROAMING_STRATEGY_RETURN_TO_HQ = "return-to-hq";
   private static final String IDLE_ROAMING_STRATEGY_PAST_AVG = "past-avg";
+  private static final String IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL = "past-avg-total";
+  private static final String IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT = "past-avg-revisit";
   private static final String P2P_MULTICAST_GROUP_FIELD = "p2pMulticastGroup";
   private static final Set<String> P2P_PORT_FIELDS = Set.of("p2pTcpPort", "p2pDiscoveryPort");
   private static final Set<String> P2P_CORE_PARAMETERS =
@@ -109,6 +111,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private JSpinner p2pIdleThresholdSpinner;
   private JSpinner p2pIdleCheckThrottleSpinner;
   private JSpinner p2pRandomTravelMaxDistanceSpinner;
+  private JSpinner p2pSeenClientTtlSpinner;
   private volatile boolean massRunInProgress;
   private boolean modeSwitchInProgress;
   private Consumer<Boolean> p2pModeUiListener = ignored -> {};
@@ -581,6 +584,8 @@ public class TaxiScenarioControl extends AbstractControl {
                 P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM);
         visualizationProperties.setTaxiPageRankHqPositions(
             IDLE_ROAMING_STRATEGY_PAST_AVG.equals(activeRoamingStrategy)
+                    || IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(activeRoamingStrategy)
+                    || IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(activeRoamingStrategy)
                 ? provider.getPageRankHqPositions()
                 : Map.of());
       }
@@ -899,6 +904,7 @@ public class TaxiScenarioControl extends AbstractControl {
     int idleThresholdTicks = readSpinnerValue("p2pIdleThresholdTicks", 60);
     int idleCheckThrottleTicks = readSpinnerValue("p2pIdleCheckThrottleTicks", 5);
     int randomTravelMaxDistance = readSpinnerValue("p2pRandomTravelMaxDistanceMeters", 20000);
+    int seenClientTtlTicks = readSpinnerValue("p2pSeenClientTtlTicks", 1000);
     String idleRoamingModesCsv = idleRoamingEnabled ? idleRoamingStrategy : "none";
     return new MassRunDialog.Defaults(
         resolveDefaultMassRunAlgorithmsCsv(availableAlgorithms),
@@ -926,7 +932,8 @@ public class TaxiScenarioControl extends AbstractControl {
         idleRoamingModesCsv,
         idleThresholdTicks,
         idleCheckThrottleTicks,
-        randomTravelMaxDistance);
+        randomTravelMaxDistance,
+        seenClientTtlTicks);
   }
 
   private String resolveDefaultMassRunAlgorithmsCsv(List<String> availableAlgorithms) {
@@ -1353,6 +1360,9 @@ public class TaxiScenarioControl extends AbstractControl {
                     de.sikeller.aqs.p2p.api.P2PSystemProperties
                         .VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
                     String.valueOf(config.randomTravelMaxDistanceMeters()));
+                System.setProperty(
+                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS,
+                    String.valueOf(config.seenClientTtlTicks()));
                 // Sync UI checkboxes/spinners so they reflect the applied values
                 if (p2pIdleRandomTravelEnabledCheckBox != null) {
                   p2pIdleRandomTravelEnabledCheckBox.setSelected(idleRoamingEnabled);
@@ -1365,6 +1375,7 @@ public class TaxiScenarioControl extends AbstractControl {
                     "p2pIdleCheckThrottleTicks", config.idleCheckThrottleTicks());
                 setSpinnerValueIfPresent(
                     "p2pRandomTravelMaxDistanceMeters", config.randomTravelMaxDistanceMeters());
+                setSpinnerValueIfPresent("p2pSeenClientTtlTicks", config.seenClientTtlTicks());
                 // Mass-runs: keep topology scan ticks as configured to ensure proper protocol
                 // behavior.
                 executedRequestRepublishTicks = requestRepublishTicks;
@@ -1677,11 +1688,18 @@ public class TaxiScenarioControl extends AbstractControl {
     if ("none".equals(normalized)) {
       return "none";
     }
-    return IDLE_ROAMING_STRATEGY_PAST_AVG.equals(normalized)
-        ? IDLE_ROAMING_STRATEGY_PAST_AVG
-        : IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(normalized)
-            ? IDLE_ROAMING_STRATEGY_RETURN_TO_HQ
-            : IDLE_ROAMING_STRATEGY_RANDOM;
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(normalized)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT;
+    }
+    return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(normalized)
+        ? IDLE_ROAMING_STRATEGY_RETURN_TO_HQ
+        : IDLE_ROAMING_STRATEGY_RANDOM;
   }
 
   private record MassRunIterationResult(
@@ -2445,13 +2463,15 @@ public class TaxiScenarioControl extends AbstractControl {
       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RANDOM);
       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_RETURN_TO_HQ);
       p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAST_AVG);
+      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL);
+      p2pIdleRoamingStrategyBox.addItem(IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT);
       String idleStrategyDefault =
           normalizedIdleRoamingStrategy(
               System.getProperty(
                   P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM));
       p2pIdleRoamingStrategyBox.setSelectedItem(idleStrategyDefault);
       p2pIdleRoamingStrategyBox.setToolTipText(
-          "Idle roaming target strategy: random exploration, return-to-hq (scenario centers), or past-avg (pickup average)");
+          "Idle roaming: random exploration, return-to-hq (scenario centers), past-avg (avg pickups), past-avg-total (avg pickups+seen), past-avg-revisit (random seen-client)");
       p2pIdleRoamingStrategyBox.addActionListener(
           e ->
               System.setProperty(
@@ -2521,6 +2541,26 @@ public class TaxiScenarioControl extends AbstractControl {
                   String.valueOf(
                       ((Number) p2pRandomTravelMaxDistanceSpinner.getValue()).intValue())));
       idleTravelGroup.add(p2pRandomTravelMaxDistanceSpinner);
+      idleTravelRows++;
+
+      JLabel seenClientTtlLabel = new JLabel("Seen client TTL [ticks]");
+      seenClientTtlLabel.setName("p2pSeenClientTtlLabel");
+      idleTravelGroup.add(seenClientTtlLabel);
+      long defaultSeenClientTtl =
+          Long.getLong(P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS, 1000L);
+      SpinnerModel seenClientTtlModel =
+          new SpinnerNumberModel(defaultSeenClientTtl, 1L, Long.MAX_VALUE, 100L);
+      p2pSeenClientTtlSpinner = new JSpinner(seenClientTtlModel);
+      configureIntegerSpinner(p2pSeenClientTtlSpinner);
+      p2pSeenClientTtlSpinner.setName("p2pSeenClientTtlTicks");
+      p2pSeenClientTtlSpinner.setToolTipText(
+          "TTL (ticks) for seen-but-not-served client positions used by past-avg-total / past-avg-revisit strategies");
+      p2pSeenClientTtlSpinner.addChangeListener(
+          e ->
+              System.setProperty(
+                  P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS,
+                  String.valueOf(((Number) p2pSeenClientTtlSpinner.getValue()).longValue())));
+      idleTravelGroup.add(p2pSeenClientTtlSpinner);
       idleTravelRows++;
 
       if (idleTravelRows > 0) {
@@ -2845,6 +2885,12 @@ public class TaxiScenarioControl extends AbstractControl {
             P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
             String.valueOf(((Number) val).intValue()));
       }
+      if (p2pSeenClientTtlSpinner != null) {
+        Object val = p2pSeenClientTtlSpinner.getValue();
+        System.setProperty(
+            P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS,
+            String.valueOf(((Number) val).longValue()));
+      }
 
       if (p2pIdleRandomTravelEnabledCheckBox != null) {
         int enabled = p2pIdleRandomTravelEnabledCheckBox.isSelected() ? 1 : 0;
@@ -2898,6 +2944,16 @@ public class TaxiScenarioControl extends AbstractControl {
       return IDLE_ROAMING_STRATEGY_RETURN_TO_HQ;
     }
     if (IDLE_ROAMING_STRATEGY_PAST_AVG.equals(key)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(key)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL;
+    }
+    if (IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(key)) {
+      return IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT;
+    }
+    // Legacy support: page-rank is now past-avg
+    if ("page-rank".equals(key)) {
       return IDLE_ROAMING_STRATEGY_PAST_AVG;
     }
     return IDLE_ROAMING_STRATEGY_RANDOM;
