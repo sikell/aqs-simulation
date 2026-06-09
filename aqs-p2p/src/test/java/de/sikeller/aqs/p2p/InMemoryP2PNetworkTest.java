@@ -28,25 +28,25 @@ class InMemoryP2PNetworkTest {
       client.start();
       vehicle.start();
 
+      long receivedBefore = vehicle.runtimeStatus().messagesReceived();
       String requestId = client.requestRide("(0,0)", "(100,100)");
 
-      // Vehicle receives RIDE_REQUEST and autonomously sends RIDE_COMMIT (no offer/accept round-trip)
-      assertTrue(
-          vehicle.inboxSnapshot().stream()
-              .anyMatch(msg -> msg.topic().equals(P2PTopics.RIDE_REQUEST)));
+      // Vehicle processes the request inline and sends the commit directly to the client.
+      assertEquals(receivedBefore + 1, vehicle.runtimeStatus().messagesReceived());
       assertTrue(
           client.inboxSnapshot().stream()
               .anyMatch(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT)));
-      assertTrue(
-          vehicle.inboxSnapshot().stream()
-              .anyMatch(msg -> msg.requestId() != null && !msg.requestId().isBlank()));
       assertEquals(
           requestId,
-          vehicle.inboxSnapshot().stream()
-              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_REQUEST))
+          client.inboxSnapshot().stream()
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
               .findFirst()
-              .map(P2PMessage::requestId)
+              .map(P2PMessage::correlationId)
               .orElseThrow());
+      assertTrue(
+          client.inboxSnapshot().stream()
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
+              .allMatch(msg -> vehicle.descriptor().id().equals(msg.senderId())));
     }
   }
 
@@ -431,7 +431,7 @@ class InMemoryP2PNetworkTest {
             seedVehicle.setSimulationState(true, 0, 0);
             neighborVehicle.setSimulationState(true, 10, 10);
 
-            int beforeNeighborInbox = neighborVehicle.inboxSnapshot().size();
+            long beforeNeighborMessages = neighborVehicle.runtimeStatus().messagesReceived();
             String requestId =
                 client.requestRide(
                     "(0,0)",
@@ -440,13 +440,13 @@ class InMemoryP2PNetworkTest {
                     1,
                         Map.of("requestX", "0", "requestY", "0", "searchRadius", "200"));
 
-            boolean neighborGotForwardedRequest =
-                neighborVehicle.inboxSnapshot().stream()
-                    .skip(beforeNeighborInbox)
-                    .filter(msg -> P2PTopics.RIDE_REQUEST.equals(msg.topic()))
+            boolean seedCommittedToClient =
+                client.inboxSnapshot().stream()
+                    .filter(msg -> P2PTopics.RIDE_COMMIT.equals(msg.topic()))
                     .anyMatch(msg -> requestId.equals(msg.requestId()));
 
-            assertTrue(neighborGotForwardedRequest);
+            assertTrue(seedCommittedToClient);
+            assertTrue(neighborVehicle.runtimeStatus().messagesReceived() > beforeNeighborMessages);
           }
         });
   }
@@ -503,19 +503,14 @@ class InMemoryP2PNetworkTest {
       vehicleB.setSimulationState(false, 0, 0);
       vehicleC.setSimulationState(false, 0, 0);
 
-      String requestId =
-          client.requestRide(
-              "(0,0)",
-              "(100,100)",
-              node -> node.id().equals("vehicle-a"),
-              2
-          );
+      long beforeSeedMessages = vehicleA.runtimeStatus().messagesReceived();
+      client.requestRide(
+          "(0,0)",
+          "(100,100)",
+          node -> node.id().equals("vehicle-a"),
+          2);
 
-      long requestsSeenBySeedVehicle =
-          vehicleA.inboxSnapshot().stream()
-              .filter(msg -> P2PTopics.RIDE_REQUEST.equals(msg.topic()))
-              .filter(msg -> requestId.equals(msg.requestId()))
-              .count();
+      long requestsSeenBySeedVehicle = vehicleA.runtimeStatus().messagesReceived() - beforeSeedMessages;
 
       // Seed receives exactly the client-origin request and no bounce-back copy from forwarded peers.
       assertEquals(1, requestsSeenBySeedVehicle);
@@ -568,7 +563,8 @@ class InMemoryP2PNetworkTest {
       List<VehicleP2PService> vehicles,
       String seedVehicleNodeId,
       int hops) {
-    int[] beforeSizes = vehicles.stream().mapToInt(vehicle -> vehicle.inboxSnapshot().size()).toArray();
+    long[] beforeMessagesReceived =
+        vehicles.stream().mapToLong(vehicle -> vehicle.runtimeStatus().messagesReceived()).toArray();
 
     client.requestRide(
         "(0,0)",
@@ -579,13 +575,9 @@ class InMemoryP2PNetworkTest {
 
     long reachedVehicles = 0;
     for (int i = 0; i < vehicles.size(); i++) {
-      int previous = beforeSizes[i];
-      List<P2PMessage> inbox = vehicles.get(i).inboxSnapshot();
-      boolean gotRequest =
-          inbox.stream()
-              .skip(previous)
-              .anyMatch(msg -> P2PTopics.RIDE_REQUEST.equals(msg.topic()));
-      if (gotRequest) {
+      long previous = beforeMessagesReceived[i];
+      long current = vehicles.get(i).runtimeStatus().messagesReceived();
+      if (current > previous) {
         reachedVehicles++;
       }
     }

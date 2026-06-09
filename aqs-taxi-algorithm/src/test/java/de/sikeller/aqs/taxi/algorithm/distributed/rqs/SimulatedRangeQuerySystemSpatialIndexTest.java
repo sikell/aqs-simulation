@@ -22,7 +22,9 @@ class SimulatedRangeQuerySystemSpatialIndexTest {
     Random random = new Random(7L);
 
     for (int i = 0; i < 200; i++) {
-      Position center = new Position(random.nextInt(world.getMaxX()), random.nextInt(world.getMaxY()));
+      Position center =
+          new Position(
+              random.nextInt(world.getSize().getMaxX()), random.nextInt(world.getSize().getMaxY()));
       double radius = 200 + random.nextInt(4_000);
 
       Set<String> indexed =
@@ -109,13 +111,8 @@ class SimulatedRangeQuerySystemSpatialIndexTest {
     }
 
     @Override
-    public int getMaxX() {
-      return maxX;
-    }
-
-    @Override
-    public int getMaxY() {
-      return maxY;
+    public WorldSize getSize() {
+      return new WorldSize(maxX, maxY);
     }
 
     @Override
@@ -246,4 +243,3 @@ class SimulatedRangeQuerySystemSpatialIndexTest {
     }
   }
 }
-
