@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -45,6 +45,7 @@ final class RequestCoordinator {
   private final Consumer<String> refreshStatusCallback;
   /** Resolves a vehicle node ID to the local VehicleP2PService (embedded mode only). */
   private final Function<String, VehicleP2PService> vehicleNodeResolver;
+  private final AtomicLong embeddedRequestSequence = new AtomicLong();
 
   RequestCoordinator(
       Supplier<ClientP2PService> clientNodeSupplier,
@@ -110,7 +111,12 @@ final class RequestCoordinator {
 
       if (embedded && vehicleNodeResolver != null) {
         // Direct delivery: bypass P2P network
-        requestId = UUID.randomUUID().toString();
+        requestId =
+            collectorNodeId
+                + "-embedded-request-"
+                + stepCounter
+                + "-"
+                + embeddedRequestSequence.incrementAndGet();
         runtimeState.putPendingRequest(requestId, client.getName(), stepCounter);
         int requestForwardHops = Math.max(0, parameters.getOrDefault(KEY_P2P_REQUEST_FORWARD_HOPS, 2));
         Map<String, String> payload = new LinkedHashMap<>();

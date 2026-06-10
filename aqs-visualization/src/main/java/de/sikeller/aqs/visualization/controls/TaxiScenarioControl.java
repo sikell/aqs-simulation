@@ -645,6 +645,28 @@ public class TaxiScenarioControl extends AbstractControl {
     return Integer.parseInt(value.trim());
   }
 
+  private int parseIntFlexible(String value) {
+    if (value == null || value.isBlank()) {
+      throw new NumberFormatException("empty value");
+    }
+    double parsed = Double.parseDouble(value.trim().replace(',', '.'));
+    return (int) Math.round(parsed);
+  }
+
+  private void applySpinnerValueFromString(JSpinner spinner, String valueStr) {
+    Object currentValue = spinner.getValue();
+    double parsed = Double.parseDouble(valueStr.trim().replace(',', '.'));
+    if (currentValue instanceof Float) {
+      spinner.setValue((float) parsed);
+      return;
+    }
+    if (currentValue instanceof Double) {
+      spinner.setValue(parsed);
+      return;
+    }
+    spinner.setValue((int) Math.round(parsed));
+  }
+
   private int[] vehicleEdgeCounts(P2PNetworkSnapshot snapshot) {
     if (snapshot == null || snapshot.nodes() == null || snapshot.edges() == null) {
       return new int[] {0, 0};
@@ -3211,7 +3233,7 @@ public class TaxiScenarioControl extends AbstractControl {
                 if (found[0]) return;
                 if (compInAlgoPanel instanceof JSpinner
                     && lookupName.equals(compInAlgoPanel.getName())) {
-                  ((JSpinner) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
+                  applySpinnerValueFromString((JSpinner) compInAlgoPanel, lookupValue);
                   log.trace("Set ALGORITHM JSpinner '{}' to '{}'", lookupName, lookupValue);
                   found[0] = true;
                 } else if (compInAlgoPanel instanceof JTextField textField
@@ -3237,7 +3259,7 @@ public class TaxiScenarioControl extends AbstractControl {
                   found[0] = true;
                 } else if (compInAlgoPanel instanceof JSlider
                     && lookupName.equals(compInAlgoPanel.getName())) {
-                  ((JSlider) compInAlgoPanel).setValue(Integer.parseInt(lookupValue));
+                  ((JSlider) compInAlgoPanel).setValue(parseIntFlexible(lookupValue));
                   log.trace("Set ALGORITHM JSlider '{}' to '{}'", lookupName, lookupValue);
                   found[0] = true;
                 }
@@ -3249,12 +3271,12 @@ public class TaxiScenarioControl extends AbstractControl {
         if (!valueSet) {
           Component generalComp = getComponentByName(effectiveName);
           if (generalComp instanceof JSpinner) {
-            ((JSpinner) generalComp).setValue(Integer.parseInt(valueStr));
+            applySpinnerValueFromString((JSpinner) generalComp, valueStr);
             log.trace("Set GENERAL JSpinner '{}' to '{}'", name, valueStr);
             valueSet = true;
           }
           if (generalComp instanceof JSlider) {
-            ((JSlider) generalComp).setValue(Integer.parseInt(valueStr));
+            ((JSlider) generalComp).setValue(parseIntFlexible(valueStr));
             log.trace("Set GENERAL JSlider '{}' to '{}'", name, valueStr);
             valueSet = true;
           }

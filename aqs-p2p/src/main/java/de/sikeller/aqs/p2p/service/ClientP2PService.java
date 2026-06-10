@@ -3,12 +3,16 @@ package de.sikeller.aqs.p2p.service;
 import de.sikeller.aqs.p2p.api.*;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ClientP2PService extends AbstractP2PNodeService {
+  private final AtomicLong rideRequestSequence = new AtomicLong();
+  private final AtomicLong topologyScanSequence = new AtomicLong();
+
   public ClientP2PService(String nodeId, P2PNetwork network) {
     super(new NodeDescriptor(nodeId, NodeRole.CLIENT), network);
   }
@@ -28,7 +32,7 @@ public class ClientP2PService extends AbstractP2PNodeService {
       Predicate<NodeDescriptor> targetFilter,
       int maxForwardHops,
       Map<String, String> extraPayloadFields) {
-    String requestId = UUID.randomUUID().toString();
+    String requestId = deterministicId("ride", rideRequestSequence.incrementAndGet());
     Map<String, String> payload = new LinkedHashMap<>();
     payload.put(P2PPayloadKeys.ORIGIN_NODE, descriptor().id());
     payload.put(P2PPayloadKeys.HOPS_REMAINING, String.valueOf(Math.max(0, maxForwardHops)));
@@ -78,7 +82,7 @@ public class ClientP2PService extends AbstractP2PNodeService {
   }
 
   public String requestTopologyScan() {
-    String scanId = UUID.randomUUID().toString();
+    String scanId = deterministicId("scan", topologyScanSequence.incrementAndGet());
     publishMessage(
         P2PTopics.TOPOLOGY_SCAN_REQUEST,
         "",
@@ -86,6 +90,10 @@ public class ClientP2PService extends AbstractP2PNodeService {
         scanId,
         node -> !node.id().equals(descriptor().id()));
     return scanId;
+  }
+
+  private String deterministicId(String kind, long sequence) {
+    return String.format(Locale.ROOT, "%s-%s-%020d", descriptor().id(), kind, sequence);
   }
 
   @Override
