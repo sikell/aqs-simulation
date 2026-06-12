@@ -254,9 +254,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           existing.payload = payload;
           return existing;
         });
-    commitForRequestIfPossible(requestId);
+    boolean committedLocally = commitForRequestIfPossible(requestId);
+    if (committedLocally) {
+      return;
+    }
 
-    // Forward to overlay neighbors (k-hop gossip)
     int hopsRemaining = parseNonNegativeInt(payload.get(P2PPayloadKeys.HOPS_REMAINING));
     if (hopsRemaining > 0 && peerResolver != null) {
       int nextHops = hopsRemaining - 1;
@@ -328,19 +330,21 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           existing.payload = requestPayload;
           return existing;
         });
-    commitForRequestIfPossible(requestId);
+    boolean committedLocally = commitForRequestIfPossible(requestId);
 
     // Forward first-seen requests to improve decentralized visibility.
-    forwardRideRequest(message, requestPayload);
+    if (!committedLocally) {
+      forwardRideRequest(message, requestPayload);
+    }
   }
 
   /**
    * Autonomous commit decision: evaluates fitness and commits. In embedded mode, isBestKnownVehicle
    * is skipped (collector resolves conflicts).
    */
-  private void commitForRequestIfBest(OpenRideRequest openRequest, String trigger) {
+  private boolean commitForRequestIfBest(OpenRideRequest openRequest, String trigger) {
     if (openRequest == null) {
-      return;
+      return false;
     }
     log.debug(
         "Vehicle {} evaluating commit requestId={} trigger={} busy={} payload={}",
@@ -370,11 +374,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           }
         }
       }
-      return;
+      return false;
     }
 
     if (!shouldReoffer(openRequest, currentSimulationTick)) {
-      return;
+      return false;
     }
 
     // In embedded mode, skip expensive isBestKnownVehicle — just commit if in range.
@@ -385,13 +389,13 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       etaSeconds =
           P2PGeoUtils.etaSeconds(simulationX, simulationY, reqX, reqY, cachedAssumedSpeedMps);
       if (!isBestKnownVehicleForRequest(openRequest, etaSeconds)) {
-        return;
+        return false;
       }
     }
 
     // Atomically claim so concurrent triggers cannot double-commit
     if (!openRideRequests.remove(openRequest.requestId, openRequest)) {
-      return;
+      return false;
     }
     busyUntilTick = currentSimulationTick + cachedCommitLeaseTicks;
     openRequest.lastOfferAtTick = currentSimulationTick;
@@ -403,6 +407,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         openRequest.requestId,
         openRequest.originNodeId,
         trigger);
+    return true;
   }
 
   private boolean isBestKnownVehicleForRequest(OpenRideRequest openRequest, int selfEtaSeconds) {
@@ -468,10 +473,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     commitForRequestIfBest(selected, trigger);
   }
 
-  private void commitForRequestIfPossible(String requestId) {
+  private boolean commitForRequestIfPossible(String requestId) {
     OpenRideRequest request = openRideRequests.get(requestId); // O(1)
     if (request == null) {
-      return;
+      return false;
     }
     if (isVehicleBusy()) {
       // Register seen-but-unserved client position for past-avg-total / past-avg-revisit strategies
@@ -484,9 +489,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         } catch (NumberFormatException ignored) {
         }
       }
-      return;
+      return false;
     }
-    commitForRequestIfBest(request, TRIGGER_INCOMING);
+    return commitForRequestIfBest(request, TRIGGER_INCOMING);
   }
 
   private OpenRideRequest selectOpenRequest() {
