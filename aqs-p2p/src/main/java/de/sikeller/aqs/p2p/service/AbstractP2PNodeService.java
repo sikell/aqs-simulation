@@ -22,13 +22,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   private static final String STATUS_LOGGING_ENABLED_PROPERTY = "aqs.p2p.status.logging.enabled";
-  private static final String STATUS_SCHEDULER_THREADS_PROPERTY = "aqs.p2p.status.scheduler.threads";
+  private static final String STATUS_SCHEDULER_THREADS_PROPERTY =
+      "aqs.p2p.status.scheduler.threads";
   private static final int DEFAULT_STATUS_SCHEDULER_THREADS =
       Math.clamp(Runtime.getRuntime().availableProcessors(), 1, 4);
   private static final AtomicInteger STATUS_THREAD_COUNTER = new AtomicInteger();
@@ -56,10 +58,14 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
   private volatile ScheduledFuture<?> statusTask;
   private volatile boolean running;
 
-  /** When true, position updates are stored locally but NOT broadcast to peers. */
-  private volatile boolean suppressPositionBroadcast = false;
+  /**
+   * When true, position updates are stored locally but NOT broadcast to peers. -- SETTER --
+   * Suppress position broadcasts (embedded mode).
+   */
+  @Setter private volatile boolean suppressPositionBroadcast = false;
 
   private final PositionManager positionManager;
+
   /** Optional shared position manager for overlay selection (embedded mode). */
   private volatile PositionManager overlayPositionManager;
 
@@ -81,8 +87,11 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     this.overlaySelector =
         new de.sikeller.aqs.p2p.service.overlay.OverlaySelectorImpl(
             descriptor, this.positionManager, this.configAdapter);
-    this.messagePublisher = new MessagePublisherImpl(descriptor, network,
-        (topic, peers) -> overlaySelector.overlayNeighborIds(topic, peers));
+    this.messagePublisher =
+        new MessagePublisherImpl(
+            descriptor,
+            network,
+            (topic, peers) -> overlaySelector.overlayNeighborIds(topic, peers));
   }
 
   @Override
@@ -103,7 +112,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     running = true;
     log.info("Node {} joined network as {}", descriptor.id(), descriptor.role());
     if (isStatusLoggingEnabled()) {
-      statusTask = SHARED_STATUS_SCHEDULER.scheduleAtFixedRate(this::logStatus, 0, 10, TimeUnit.SECONDS);
+      statusTask =
+          SHARED_STATUS_SCHEDULER.scheduleAtFixedRate(this::logStatus, 0, 10, TimeUnit.SECONDS);
     }
   }
 
@@ -124,24 +134,21 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     log.info("Node {} left network", descriptor.id());
   }
 
-  /** Suppress position broadcasts (embedded mode). */
-  public void setSuppressPositionBroadcast(boolean suppress) {
-    this.suppressPositionBroadcast = suppress;
-  }
-
   /**
-   * Set a shared PositionManager for overlay selection (embedded mode).
-   * All vehicles share the same position data, updated once per tick by the collector.
+   * Set a shared PositionManager for overlay selection (embedded mode). All vehicles share the same
+   * position data, updated once per tick by the collector.
    */
   public void setSharedPositionManager(PositionManager shared) {
     this.overlayPositionManager = shared;
     this.overlaySelector =
         new de.sikeller.aqs.p2p.service.overlay.OverlaySelectorImpl(
             descriptor, shared, this.configAdapter);
-    this.messagePublisher = new MessagePublisherImpl(descriptor, network,
-        (topic, peers) -> overlaySelector.overlayNeighborIds(topic, peers));
+    this.messagePublisher =
+        new MessagePublisherImpl(
+            descriptor,
+            network,
+            (topic, peers) -> overlaySelector.overlayNeighborIds(topic, peers));
   }
-
 
   protected void updateVehiclePositionSnapshot(int x, int y, long simulationTick) {
     if (descriptor.role() != NodeRole.VEHICLE) {
@@ -276,7 +283,8 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
       return new OverlaySelection(List.of(), Set.of());
     }
 
-    PositionManager effectivePm = overlayPositionManager != null ? overlayPositionManager : positionManager;
+    PositionManager effectivePm =
+        overlayPositionManager != null ? overlayPositionManager : positionManager;
     long peersChecksum = computePeersChecksum(peers);
     long tickBucket = effectivePm.currentMaxTick() / OVERLAY_CACHE_TICK_BUCKET;
     long currentRevision = effectivePm.currentRevision() ^ peersChecksum ^ tickBucket;
@@ -297,7 +305,9 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
     } catch (Throwable ex) {
       log.warn(
           "[P2P-OVERLAY] overlay selection failed for topic={} self={}: {}",
-          topic, descriptor.id(), ex.toString());
+          topic,
+          descriptor.id(),
+          ex.toString());
       return new OverlaySelection(List.of(), Set.of());
     }
   }

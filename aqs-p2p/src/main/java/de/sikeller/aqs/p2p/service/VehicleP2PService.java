@@ -166,7 +166,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       boolean available, int positionX, int positionY, long simulationTick) {
     currentSimulationTick = Math.max(currentSimulationTick, simulationTick);
     boolean becameAvailable = !externallyAvailable && available;
-    boolean movedEnough = movedEnoughForRetrigger(positionX, positionY);
+    boolean movedEnough =
+        simulationX == null
+            || simulationY == null
+            || P2PGeoUtils.distance(simulationX, simulationY, positionX, positionY)
+                >= cachedReofferMoveDistanceM;
     externallyAvailable = available;
     simulationX = positionX;
     simulationY = positionY;
@@ -352,7 +356,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           openRequest.requestId,
           isVehicleBusy(),
           shouldOffer(openRequest.payload));
-      // Register out-of-range clients as "seen but not served" for past-avg-total / past-avg-revisit.
+      // Register out-of-range clients as "seen but not served" for past-avg-total /
+      // past-avg-revisit.
       // (Busy case is already registered in commitForRequestIfPossible before reaching here.)
       if (!isVehicleBusy()) {
         String rawX = openRequest.payload.get(P2PPayloadKeys.REQUEST_X);
@@ -361,7 +366,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           try {
             idleRoamingController.registerSeenClientPosition(
                 Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
-          } catch (NumberFormatException ignored) {}
+          } catch (NumberFormatException ignored) {
+          }
         }
       }
       return;
@@ -373,7 +379,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
     // In embedded mode, skip expensive isBestKnownVehicle — just commit if in range.
     if (!embeddedMode) {
-      int etaSeconds = estimateEtaSeconds(openRequest.payload);
+      int etaSeconds;
+      int reqX = Integer.parseInt(openRequest.payload.get(P2PPayloadKeys.REQUEST_X));
+      int reqY = Integer.parseInt(openRequest.payload.get(P2PPayloadKeys.REQUEST_Y));
+      etaSeconds =
+          P2PGeoUtils.etaSeconds(simulationX, simulationY, reqX, reqY, cachedAssumedSpeedMps);
       if (!isBestKnownVehicleForRequest(openRequest, etaSeconds)) {
         return;
       }
@@ -403,11 +413,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return true;
     }
 
-    Integer reqX = parseCoordinate(openRequest.payload.get(P2PPayloadKeys.REQUEST_X));
-    Integer reqY = parseCoordinate(openRequest.payload.get(P2PPayloadKeys.REQUEST_Y));
-    if (reqX == null || reqY == null) {
-      return true;
-    }
+    int reqX = Integer.parseInt(openRequest.payload.get(P2PPayloadKeys.REQUEST_X));
+    int reqY = Integer.parseInt(openRequest.payload.get(P2PPayloadKeys.REQUEST_Y));
 
     Set<String> overlayNeighbors = overlayNeighborIdsSnapshot();
     Map<String, Position> knownVehiclePositions = vehiclePositionSnapshot();
@@ -423,7 +430,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         continue;
       }
       int peerEtaSeconds =
-          estimateEtaSecondsFromPosition(peerPosition.getX(), peerPosition.getY(), reqX, reqY);
+          P2PGeoUtils.etaSeconds(
+              peerPosition.getX(), peerPosition.getY(), reqX, reqY, cachedAssumedSpeedMps);
       if (peerEtaSeconds < bestEtaSeconds
           || (peerEtaSeconds == bestEtaSeconds && neighborId.compareTo(bestNodeId) < 0)) {
         bestEtaSeconds = peerEtaSeconds;
@@ -473,7 +481,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         try {
           idleRoamingController.registerSeenClientPosition(
               Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
-        } catch (NumberFormatException ignored) {}
+        } catch (NumberFormatException ignored) {
+        }
       }
       return;
     }
@@ -497,7 +506,16 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     var strategy = VehicleRequestSelectionStrategies.resolve(strategyKey);
 
     Optional<VehicleRequestCandidate> selectedCandidate =
-        strategy.select(eligibleRequests.stream().map(this::toCandidate).toList());
+        strategy.select(
+            eligibleRequests.stream()
+                .map(
+                    request ->
+                        new VehicleRequestCandidate(
+                            request.requestId,
+                            request.firstSeenAtTick,
+                            requestDistanceToVehicle(request),
+                            request.payload == null ? Map.of() : request.payload))
+                .toList());
     if (selectedCandidate.isEmpty()) {
       return null;
     }
@@ -509,18 +527,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         .orElse(null);
   }
 
-  private VehicleRequestCandidate toCandidate(OpenRideRequest request) {
-    return new VehicleRequestCandidate(
-        request.requestId,
-        request.firstSeenAtTick,
-        requestDistanceToVehicle(request),
-        request.payload == null ? Map.of() : request.payload);
-  }
-
   private double requestDistanceToVehicle(OpenRideRequest request) {
-    Integer reqX = parseCoordinate(request.payload.get(P2PPayloadKeys.REQUEST_X));
-    Integer reqY = parseCoordinate(request.payload.get(P2PPayloadKeys.REQUEST_Y));
-    if (reqX == null || reqY == null || simulationX == null || simulationY == null) {
+    int reqX = Integer.parseInt(request.payload.get(P2PPayloadKeys.REQUEST_X));
+    int reqY = Integer.parseInt(request.payload.get(P2PPayloadKeys.REQUEST_Y));
+    if (simulationX == null || simulationY == null) {
       return Double.MAX_VALUE;
     }
     return P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY);
@@ -531,14 +541,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return true;
     }
     return nowTick - openRequest.lastOfferAtTick >= cachedReofferMinIntervalTicks;
-  }
-
-  private boolean movedEnoughForRetrigger(int positionX, int positionY) {
-    if (simulationX == null || simulationY == null) {
-      return true;
-    }
-    return P2PGeoUtils.distance(simulationX, simulationY, positionX, positionY)
-        >= cachedReofferMoveDistanceM;
   }
 
   private void cleanupStaleOpenRequests() {
@@ -579,32 +581,15 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return true;
     }
 
-    Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X));
-    Integer reqY = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_Y));
-    Integer searchRadius =
-        parseNonNegativeIntOrNull(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS));
-    if (reqX == null
-        || reqY == null
-        || searchRadius == null
-        || simulationX == null
-        || simulationY == null) {
+    int reqX = Integer.parseInt(requestPayload.get(P2PPayloadKeys.REQUEST_X));
+    int reqY = Integer.parseInt(requestPayload.get(P2PPayloadKeys.REQUEST_Y));
+    int searchRadius =
+        Math.max(0, Integer.parseInt(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS).trim()));
+    if (simulationX == null || simulationY == null) {
       return true;
     }
 
     return P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY) <= searchRadius;
-  }
-
-  private int estimateEtaSeconds(Map<String, String> requestPayload) {
-    Integer reqX = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_X));
-    Integer reqY = parseCoordinate(requestPayload.get(P2PPayloadKeys.REQUEST_Y));
-    if (reqX == null || reqY == null || simulationX == null || simulationY == null) {
-      return 120;
-    }
-    return estimateEtaSecondsFromPosition(simulationX, simulationY, reqX, reqY);
-  }
-
-  private int estimateEtaSecondsFromPosition(int startX, int startY, int reqX, int reqY) {
-    return P2PGeoUtils.etaSeconds(startX, startY, reqX, reqY, cachedAssumedSpeedMps);
   }
 
   private void forwardRideRequest(P2PMessage message, Map<String, String> requestPayload) {
@@ -667,20 +652,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return 0;
     }
     return Math.max(0, Integer.parseInt(value.trim()));
-  }
-
-  private Integer parseNonNegativeIntOrNull(String value) {
-    if (value == null || value.isBlank()) {
-      return null;
-    }
-    return Math.max(0, Integer.parseInt(value.trim()));
-  }
-
-  private Integer parseCoordinate(String value) {
-    if (value == null || value.isBlank()) {
-      return null;
-    }
-    return Integer.parseInt(value.trim());
   }
 
   public Set<String> knownClientIdsSnapshot() {
