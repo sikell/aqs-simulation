@@ -118,7 +118,7 @@ public class TaxiScenarioControl extends AbstractControl {
   private static final String DEFAULT_TAXI_COUNT_TOOLTIP =
       "Set the count of taxis to be spawned in the simulation run";
   private static final long MASS_RUN_ITERATION_TIMEOUT_MS =
-      Long.getLong("aqs.massRun.iterationTimeoutMs", 600_000L * 3 * 2 * 24); // 60 min
+      Long.getLong("aqs.massRun.iterationTimeoutMs", 600_000L * 3 * 2); // 60 min
   private static final long MASS_RUN_WAIT_POLL_MS = 20L;
 
   public TaxiScenarioControl(SimulationControl simulation) {
