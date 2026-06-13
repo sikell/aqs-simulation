@@ -211,7 +211,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
                 worldArg.mutate().planClientForTaxi(taxi, client, TargetList.sequentialOrders),
             this::refreshStatus,
             (requestId, vehicleNodeId, client) -> {
-              announceWinner(requestId, vehicleNodeId);
+              announceWinner(requestId, vehicleNodeId, client == null ? null : client.getName());
               if (client != null && client.getPosition() != null) {
                 registerPickupPositionForVehicle(
                     vehicleNodeId, client.getPosition().getX(), client.getPosition().getY());
@@ -400,7 +400,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
             pending.committedVehicleNodeId(), clientPos.getX(), clientPos.getY());
       }
       assignedClients.add(client.getName());
-      announceWinner(pending.requestId(), pending.committedVehicleNodeId());
+      announceWinner(pending.requestId(), pending.committedVehicleNodeId(), client.getName());
       refreshStatus(EVENT_ASSIGNED_PREFIX + pending.requestId());
       applied++;
     }
@@ -896,10 +896,39 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   /** Broadcasts RIDE_ASSIGNED so losers free their busy-lease immediately. */
-  private void announceWinner(String requestId, String winnerVehicleNodeId) {
+  private void announceWinner(String requestId, String winnerVehicleNodeId, String clientName) {
     if (requestId == null || requestId.isBlank()) {
       return;
     }
+    if (isRequestForwardingEnabled()) {
+      announceWinnerToAllVehicles(requestId, winnerVehicleNodeId);
+      return;
+    }
+
+    Set<String> targetVehicleNodeIds = resolveWinnerAnnouncementTargets(clientName, winnerVehicleNodeId);
+    if (targetVehicleNodeIds.isEmpty()) {
+      announceWinnerToAllVehicles(requestId, winnerVehicleNodeId);
+      return;
+    }
+
+    if (isEmbeddedSimulationMode() && !localVehicleNodesByTaxiName.isEmpty()) {
+      for (String vehicleNodeId : targetVehicleNodeIds) {
+        VehicleP2PService vehicleNode = resolveVehicleNode(vehicleNodeId);
+        if (vehicleNode != null) {
+          vehicleNode.notifyRideAssigned(requestId, winnerVehicleNodeId);
+        }
+      }
+      return;
+    }
+    if (clientNode != null) {
+      clientNode.announceWinner(
+          requestId,
+          winnerVehicleNodeId,
+          node -> node.role() == NodeRole.VEHICLE && targetVehicleNodeIds.contains(node.id()));
+    }
+  }
+
+  private void announceWinnerToAllVehicles(String requestId, String winnerVehicleNodeId) {
     if (isEmbeddedSimulationMode() && !localVehicleNodesByTaxiName.isEmpty()) {
       for (VehicleP2PService vehicle : localVehicleNodesByTaxiName.values()) {
         vehicle.notifyRideAssigned(requestId, winnerVehicleNodeId);
@@ -909,6 +938,38 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     if (clientNode != null) {
       clientNode.announceWinner(requestId, winnerVehicleNodeId);
     }
+  }
+
+  private Set<String> resolveWinnerAnnouncementTargets(String clientName, String winnerVehicleNodeId) {
+    Set<String> targetVehicleNodeIds = new HashSet<>();
+    if (winnerVehicleNodeId != null && !winnerVehicleNodeId.isBlank()) {
+      targetVehicleNodeIds.add(winnerVehicleNodeId);
+    }
+    if (clientName == null || clientName.isBlank()) {
+      return targetVehicleNodeIds;
+    }
+
+    for (String taxiId : runtimeState.taxiIdsKnowingClientSnapshot(clientName)) {
+      String vehicleNodeId = resolveVehicleNodeIdForTaxiKnowledge(taxiId);
+      if (vehicleNodeId != null && !vehicleNodeId.isBlank()) {
+        targetVehicleNodeIds.add(vehicleNodeId);
+      }
+    }
+    return targetVehicleNodeIds;
+  }
+
+  private String resolveVehicleNodeIdForTaxiKnowledge(String taxiId) {
+    if (taxiId == null || taxiId.isBlank()) {
+      return null;
+    }
+    if (taxiId.startsWith(NODE_ID_VEHICLE_PREFIX)) {
+      return taxiId;
+    }
+    return taxiNameToVehicleNodeId.get(taxiId);
+  }
+
+  private boolean isRequestForwardingEnabled() {
+    return parameters.getOrDefault(P2P_REQUEST_FORWARD_HOPS, 2) > 0;
   }
 
   /** Register pickup position for return-to-hq strategy. */

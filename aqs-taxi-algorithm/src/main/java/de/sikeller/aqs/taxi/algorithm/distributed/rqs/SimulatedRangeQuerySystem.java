@@ -19,6 +19,9 @@ public class SimulatedRangeQuerySystem implements RangeQuerySystem {
   private static final String RQS_ROUTE_PROXIMITY_MODE_PARAMETER = "p2pRqsRouteProximityMode";
 
   private Map<String, Integer> parameters = new HashMap<>();
+  private volatile World cachedWorld;
+  private volatile long cachedTick = Long.MIN_VALUE;
+  private volatile List<Taxi> cachedTaxisSnapshot = List.of();
 
   @Override
   public void setParameters(Map<String, Integer> parameters) {
@@ -29,10 +32,17 @@ public class SimulatedRangeQuerySystem implements RangeQuerySystem {
   public Set<Taxi> findTaxisInRange(
       World world, Position clientStart, Position clientTarget, double searchRadius) {
     Set<Taxi> candidateTaxis = new HashSet<>();
+    if (world == null || clientStart == null) {
+      return candidateTaxis;
+    }
     final boolean calculateFullTaxis = parameters.getOrDefault("CalculateFullTaxis", 0) != 0;
-    final boolean useRouteProximity = parameters.getOrDefault(RQS_ROUTE_PROXIMITY_MODE_PARAMETER, 0) != 0;
+    final boolean useRouteProximity =
+        parameters.getOrDefault(RQS_ROUTE_PROXIMITY_MODE_PARAMETER, 0) != 0;
+    List<Taxi> taxisSnapshot = taxisSnapshotForTick(world);
 
-    for (Taxi taxi : world.getTaxis()) {
+    double radiusSq = searchRadius * searchRadius;
+
+    for (Taxi taxi : taxisSnapshot) {
       if (!calculateFullTaxis && !taxi.hasCapacity()) {
         log.trace("RQS - Taxi {} skipped (no capacity)", taxi.getName());
         continue;
@@ -45,7 +55,7 @@ public class SimulatedRangeQuerySystem implements RangeQuerySystem {
         continue;
       }
 
-      if (taxi.getPosition().distance(clientStart) <= searchRadius) {
+      if (distanceSq(taxi.getPosition(), clientStart) <= radiusSq) {
         candidateTaxis.add(taxi);
       }
     }
@@ -53,33 +63,41 @@ public class SimulatedRangeQuerySystem implements RangeQuerySystem {
     return candidateTaxis;
   }
 
-  private boolean isTaxiRouteInRange(Taxi taxi, Position clientStart, double searchRadius) {
-    List<OrderNode> taxiRouteNodes = taxi.getTargets().toList();
-    if (taxiRouteNodes.isEmpty()) {
-      return taxi.getPosition().distance(clientStart) <= searchRadius;
+  private synchronized List<Taxi> taxisSnapshotForTick(World world) {
+    if (world == null) {
+      return List.of();
     }
-
-    List<Position> routePoints = new ArrayList<>();
-    routePoints.add(taxi.getPosition());
-    routePoints.addAll(taxiRouteNodes.stream().map(OrderNode::getPosition).toList());
-    return isPointCloseToPolyline(clientStart, routePoints, searchRadius);
+    long tick = world.getCurrentTime();
+    if (world == cachedWorld && tick == cachedTick) {
+      return cachedTaxisSnapshot;
+    }
+    cachedWorld = world;
+    cachedTick = tick;
+    cachedTaxisSnapshot = new ArrayList<>(world.getTaxis());
+    return cachedTaxisSnapshot;
   }
 
-  private boolean isPointCloseToPolyline(Position point, List<Position> polylinePoints, double radius) {
-    if (polylinePoints == null || polylinePoints.size() < 2) {
-      if (polylinePoints != null && polylinePoints.size() == 1) {
-        return point.distance(polylinePoints.getFirst()) <= radius;
-      }
-      return false;
+
+  private boolean isTaxiRouteInRange(Taxi taxi, Position clientStart, double searchRadius) {
+    List<OrderNode> taxiRouteNodes = taxi.getTargets().toList();
+    double radiusSq = searchRadius * searchRadius;
+    if (taxiRouteNodes.isEmpty()) {
+      return distanceSq(taxi.getPosition(), clientStart) <= radiusSq;
     }
 
-    double minDistanceSq = Double.POSITIVE_INFINITY;
-    for (int i = 0; i < polylinePoints.size() - 1; i++) {
-      Position p1 = polylinePoints.get(i);
-      Position p2 = polylinePoints.get(i + 1);
-      minDistanceSq = Math.min(minDistanceSq, pointToSegmentDistanceSq(point, p1, p2));
+    Position previous = taxi.getPosition();
+    for (OrderNode node : taxiRouteNodes) {
+      Position next = node == null ? null : node.getPosition();
+      if (previous != null && next != null) {
+        if (pointToSegmentDistanceSq(clientStart, previous, next) <= radiusSq) {
+          return true;
+        }
+      }
+      if (next != null) {
+        previous = next;
+      }
     }
-    return minDistanceSq <= radius * radius;
+    return false;
   }
 
   private double pointToSegmentDistanceSq(Position p, Position a, Position b) {
@@ -89,17 +107,15 @@ public class SimulatedRangeQuerySystem implements RangeQuerySystem {
     }
 
     double dotProduct =
-        (double)
-            ((p.getX() - a.getX()) * (b.getX() - a.getX())
-                + (p.getY() - a.getY()) * (b.getY() - a.getY()));
-    double t = Math.max(0, Math.min(1, dotProduct / l2));
+        (p.getX() - a.getX()) * (b.getX() - a.getX())
+            + (p.getY() - a.getY()) * (b.getY() - a.getY());
+    double t = Math.clamp(dotProduct / l2, 0.0, 1.0);
 
-    Position projection =
-        new Position(
-            (int) Math.round(a.getX() + t * (b.getX() - a.getX())),
-            (int) Math.round(a.getY() + t * (b.getY() - a.getY())));
-
-    return distanceSq(p, projection);
+    double projectionX = a.getX() + t * (b.getX() - a.getX());
+    double projectionY = a.getY() + t * (b.getY() - a.getY());
+    double dx = p.getX() - projectionX;
+    double dy = p.getY() - projectionY;
+    return dx * dx + dy * dy;
   }
 
   private double distanceSq(Position p1, Position p2) {

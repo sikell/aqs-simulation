@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -46,6 +48,8 @@ final class RequestCoordinator {
   /** Resolves a vehicle node ID to the local VehicleP2PService (embedded mode only). */
   private final Function<String, VehicleP2PService> vehicleNodeResolver;
   private final AtomicLong embeddedRequestSequence = new AtomicLong();
+  private final ConcurrentMap<String, Long> seedRetryAtStepByClientName =
+      new ConcurrentHashMap<>();
 
   RequestCoordinator(
       Supplier<ClientP2PService> clientNodeSupplier,
@@ -76,11 +80,14 @@ final class RequestCoordinator {
 
     Map<String, Integer> parameters = parametersSupplier.get();
     long stepCounter = stepCounterSupplier.getAsLong();
+    int republishTicks = Math.max(1, parameters.getOrDefault(KEY_P2P_REQUEST_REPUBLISH_TICKS, 3));
     double searchRadius = Math.max(1, parameters.getOrDefault(KEY_P2P_FIXED_SEARCH_RADIUS, 5000));
     boolean embedded = parameters.getOrDefault(KEY_P2P_EMBEDDED, 1) == 1;
+    cleanupSeedBackoff(waitingClients);
     List<Client> unassignedWaitingClients =
         waitingClients.stream()
             .filter(client -> runtimeState.pendingForClient(client.getName()) == null)
+            .filter(client -> shouldAttemptSeedResolution(client.getName(), stepCounter))
             .toList();
     if (unassignedWaitingClients.isEmpty()) {
       return;
@@ -102,8 +109,10 @@ final class RequestCoordinator {
       Set<String> seedVehicleNodeIds =
           seedVehicleNodeIdsByClientName.getOrDefault(client.getName(), Set.of());
       if (seedVehicleNodeIds.isEmpty()) {
+        seedRetryAtStepByClientName.put(client.getName(), stepCounter + republishTicks);
         continue;
       }
+      seedRetryAtStepByClientName.remove(client.getName());
       seedVehicleNodeIds.forEach(
           vehicleNodeId -> registerTaxiKnowledgeCallback.accept(vehicleNodeId, client.getName()));
 
@@ -159,6 +168,7 @@ final class RequestCoordinator {
     long stepCounter = stepCounterSupplier.getAsLong();
     int republishTicks =
         Math.max(1, parametersSupplier.get().getOrDefault(KEY_P2P_REQUEST_REPUBLISH_TICKS, 3));
+    cleanupSeedBackoff(waitingClients);
     for (Client client : waitingClients) {
       TaxiCollectorRuntimeState.PendingRequest pending =
           runtimeState.pendingForClient(client.getName());
@@ -171,6 +181,23 @@ final class RequestCoordinator {
         runtimeState.removePendingForClient(client.getName());
       }
     }
+  }
+
+  private boolean shouldAttemptSeedResolution(String clientName, long stepCounter) {
+    if (clientName == null || clientName.isBlank()) {
+      return false;
+    }
+    Long retryAt = seedRetryAtStepByClientName.get(clientName);
+    return retryAt == null || stepCounter >= retryAt;
+  }
+
+  private void cleanupSeedBackoff(Collection<Client> waitingClients) {
+    if (seedRetryAtStepByClientName.isEmpty()) {
+      return;
+    }
+    Set<String> activeClientNames =
+        waitingClients.stream().map(Client::getName).collect(Collectors.toSet());
+    seedRetryAtStepByClientName.keySet().removeIf(clientName -> !activeClientNames.contains(clientName));
   }
 
   private Set<String> resolveInitialSeedVehicleNodeIds(

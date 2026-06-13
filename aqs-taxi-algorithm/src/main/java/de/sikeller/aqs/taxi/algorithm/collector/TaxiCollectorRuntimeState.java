@@ -110,6 +110,17 @@ public final class TaxiCollectorRuntimeState implements CollectorRuntimeStateVie
     return snapshot;
   }
 
+  public Set<String> taxiIdsKnowingClientSnapshot(String clientName) {
+    if (clientName == null || clientName.isBlank()) {
+      return Set.of();
+    }
+    Set<String> taxiIds = taxiIdsByClientId.get(clientName);
+    if (taxiIds == null || taxiIds.isEmpty()) {
+      return Set.of();
+    }
+    return Set.copyOf(taxiIds);
+  }
+
   private void removeKnowledgeForClient(String clientName) {
     Set<String> taxiIds = taxiIdsByClientId.remove(clientName);
     if (taxiIds == null || taxiIds.isEmpty()) {
