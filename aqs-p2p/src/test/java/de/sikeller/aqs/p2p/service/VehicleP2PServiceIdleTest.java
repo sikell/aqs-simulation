@@ -18,14 +18,14 @@ class VehicleP2PServiceIdleTest {
 
   @BeforeEach
   void before() {
-    System.setProperty(P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED, "true");
+    System.setProperty(P2PSystemProperties.VEHICLE_ROAMING_ENABLED, "true");
     System.setProperty(P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, "1");
     System.setProperty(P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS, "1");
   }
 
   @AfterEach
   void after() {
-    System.clearProperty(P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED);
+    System.clearProperty(P2PSystemProperties.VEHICLE_ROAMING_ENABLED);
     System.clearProperty(P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS);
     System.clearProperty(P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS);
   }
@@ -94,4 +94,3 @@ class VehicleP2PServiceIdleTest {
     }
   }
 }
-

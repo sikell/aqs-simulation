@@ -3,10 +3,9 @@ package de.sikeller.aqs.p2p.util;
 import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.model.SpawnScenario;
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +44,7 @@ public class IdleRoamingController {
 
   private volatile long lastIdleCheckTick = 0L;
   private volatile long lastIdleTravelPublishTick = 0L;
-  private final Random randomTravelGenerator = new Random(Long.getLong("worldSeed", 0L));
+  private final Map<String, Random> randomTravelGeneratorPerTaxi = new ConcurrentHashMap<>();
   private final AtomicReference<Position> pendingIdleTravelTarget = new AtomicReference<>();
   private final AtomicReference<Position> currentIdleTarget = new AtomicReference<>();
   private volatile SpawnScenario activeSpawnScenario = SpawnScenario.BASELINE;
@@ -201,7 +200,7 @@ public class IdleRoamingController {
       Consumer<Position> publishPosition) {
     boolean enabled =
         Boolean.parseBoolean(
-            System.getProperty(P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED, "true"));
+            System.getProperty(P2PSystemProperties.VEHICLE_ROAMING_ENABLED, "true"));
     if (!enabled) {
       return;
     }
@@ -241,7 +240,8 @@ public class IdleRoamingController {
     Position target = currentIdleTarget.get();
     if (target == null) {
       target =
-          generateIdleTarget(simulationX, simulationY, mapMaxX, mapMaxY, currentSimulationTick);
+          generateIdleTarget(
+              simulationX, simulationY, mapMaxX, mapMaxY, currentSimulationTick, nodeId);
       currentIdleTarget.set(target);
       if (lastIdleTravelPublishTick == 0L) {
         log.info(
@@ -262,23 +262,39 @@ public class IdleRoamingController {
   }
 
   private Position generateIdleTarget(
-      int currentX, int currentY, int mapMaxX, int mapMaxY, long currentSimulationTick) {
+      int currentX,
+      int currentY,
+      int mapMaxX,
+      int mapMaxY,
+      long currentSimulationTick,
+      String taxi) {
+    // This ensures consistency across runs for random selection
+    // while maintaining independence per taxi
+    randomTravelGeneratorPerTaxi.computeIfAbsent(
+        taxi, t -> new Random(Long.getLong("worldSeed", 0L) ^ t.hashCode()));
+
     String strategy = resolveIdleRoamingStrategy();
     if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(strategy)) {
-      return generateReturnToHqTarget(currentX, currentY, mapMaxX, mapMaxY);
+      return switch (activeSpawnScenario) {
+        case BASELINE ->
+            generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY, taxi);
+        case RUSH_HOUR, SPATIAL_IMBALANCE ->
+            new Position(clampToMapX(mapMaxX / 2, mapMaxX), clampToMapY(mapMaxY / 2, mapMaxY));
+        case SPATIAL_ISLANDS -> nearestSpatialIslandCenter(currentX, currentY, mapMaxX, mapMaxY);
+      };
     }
     if (IDLE_ROAMING_STRATEGY_PAST_AVG.equals(strategy)) {
       return generatePastAvgTarget(currentX, currentY, mapMaxX, mapMaxY);
     }
     if (IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(strategy)) {
       return generatePastAvgTotalTarget(
-          currentX, currentY, mapMaxX, mapMaxY, currentSimulationTick);
+          currentX, currentY, mapMaxX, mapMaxY, currentSimulationTick, taxi);
     }
     if (IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(strategy)) {
       return generatePastAvgRevisitTarget(
-          currentX, currentY, mapMaxX, mapMaxY, currentSimulationTick);
+          currentX, currentY, mapMaxX, mapMaxY, currentSimulationTick, taxi);
     }
-    return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
+    return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY, taxi);
   }
 
   private String resolveIdleRoamingStrategy() {
@@ -302,15 +318,6 @@ public class IdleRoamingController {
       return IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT;
     }
     return IDLE_ROAMING_STRATEGY_RANDOM;
-  }
-
-  private Position generateReturnToHqTarget(int currentX, int currentY, int mapMaxX, int mapMaxY) {
-    return switch (activeSpawnScenario) {
-      case BASELINE -> generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
-      case RUSH_HOUR, SPATIAL_IMBALANCE ->
-          new Position(clampToMapX(mapMaxX / 2, mapMaxX), clampToMapY(mapMaxY / 2, mapMaxY));
-      case SPATIAL_ISLANDS -> nearestSpatialIslandCenter(currentX, currentY, mapMaxX, mapMaxY);
-    };
   }
 
   /**
@@ -339,12 +346,17 @@ public class IdleRoamingController {
    * neither list has data.
    */
   private synchronized Position generatePastAvgTotalTarget(
-      int currentX, int currentY, int mapMaxX, int mapMaxY, long currentSimulationTick) {
+      int currentX,
+      int currentY,
+      int mapMaxX,
+      int mapMaxY,
+      long currentSimulationTick,
+      String taxi) {
     countValidSeenPositions(currentSimulationTick); // Clean up expired entries
     int totalCount = pickupPositions.size() + seenClientPositions.size();
     if (totalCount == 0) {
       log.info("No past-avg-total data recorded yet, falling back to random roaming");
-      return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
+      return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY, taxi);
     }
     int sumX = 0;
     int sumY = 0;
@@ -372,16 +384,21 @@ public class IdleRoamingController {
    * not served (within TTL). Falls back to random if no valid seen client positions remain.
    */
   private synchronized Position generatePastAvgRevisitTarget(
-      int currentX, int currentY, int mapMaxX, int mapMaxY, long currentSimulationTick) {
+      int currentX,
+      int currentY,
+      int mapMaxX,
+      int mapMaxY,
+      long currentSimulationTick,
+      String taxi) {
     countValidSeenPositions(currentSimulationTick); // Clean up expired entries
     if (seenClientPositions.isEmpty()) {
       log.info(
           "No past-avg-revisit data recorded yet (0 valid seen clients), falling back to random roaming");
       cachedRevisitTarget.set(null);
-      return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY);
+      return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY, taxi);
     }
     // Pick a random previously seen client position to revisit
-    int idx = randomTravelGenerator.nextInt(seenClientPositions.size());
+    int idx = randomTravelGeneratorPerTaxi.get(taxi).nextInt(seenClientPositions.size());
     int[] revisit = seenClientPositions.get(idx).position;
     int targetX = clampToMapX(revisit[0], mapMaxX);
     int targetY = clampToMapY(revisit[1], mapMaxY);
@@ -430,15 +447,15 @@ public class IdleRoamingController {
   }
 
   private Position generateRandomTargetWithinRadius(
-      int currentX, int currentY, int mapMaxX, int mapMaxY) {
+      int currentX, int currentY, int mapMaxX, int mapMaxY, String taxi) {
     int maxDistanceMeters =
         Math.max(
             1,
             Integer.getInteger(
                 P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS, 20000));
 
-    double angle = randomTravelGenerator.nextDouble() * 2 * Math.PI;
-    double distance = randomTravelGenerator.nextDouble() * maxDistanceMeters;
+    double angle = randomTravelGeneratorPerTaxi.get(taxi).nextDouble() * 2 * Math.PI;
+    double distance = randomTravelGeneratorPerTaxi.get(taxi).nextDouble() * maxDistanceMeters;
 
     int marginX = Math.max(1, mapMaxX / 50);
     int marginY = Math.max(1, mapMaxY / 50);

@@ -144,7 +144,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private static final int DEFAULT_VEHICLE_COMMIT_LEASE_TICKS = 20;
   private static final int DEFAULT_VEHICLE_REOFFER_INTERVAL_TICKS = 1;
   private static final int DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 120;
-  private static final int MIN_WAITING_CLIENTS_FOR_PARALLEL_ASSIGNMENT_PREP = 32;
   private static final String P2P_TOPOLOGY_SCAN_ENABLED = "p2pTopologyScanEnabled";
   private String collectorNodeId = "";
   private CommitHandler commitHandler;
@@ -458,7 +457,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     // Idle travel: propagate to system properties
     boolean idleTravelEnabled = parameters.getOrDefault(P2P_IDLE_TRAVEL_ENABLED, 1) == 1;
     System.setProperty(
-        P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED, String.valueOf(idleTravelEnabled));
+        P2PSystemProperties.VEHICLE_ROAMING_ENABLED, String.valueOf(idleTravelEnabled));
     long idleThresholdTicks =
         Math.max(1, parameters.getOrDefault(P2P_IDLE_TRAVEL_THRESHOLD_TICKS, 60));
     System.setProperty(

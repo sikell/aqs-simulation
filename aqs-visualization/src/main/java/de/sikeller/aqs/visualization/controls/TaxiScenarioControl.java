@@ -314,6 +314,7 @@ public class TaxiScenarioControl extends AbstractControl {
 
     panel.add(label("Last event", "p2pLastEventLabel"));
     p2pLastEventValue = new JLabel("-");
+    p2pLastEventValue.setPreferredSize(new Dimension(0, 20));
     panel.add(p2pLastEventValue);
 
     return panel;
@@ -1367,7 +1368,7 @@ public class TaxiScenarioControl extends AbstractControl {
                     idleRoamingEnabled ? normalizedRoamingMode : IDLE_ROAMING_STRATEGY_RANDOM;
                 // Apply idle roaming system properties for this iteration
                 System.setProperty(
-                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
+                    de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_ROAMING_ENABLED,
                     String.valueOf(idleRoamingEnabled));
                 System.setProperty(
                     de.sikeller.aqs.p2p.api.P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
@@ -2467,12 +2468,12 @@ public class TaxiScenarioControl extends AbstractControl {
       // Default to enabled so UI and JVM assume idle-random-travel on when no property provided
       boolean idleRandomTravelDefault =
           Boolean.parseBoolean(
-              System.getProperty(P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED, "true"));
+              System.getProperty(P2PSystemProperties.VEHICLE_ROAMING_ENABLED, "true"));
       p2pIdleRandomTravelEnabledCheckBox.setSelected(idleRandomTravelDefault);
       p2pIdleRandomTravelEnabledCheckBox.addActionListener(
           e ->
               System.setProperty(
-                  P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
+                  P2PSystemProperties.VEHICLE_ROAMING_ENABLED,
                   String.valueOf(p2pIdleRandomTravelEnabledCheckBox.isSelected())));
       idleTravelGroup.add(p2pIdleRandomTravelEnabledCheckBox);
       idleTravelRows++;
@@ -2879,7 +2880,7 @@ public class TaxiScenarioControl extends AbstractControl {
       // Apply UI-controlled idle vehicle random travel properties
       if (p2pIdleRandomTravelEnabledCheckBox != null) {
         System.setProperty(
-            P2PSystemProperties.VEHICLE_IDLE_RANDOM_TRAVEL_ENABLED,
+            P2PSystemProperties.VEHICLE_ROAMING_ENABLED,
             String.valueOf(p2pIdleRandomTravelEnabledCheckBox.isSelected()));
       }
       if (p2pIdleRoamingStrategyBox != null) {
