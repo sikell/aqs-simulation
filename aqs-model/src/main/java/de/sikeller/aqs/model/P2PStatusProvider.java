@@ -11,9 +11,7 @@ public interface P2PStatusProvider {
     return P2PNetworkSnapshot.empty();
   }
 
-  default boolean requestP2PTopologyScan() {
-    return false;
-  }
+  default void requestP2PTopologyScan() {}
 
   default Map<String, Set<String>> getTaxiKnowledgeByClientIds() {
     return Map.of();
@@ -25,24 +23,5 @@ public interface P2PStatusProvider {
    */
   default Map<String, int[]> getPageRankHqPositions() {
     return Map.of();
-  }
-
-  default Map<String, Set<String>> getClientKnowledgeByTaxiIds() {
-    Map<String, Set<String>> clientToTaxis = new java.util.LinkedHashMap<>();
-    getTaxiKnowledgeByClientIds()
-        .forEach(
-            (taxiId, clientIds) -> {
-              if (taxiId == null || taxiId.isBlank() || clientIds == null) {
-                return;
-              }
-              clientIds.stream()
-                  .filter(clientId -> clientId != null && !clientId.isBlank())
-                  .forEach(
-                      clientId ->
-                          clientToTaxis
-                              .computeIfAbsent(clientId, ignored -> new java.util.LinkedHashSet<>())
-                              .add(taxiId));
-            });
-    return clientToTaxis;
   }
 }

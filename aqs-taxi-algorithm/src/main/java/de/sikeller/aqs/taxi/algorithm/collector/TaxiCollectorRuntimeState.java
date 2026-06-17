@@ -1,45 +1,27 @@
 package de.sikeller.aqs.taxi.algorithm.collector;
 
-import de.sikeller.aqs.taxi.algorithm.collector.api.CollectorRuntimeStateView;
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Kapselt den laufzeitnahen Client/Request/Knowledge-Zustand des Collectors.
- */
-public final class TaxiCollectorRuntimeState implements CollectorRuntimeStateView {
+/** Kapselt den laufzeitnahen Client/Request/Knowledge-Zustand des Collectors. */
+@Slf4j
+public final class TaxiCollectorRuntimeState {
 
-  private final Map<String, PendingRequest> pendingByRequestId = new ConcurrentHashMap<>();
-  private final Map<String, PendingRequest> pendingByClientName = new ConcurrentHashMap<>();
+  public final Map<String, PendingRequest> pending = new ConcurrentHashMap<>();
   private final Map<String, Set<String>> clientIdsByTaxiId = new ConcurrentHashMap<>();
-  private final Map<String, Set<String>> taxiIdsByClientId = new ConcurrentHashMap<>();
 
   void clear() {
-    pendingByRequestId.clear();
-    pendingByClientName.clear();
+    pending.clear();
     clientIdsByTaxiId.clear();
-    taxiIdsByClientId.clear();
   }
 
   int pendingCount() {
-    return pendingByRequestId.size();
-  }
-
-  PendingRequest pendingForClient(String clientName) {
-    if (clientName == null || clientName.isBlank()) {
-      return null;
-    }
-    return pendingByClientName.get(clientName);
-  }
-
-  PendingRequest pendingForRequestId(String requestId) {
-    if (requestId == null || requestId.isBlank()) {
-      return null;
-    }
-    return pendingByRequestId.get(requestId);
+    return pending.size();
   }
 
   void putPendingRequest(String requestId, String clientName, long lastPublishedStep) {
@@ -47,49 +29,25 @@ public final class TaxiCollectorRuntimeState implements CollectorRuntimeStateVie
       return;
     }
 
-    PendingRequest pending = new PendingRequest(requestId, clientName, lastPublishedStep);
-    PendingRequest previousByClient = pendingByClientName.put(clientName, pending);
-    if (previousByClient != null && !previousByClient.requestId().equals(requestId)) {
-      pendingByRequestId.remove(previousByClient.requestId());
+    PendingRequest pr = new PendingRequest(requestId, clientName, lastPublishedStep);
+    PendingRequest previousByClient = pending.put(clientName, pr);
+    if (previousByClient != null) {
+      throw new IllegalStateException("Client was already pending");
     }
-    pendingByRequestId.put(requestId, pending);
   }
 
-  public void removePendingForClient(String clientName) {
-    if (clientName == null || clientName.isBlank()) {
-      return;
-    }
-
-    PendingRequest pending = pendingByClientName.remove(clientName);
-    if (pending != null) {
-      pendingByRequestId.remove(pending.requestId());
-    }
-    removeKnowledgeForClient(clientName);
-  }
-
-  public Set<String> pendingClientNamesSnapshot() {
-    return Set.copyOf(pendingByClientName.keySet());
-  }
-
-  Set<String> activeClientNamesSnapshot() {
-    return Set.copyOf(pendingByClientName.keySet());
-  }
-
-   public void registerTaxiKnowledge(String taxiId, String clientName) {
+  public void registerTaxiKnowledge(String taxiId, String clientName) {
     if (taxiId == null || taxiId.isBlank() || clientName == null || clientName.isBlank()) {
-      return;
+      throw new IllegalArgumentException("TaxiId and clientName must not be null or blank");
     }
 
     // Use concurrent set for taxi's client ids to avoid concurrent modification while iterating
-    Set<String> clients = clientIdsByTaxiId.computeIfAbsent(taxiId, ignored -> ConcurrentHashMap.newKeySet());
-    boolean added = clients.add(clientName);
-    if (added) {
-      Set<String> taxis = taxiIdsByClientId.computeIfAbsent(clientName, ignored -> ConcurrentHashMap.newKeySet());
-      taxis.add(taxiId);
-    }
+    clientIdsByTaxiId
+        .computeIfAbsent(taxiId, ignored -> ConcurrentHashMap.newKeySet())
+        .add(clientName);
   }
 
-   public Map<String, Set<String>> taxiKnowledgeSnapshot(Set<String> activeClientNames) {
+  public Map<String, Set<String>> taxiKnowledgeSnapshot(Set<String> activeClientNames) {
     if (activeClientNames == null || activeClientNames.isEmpty()) {
       return Map.of();
     }
@@ -110,36 +68,7 @@ public final class TaxiCollectorRuntimeState implements CollectorRuntimeStateVie
     return snapshot;
   }
 
-  public Set<String> taxiIdsKnowingClientSnapshot(String clientName) {
-    if (clientName == null || clientName.isBlank()) {
-      return Set.of();
-    }
-    Set<String> taxiIds = taxiIdsByClientId.get(clientName);
-    if (taxiIds == null || taxiIds.isEmpty()) {
-      return Set.of();
-    }
-    return Set.copyOf(taxiIds);
-  }
-
-  private void removeKnowledgeForClient(String clientName) {
-    Set<String> taxiIds = taxiIdsByClientId.remove(clientName);
-    if (taxiIds == null || taxiIds.isEmpty()) {
-      return;
-    }
-
-    for (String taxiId : taxiIds) {
-      Set<String> clientIds = clientIdsByTaxiId.get(taxiId);
-      if (clientIds == null) {
-        continue;
-      }
-      clientIds.remove(clientName);
-      if (clientIds.isEmpty()) {
-        clientIdsByTaxiId.remove(taxiId, clientIds);
-      }
-    }
-  }
-
-  static final class PendingRequest {
+  public static final class PendingRequest {
     private final String requestId;
     private final String clientName;
     private final long lastPublishedStep;
@@ -188,5 +117,3 @@ public final class TaxiCollectorRuntimeState implements CollectorRuntimeStateVie
     COMMITTED
   }
 }
-
-

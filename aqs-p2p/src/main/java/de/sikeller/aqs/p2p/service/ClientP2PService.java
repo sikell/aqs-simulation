@@ -60,11 +60,6 @@ public class ClientP2PService extends AbstractP2PNodeService {
    * immediately drop the request instead of waiting for their busy-lease TTL to expire.
    */
   public void announceWinner(String requestId, String winnerVehicleId) {
-    announceWinner(requestId, winnerVehicleId, node -> node.role() == NodeRole.VEHICLE);
-  }
-
-  public void announceWinner(
-      String requestId, String winnerVehicleId, Predicate<NodeDescriptor> targetFilter) {
     if (requestId == null || requestId.isBlank()) {
       return;
     }
@@ -78,7 +73,7 @@ public class ClientP2PService extends AbstractP2PNodeService {
         KeyValuePayload.write(payload),
         requestId,
         requestId,
-        targetFilter == null ? node -> node.role() == NodeRole.VEHICLE : targetFilter);
+        node -> node.role() == NodeRole.VEHICLE);
     log.info(
         "Client node {} announced winner requestId={} winner={}",
         descriptor().id(),

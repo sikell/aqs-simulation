@@ -12,6 +12,7 @@ import de.sikeller.aqs.p2p.api.P2PTopics;
 import de.sikeller.aqs.p2p.service.strategy.NearestVehicleRequestSelectionStrategy;
 import de.sikeller.aqs.p2p.service.strategy.VehicleRequestCandidate;
 import de.sikeller.aqs.p2p.service.strategy.VehicleRequestSelectionStrategies;
+import de.sikeller.aqs.p2p.service.util.TriConsumer;
 import de.sikeller.aqs.p2p.util.IdleRoamingController;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
 import java.util.HashSet;
@@ -47,7 +48,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private volatile long cachedReofferMinIntervalTicks = DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS;
   private volatile int cachedReofferMoveDistanceM = DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M;
   private volatile long cachedRequestCacheTtlTicks = DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS;
-  private volatile boolean cachedAllowOutsideClientRange = false;
 
   /**
    * When true, skip isBestKnownVehicle — collector selects winner from multiple commits. -- SETTER
@@ -92,11 +92,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     idleRoamingController.setSpawnScenario(scenario);
   }
 
-  @FunctionalInterface
-  public interface TriConsumer<A, B, C> {
-    void accept(A a, B b, C c);
-  }
-
   /** Refresh cached config from system properties. Call once at init. */
   public void refreshCachedConfig() {
     cachedCommitLeaseTicks =
@@ -123,9 +118,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
             Long.getLong(
                 P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
                 DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
-    cachedAllowOutsideClientRange =
-        Boolean.parseBoolean(
-            System.getProperty(P2PSystemProperties.VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE, "false"));
     String speedStr = System.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS);
     cachedAssumedSpeedMps =
         (speedStr == null || speedStr.isBlank())
@@ -459,11 +451,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       return;
     }
     cleanupStaleOpenRequests();
-    commitForSelectedOpenRequest(trigger);
-  }
 
-  private void commitForSelectedOpenRequest(String trigger) {
-    if (openRideRequests.isEmpty() || isVehicleBusy()) {
+    if (isVehicleBusy()) {
       return;
     }
     OpenRideRequest selected = selectOpenRequest();
@@ -574,11 +563,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   }
 
   private boolean shouldOffer(Map<String, String> requestPayload) {
-    if (requestPayload == null) {
-      return true;
-    }
-    if (cachedAllowOutsideClientRange) {
-      return true;
+    if (isVehicleBusy()) {
+      return false;
     }
 
     String forwardedBy = requestPayload.get(P2PPayloadKeys.FORWARDED_BY);

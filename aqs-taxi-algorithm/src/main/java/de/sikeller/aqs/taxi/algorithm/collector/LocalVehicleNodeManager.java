@@ -1,5 +1,6 @@
 package de.sikeller.aqs.taxi.algorithm.collector;
 
+import de.sikeller.aqs.model.Position;
 import de.sikeller.aqs.model.Taxi;
 import de.sikeller.aqs.model.World;
 import de.sikeller.aqs.model.SpawnScenario;
@@ -14,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 /** Manages local embedded vehicle nodes and their lifecycle in one place. */
@@ -38,7 +41,7 @@ public class LocalVehicleNodeManager {
   private SpawnScenario lastAppliedSpawnScenario;
   private int lastAppliedMapMaxX = Integer.MIN_VALUE;
   private int lastAppliedMapMaxY = Integer.MIN_VALUE;
-  private volatile DirectCommitReceiver directCommitReceiver;
+  @Setter private volatile DirectCommitReceiver directCommitReceiver;
 
   private record SyncedTaxiState(boolean available, int x, int y) {}
 
@@ -49,10 +52,6 @@ public class LocalVehicleNodeManager {
   LocalVehicleNodeManager(String vehicleNodePrefix, VehicleNodeFactory vehicleNodeFactory) {
     this.vehicleNodePrefix = vehicleNodePrefix;
     this.vehicleNodeFactory = vehicleNodeFactory;
-  }
-
-  public void setDirectCommitReceiver(DirectCommitReceiver receiver) {
-    this.directCommitReceiver = receiver;
   }
 
   public void ensureLocalVehicleNodes(
@@ -81,8 +80,13 @@ public class LocalVehicleNodeManager {
                 return;
               }
               createAndRegisterVehicleNode(
-                  taxi, world, network, spawnScenario,
-                  localVehicleNodesByTaxiName, vehicleNodeToTaxiName, taxiNameToVehicleNodeId);
+                  taxi,
+                  world,
+                  network,
+                  spawnScenario,
+                  localVehicleNodesByTaxiName,
+                  vehicleNodeToTaxiName,
+                  taxiNameToVehicleNodeId);
             });
 
     List<String> toRemove = new ArrayList<>();
@@ -122,8 +126,13 @@ public class LocalVehicleNodeManager {
     for (Taxi taxi : taxis) {
       if (!localVehicleNodesByTaxiName.containsKey(taxi.getName())) {
         createAndRegisterVehicleNode(
-            taxi, world, network, spawnScenario,
-            localVehicleNodesByTaxiName, vehicleNodeToTaxiName, taxiNameToVehicleNodeId);
+            taxi,
+            world,
+            network,
+            spawnScenario,
+            localVehicleNodesByTaxiName,
+            vehicleNodeToTaxiName,
+            taxiNameToVehicleNodeId);
       }
     }
 
@@ -132,7 +141,7 @@ public class LocalVehicleNodeManager {
     }
 
     // Update shared position manager once with all positions (O(n))
-    Map<String, de.sikeller.aqs.model.Position> allPositions = new HashMap<>(taxis.size());
+    Map<String, Position> allPositions = new HashMap<>(taxis.size());
     for (Taxi taxi : taxis) {
       String vehicleNodeId = taxiNameToVehicleNodeId.get(taxi.getName());
       if (vehicleNodeId != null) {
@@ -146,8 +155,8 @@ public class LocalVehicleNodeManager {
     }
   }
 
-  private void syncTaxiState(long stepCounter, Map<String, VehicleP2PService> nodesSnapshot,
-      Taxi taxi) {
+  private void syncTaxiState(
+      long stepCounter, Map<String, VehicleP2PService> nodesSnapshot, Taxi taxi) {
     VehicleP2PService node = nodesSnapshot.get(taxi.getName());
     if (node == null) {
       return;
@@ -164,7 +173,10 @@ public class LocalVehicleNodeManager {
   }
 
   private void createAndRegisterVehicleNode(
-      Taxi taxi, World world, P2PNetwork network, SpawnScenario spawnScenario,
+      Taxi taxi,
+      World world,
+      P2PNetwork network,
+      SpawnScenario spawnScenario,
       Map<String, VehicleP2PService> localVehicleNodesByTaxiName,
       Map<String, String> vehicleNodeToTaxiName,
       Map<String, String> taxiNameToVehicleNodeId) {
@@ -176,10 +188,11 @@ public class LocalVehicleNodeManager {
     if (directCommitReceiver != null) {
       vehicleNode.setDirectCommitCallback(directCommitReceiver::onCommit);
     }
-    vehicleNode.setPeerResolver(peerId -> {
-      String peerTaxi = vehicleNodeToTaxiName.get(peerId);
-      return peerTaxi != null ? localVehicleNodesByTaxiName.get(peerTaxi) : null;
-    });
+    vehicleNode.setPeerResolver(
+        peerId -> {
+          String peerTaxi = vehicleNodeToTaxiName.get(peerId);
+          return peerTaxi != null ? localVehicleNodesByTaxiName.get(peerTaxi) : null;
+        });
     vehicleNode.start();
     vehicleNode.setMapBounds(world.getSize().getMaxX(), world.getSize().getMaxY());
     vehicleNode.setSpawnScenario(spawnScenario);
@@ -187,7 +200,8 @@ public class LocalVehicleNodeManager {
     vehicleNodeToTaxiName.put(vehicleNodeId, taxi.getName());
     taxiNameToVehicleNodeId.put(taxi.getName(), vehicleNodeId);
     lastSyncedTaxiStates.remove(taxi.getName());
-    log.info("[P2P-COLLECTOR] created vehicle node taxi={} nodeId={}", taxi.getName(), vehicleNodeId);
+    log.info(
+        "[P2P-COLLECTOR] created vehicle node taxi={} nodeId={}", taxi.getName(), vehicleNodeId);
   }
 
   private void applySharedNodeSettingsIfNeeded(

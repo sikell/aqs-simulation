@@ -25,11 +25,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-/**
- * Handles request publication and retrigger logic for the collector.
- */
+/** Handles request publication and retrigger logic for the collector. */
 final class RequestCoordinator {
-
 
   private static final String KEY_P2P_REQUEST_REPUBLISH_TICKS = "p2pRequestRepublishTicks";
   private static final String KEY_P2P_FIXED_SEARCH_RADIUS = "p2pFixedSearchRadius";
@@ -45,11 +42,12 @@ final class RequestCoordinator {
   private final Map<String, String> taxiNameToVehicleNodeId;
   private final BiConsumer<String, String> registerTaxiKnowledgeCallback;
   private final Consumer<String> refreshStatusCallback;
+
   /** Resolves a vehicle node ID to the local VehicleP2PService (embedded mode only). */
   private final Function<String, VehicleP2PService> vehicleNodeResolver;
+
   private final AtomicLong embeddedRequestSequence = new AtomicLong();
-  private final ConcurrentMap<String, Long> seedRetryAtStepByClientName =
-      new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, Long> seedRetryAtStepByClientName = new ConcurrentHashMap<>();
 
   RequestCoordinator(
       Supplier<ClientP2PService> clientNodeSupplier,
@@ -86,7 +84,7 @@ final class RequestCoordinator {
     cleanupSeedBackoff(waitingClients);
     List<Client> unassignedWaitingClients =
         waitingClients.stream()
-            .filter(client -> runtimeState.pendingForClient(client.getName()) == null)
+            .filter(client -> runtimeState.pending.get(client.getName()) == null)
             .filter(client -> shouldAttemptSeedResolution(client.getName(), stepCounter))
             .toList();
     if (unassignedWaitingClients.isEmpty()) {
@@ -127,7 +125,8 @@ final class RequestCoordinator {
                 + "-"
                 + embeddedRequestSequence.incrementAndGet();
         runtimeState.putPendingRequest(requestId, client.getName(), stepCounter);
-        int requestForwardHops = Math.max(0, parameters.getOrDefault(KEY_P2P_REQUEST_FORWARD_HOPS, 2));
+        int requestForwardHops =
+            Math.max(0, parameters.getOrDefault(KEY_P2P_REQUEST_FORWARD_HOPS, 2));
         Map<String, String> payload = new LinkedHashMap<>();
         payload.put(P2PPayloadKeys.ORIGIN_NODE, collectorNodeId);
         payload.put(P2PPayloadKeys.HOPS_REMAINING, String.valueOf(requestForwardHops));
@@ -149,14 +148,17 @@ final class RequestCoordinator {
         extraPayload.put(P2PPayloadKeys.CLIENT_NAME, client.getName());
         extraPayload.put(P2PPayloadKeys.REQUEST_X, String.valueOf(client.getPosition().getX()));
         extraPayload.put(P2PPayloadKeys.REQUEST_Y, String.valueOf(client.getPosition().getY()));
-        extraPayload.put(P2PPayloadKeys.SEARCH_RADIUS, String.valueOf((int) Math.round(searchRadius)));
-        int requestForwardHops = Math.max(0, parameters.getOrDefault(KEY_P2P_REQUEST_FORWARD_HOPS, 2));
-        requestId = clientNode.requestRide(
-            client.getPosition().toString(),
-            client.getTarget().toString(),
-            effectiveFilter,
-            requestForwardHops,
-            extraPayload);
+        extraPayload.put(
+            P2PPayloadKeys.SEARCH_RADIUS, String.valueOf((int) Math.round(searchRadius)));
+        int requestForwardHops =
+            Math.max(0, parameters.getOrDefault(KEY_P2P_REQUEST_FORWARD_HOPS, 2));
+        requestId =
+            clientNode.requestRide(
+                client.getPosition().toString(),
+                client.getTarget().toString(),
+                effectiveFilter,
+                requestForwardHops,
+                extraPayload);
         runtimeState.putPendingRequest(requestId, client.getName(), stepCounter);
       }
 
@@ -170,15 +172,14 @@ final class RequestCoordinator {
         Math.max(1, parametersSupplier.get().getOrDefault(KEY_P2P_REQUEST_REPUBLISH_TICKS, 3));
     cleanupSeedBackoff(waitingClients);
     for (Client client : waitingClients) {
-      TaxiCollectorRuntimeState.PendingRequest pending =
-          runtimeState.pendingForClient(client.getName());
+      TaxiCollectorRuntimeState.PendingRequest pending = runtimeState.pending.get(client.getName());
       if (pending == null || pending.isCommitted()) {
         continue;
       }
 
       if (pending.state() == TaxiCollectorRuntimeState.RequestState.PUBLISHED
           && stepCounter - pending.lastPublishedStep() >= republishTicks) {
-        runtimeState.removePendingForClient(client.getName());
+        runtimeState.pending.remove(client.getName());
       }
     }
   }
@@ -197,13 +198,16 @@ final class RequestCoordinator {
     }
     Set<String> activeClientNames =
         waitingClients.stream().map(Client::getName).collect(Collectors.toSet());
-    seedRetryAtStepByClientName.keySet().removeIf(clientName -> !activeClientNames.contains(clientName));
+    seedRetryAtStepByClientName
+        .keySet()
+        .removeIf(clientName -> !activeClientNames.contains(clientName));
   }
 
   private Set<String> resolveInitialSeedVehicleNodeIds(
       World world, Client client, double searchRadius, Map<String, Integer> parameters) {
     if (world == null
-        || (parameters.getOrDefault(KEY_P2P_EMBEDDED, 1) == 1 && taxiNameToVehicleNodeId.isEmpty())) {
+        || (parameters.getOrDefault(KEY_P2P_EMBEDDED, 1) == 1
+            && taxiNameToVehicleNodeId.isEmpty())) {
       return Set.of();
     }
 
