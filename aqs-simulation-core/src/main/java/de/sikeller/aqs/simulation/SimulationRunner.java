@@ -70,7 +70,7 @@ public class SimulationRunner implements SimulationControl {
     var customCalculationTime = CollectorMinMaxAverage.longCollector();
     var simulationCalculationTime = CollectorMinMaxAverage.longCollector();
     CollectorTimeSeries.Collector<TickDataPoint> tickDataPoints =
-        CollectorTimeSeries.newCollector();
+        realtimeVisualizationEnabled ? CollectorTimeSeries.newCollector() : null;
     while (!world.isFinished()) {
       int sleepMillis =
           Math.max(0, (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1)));
@@ -86,15 +86,21 @@ public class SimulationRunner implements SimulationControl {
       algorithmCalculationTime.collect(calculationTime);
       customCalculationTime.collect(
           result.getCalculationTime() != null ? result.getCalculationTime() : 0);
-      int activeClients = world.getActiveClientsCount();
-      tickDataPoints.collect(new TickDataPoint(currentTime, calculationTime, activeClients));
+      if (tickDataPoints != null) {
+        int activeClients = world.getActiveClientsCount();
+        tickDataPoints.collect(new TickDataPoint(currentTime, calculationTime, activeClients));
+      }
       log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
-      notifyVisualizationListeners(false);
+      if (realtimeVisualizationEnabled) {
+        notifyVisualizationListeners(false);
+      }
       simulationCalculationTime.collect(System.nanoTime() - simulationStartTime);
     }
 
-    eventDispatcher.print();
+    if (realtimeVisualizationEnabled) {
+      eventDispatcher.print();
+    }
     statsCollector.collect(
         eventDispatcher,
         world,
@@ -102,15 +108,21 @@ public class SimulationRunner implements SimulationControl {
         algorithmCalculationTime.result(TimeUnit.NANOSECONDS::toMillis),
         customCalculationTime.result(TimeUnit.NANOSECONDS::toMicros),
         simulationCalculationTime.result(TimeUnit.NANOSECONDS::toMillis));
-    statsCollector.print();
+    if (realtimeVisualizationEnabled) {
+      statsCollector.print();
+    }
 
     latestResultTable = statsCollector.tableResults();
     try {
-      resultSink.accept(latestResultTable);
+      if (realtimeVisualizationEnabled) {
+        resultSink.accept(latestResultTable);
+      }
     } catch (Exception e) {
       log.error(e.getMessage(), e);
     }
-    resultVisualization.showLoadChart(tickDataPoints.result(), algorithm.get().getName());
+    if (realtimeVisualizationEnabled && tickDataPoints != null) {
+      resultVisualization.showLoadChart(tickDataPoints.result(), algorithm.get().getName());
+    }
     eventDispatcher.resetEvents();
 
     simulationFinished = true;

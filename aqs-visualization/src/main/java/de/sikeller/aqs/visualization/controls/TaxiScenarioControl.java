@@ -25,16 +25,23 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.NumberFormat;
+import java.time.Instant;
 import java.util.*;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import javax.swing.*;
 import javax.swing.Timer;
 import javax.swing.border.TitledBorder;
+
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -98,8 +105,8 @@ public class TaxiScenarioControl extends AbstractControl {
   private JLabel p2pShortcutEdgesValue;
   private JLabel p2pLastEventValue;
   private JLabel p2pModeWarningLabel;
-  private VisualizationProperties visualizationProperties;
-  private Timer p2pStatusTimer;
+  @Setter private VisualizationProperties visualizationProperties;
+  private final Timer p2pStatusTimer;
   private JSpinner p2pPositionRevisionThrottleSpinner;
   private JSpinner p2pPositionRevisionMinMoveSpinner;
   private JComboBox<String> p2pShortcutStrategyBox;
@@ -704,10 +711,6 @@ public class TaxiScenarioControl extends AbstractControl {
     return p2pTopologyPanel;
   }
 
-  public void setVisualizationProperties(VisualizationProperties visualizationProperties) {
-    this.visualizationProperties = visualizationProperties;
-  }
-
   public void setP2PModeUiListener(Consumer<Boolean> listener) {
     this.p2pModeUiListener = listener == null ? ignored -> {} : listener;
     this.p2pModeUiListener.accept(isP2PModeSelected());
@@ -985,6 +988,7 @@ public class TaxiScenarioControl extends AbstractControl {
     setControlsEnabledForMassRun(false);
     simulation.stop();
     visualizationProperties.setEnableRealtimeVisualization(false);
+    simulation.setRealtimeVisualizationEnabled(false);
     if (p2pStatusTimer != null) {
       p2pStatusTimer.stop();
     }
@@ -992,6 +996,14 @@ public class TaxiScenarioControl extends AbstractControl {
     List<MassRunCsvWriter.RunMetricRow> runRows = Collections.synchronizedList(new ArrayList<>());
     Object snapshotSaveLock = new Object();
     AtomicBoolean manualSaveInProgress = new AtomicBoolean(false);
+    AtomicInteger totalRowsWritten = new AtomicInteger(0);
+    // Clean up previous results file so we don't append to stale data
+    try {
+      Path prevResults = Paths.get(config.outputDir()).resolve("mass-run-results.csv");
+      Files.deleteIfExists(prevResults);
+    } catch (Exception ignored) {
+      // best-effort cleanup
+    }
     JDialog progressDialog = createMassRunProgressDialog();
     attachMassRunSaveNowAction(
         progressDialog,
@@ -1136,7 +1148,7 @@ public class TaxiScenarioControl extends AbstractControl {
                                                     taxiSeatCount,
                                                     mapSize,
                                                     seed);
-                                            String timestamp = java.time.Instant.now().toString();
+                                            String timestamp = Instant.now().toString();
                                             runRows.addAll(
                                                 MassRunCsvWriter.toRunRows(
                                                     result.table(),
@@ -1168,33 +1180,41 @@ public class TaxiScenarioControl extends AbstractControl {
                                                 (int)
                                                     Math.round(
                                                         doneRuns * 100.0 / Math.max(1, totalRuns));
+                                            // Flush rows to disk incrementally every iteration
+                                            // to keep memory usage constant
+                                            try {
+                                              List<MassRunCsvWriter.RunMetricRow> batch;
+                                              synchronized (runRows) {
+                                                batch = new ArrayList<>(runRows);
+                                                runRows.clear();
+                                              }
+                                              if (!batch.isEmpty()) {
+                                                synchronized (snapshotSaveLock) {
+                                                  int written =
+                                                      MassRunCsvWriter.appendRunRows(
+                                                          config.outputDir(), batch);
+                                                  totalRowsWritten.addAndGet(written);
+                                                }
+                                              }
+                                            } catch (Exception flushEx) {
+                                              log.warn(
+                                                  "Incremental flush failed at run {}",
+                                                  doneRuns,
+                                                  flushEx);
+                                            }
                                             while (nextAutoSavePercent <= 100
                                                 && progress >= nextAutoSavePercent) {
                                               int marker = nextAutoSavePercent;
-                                              try {
-                                                int savedRows =
-                                                    saveMassRunSnapshot(
-                                                        config, runRows, snapshotSaveLock);
-                                                SwingUtilities.invokeLater(
-                                                    () ->
-                                                        updateMassRunSaveStatus(
-                                                            progressDialog,
-                                                            "Last save: auto "
-                                                                + marker
-                                                                + "% ("
-                                                                + savedRows
-                                                                + " rows)"));
-                                              } catch (Exception saveEx) {
-                                                log.warn("Auto-save at {}% failed", marker, saveEx);
-                                                SwingUtilities.invokeLater(
-                                                    () ->
-                                                        updateMassRunSaveStatus(
-                                                            progressDialog,
-                                                            "Auto-save failed at "
-                                                                + marker
-                                                                + "%: "
-                                                                + saveEx.getMessage()));
-                                              }
+                                              int currentTotal = totalRowsWritten.get();
+                                              SwingUtilities.invokeLater(
+                                                  () ->
+                                                      updateMassRunSaveStatus(
+                                                          progressDialog,
+                                                          "Progress: "
+                                                              + marker
+                                                              + "% ("
+                                                              + currentTotal
+                                                              + " rows written)"));
                                               nextAutoSavePercent += 25;
                                             }
                                             setProgress(Math.max(0, Math.min(100, progress)));
@@ -1220,25 +1240,45 @@ public class TaxiScenarioControl extends AbstractControl {
                 }
               }
 
-              // write config file for reproducibility
-              List<MassRunCsvWriter.RunMetricRow> finalSnapshot;
+              // Flush any remaining rows still in memory
+              List<MassRunCsvWriter.RunMetricRow> remaining;
               synchronized (runRows) {
-                finalSnapshot = new ArrayList<>(runRows);
+                remaining = new ArrayList<>(runRows);
+                runRows.clear();
               }
-              MassRunCsvWriter.OutputFiles csvOutput;
-              java.nio.file.Path configFile;
+              if (!remaining.isEmpty()) {
+                synchronized (snapshotSaveLock) {
+                  totalRowsWritten.addAndGet(
+                      MassRunCsvWriter.appendRunRows(config.outputDir(), remaining));
+                }
+              }
+              // Generate aggregate CSV from the complete results file on disk
+              Path configFile;
               synchronized (snapshotSaveLock) {
-                csvOutput = MassRunCsvWriter.write(config.outputDir(), finalSnapshot);
+                MassRunCsvWriter.writeAggregateFromFile(config.outputDir());
                 configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
               }
-              return new MassRunCsvWriter.OutputFiles(
-                  csvOutput.runCsv(), csvOutput.aggregateCsv(), configFile);
+              Path runFile = Paths.get(config.outputDir()).resolve("mass-run-results.csv");
+              Path aggFile = Paths.get(config.outputDir()).resolve("mass-run-aggregates.csv");
+              return new MassRunCsvWriter.OutputFiles(runFile, aggFile, configFile);
             } catch (Exception ex) {
               if (!isMassRunTimeoutException(ex)) {
                 throw ex;
               }
+              // On timeout, flush remaining rows and report
               try {
-                int savedRows = saveMassRunSnapshot(config, runRows, snapshotSaveLock);
+                List<MassRunCsvWriter.RunMetricRow> emergencyBatch;
+                synchronized (runRows) {
+                  emergencyBatch = new ArrayList<>(runRows);
+                  runRows.clear();
+                }
+                if (!emergencyBatch.isEmpty()) {
+                  synchronized (snapshotSaveLock) {
+                    totalRowsWritten.addAndGet(
+                        MassRunCsvWriter.appendRunRows(config.outputDir(), emergencyBatch));
+                  }
+                }
+                int savedRows = totalRowsWritten.get();
                 throw new IllegalStateException(
                     ex.getMessage()
                         + " Partial results were saved to "
@@ -1280,6 +1320,7 @@ public class TaxiScenarioControl extends AbstractControl {
             progressDialog.dispose();
             massRunInProgress = false;
             visualizationProperties.setEnableRealtimeVisualization(true);
+            simulation.setRealtimeVisualizationEnabled(true);
             if (p2pStatusTimer != null && !p2pStatusTimer.isRunning()) {
               p2pStatusTimer.start();
             }
@@ -1860,15 +1901,19 @@ public class TaxiScenarioControl extends AbstractControl {
       List<MassRunCsvWriter.RunMetricRow> runRows,
       Object snapshotSaveLock)
       throws IOException {
-    List<MassRunCsvWriter.RunMetricRow> snapshot;
+    List<MassRunCsvWriter.RunMetricRow> batch;
     synchronized (runRows) {
-      snapshot = new ArrayList<>(runRows);
+      batch = new ArrayList<>(runRows);
+      runRows.clear();
     }
     synchronized (snapshotSaveLock) {
-      MassRunCsvWriter.write(config.outputDir(), snapshot);
+      if (!batch.isEmpty()) {
+        MassRunCsvWriter.appendRunRows(config.outputDir(), batch);
+      }
+      MassRunCsvWriter.writeAggregateFromFile(config.outputDir());
       MassRunCsvWriter.writeConfig(config.outputDir(), config);
     }
-    return snapshot.size();
+    return batch.size();
   }
 
   private boolean isMassRunTimeoutException(Exception ex) {
@@ -1996,9 +2041,7 @@ public class TaxiScenarioControl extends AbstractControl {
               }
             });
       } else if (comp instanceof Container container) {
-        for (Component child : container.getComponents()) {
-          stack.add(child);
-        }
+        Collections.addAll(stack, container.getComponents());
       }
     }
   }

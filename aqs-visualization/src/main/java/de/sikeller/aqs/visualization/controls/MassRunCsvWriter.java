@@ -51,7 +51,7 @@ final class MassRunCsvWriter {
       double sum = parseDouble(row[4]);
       int count = (int) Math.round(parseDouble(row[5]));
       rows.add(
-              new RunMetricRow(
+          new RunMetricRow(
               timestamp,
               algorithm,
               kHops,
@@ -83,17 +83,154 @@ final class MassRunCsvWriter {
     return rows;
   }
 
-  static OutputFiles write(String outputDir, List<RunMetricRow> runRows) throws IOException {
+  /**
+   * Appends run rows to the CSV file, creating the file with header if it does not exist. Returns
+   * the number of rows written in this call.
+   */
+  static int appendRunRows(String outputDir, List<RunMetricRow> newRows) throws IOException {
+    if (newRows == null || newRows.isEmpty()) return 0;
     Path directory = Paths.get(outputDir);
     Files.createDirectories(directory);
-    List<AggregateMetricRow> aggregateRows = aggregate(runRows);
-
     Path runFile = directory.resolve("mass-run-results.csv");
-    Path aggregateFile = directory.resolve("mass-run-aggregates.csv");
+    boolean writeHeader = !Files.exists(runFile) || Files.size(runFile) == 0;
+    List<String> lines = new ArrayList<>();
+    if (writeHeader) {
+      lines.add(
+          "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
+    }
+    for (RunMetricRow row : newRows) {
+      lines.add(
+          csv(
+              row.timestamp(),
+              row.algorithm(),
+              row.kHops(),
+              row.requestRepublishTicks(),
+              row.rqsRadius(),
+              row.taxiCount(),
+              row.clientCount(),
+              row.taxiSeatCount(),
+              row.p2pStrategy(),
+              row.p2pOverlayMinNeighbors(),
+              row.p2pOverlayMaxNeighbors(),
+              row.p2pOverlayShortcuts(),
+              row.p2pOverlayMaxDistanceFactor(),
+              row.p2pTopologyScanTicks(),
+              row.idleRoamingEnabled(),
+              row.idleRoamingStrategy(),
+              row.idleRoamingMode(),
+              row.spawnScenario(),
+              row.runIndex(),
+              row.worldSeed(),
+              row.metric(),
+              row.min(),
+              row.max(),
+              row.avg(),
+              row.sum(),
+              row.count(),
+              row.spread()));
+    }
+    java.nio.file.StandardOpenOption[] opts =
+        writeHeader
+            ? new java.nio.file.StandardOpenOption[] {
+              java.nio.file.StandardOpenOption.CREATE,
+              java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
+            }
+            : new java.nio.file.StandardOpenOption[] {
+              java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND
+            };
+    Files.write(runFile, lines, StandardCharsets.UTF_8, opts);
+    return newRows.size();
+  }
 
-    writeRunCsv(runFile, runRows);
+  /**
+   * Writes the aggregate CSV from ALL run rows (must be read back or accumulated for final
+   * aggregation).
+   */
+  static void writeAggregateFromFile(String outputDir) throws IOException {
+    Path directory = Paths.get(outputDir);
+    Path runFile = directory.resolve("mass-run-results.csv");
+    if (!Files.exists(runFile)) return;
+    List<RunMetricRow> allRows = readRunCsv(runFile);
+    List<AggregateMetricRow> aggregateRows = aggregate(allRows);
+    Path aggregateFile = directory.resolve("mass-run-aggregates.csv");
     writeAggregateCsv(aggregateFile, aggregateRows);
-    return new OutputFiles(runFile, aggregateFile, null);
+  }
+
+  private static List<RunMetricRow> readRunCsv(Path file) throws IOException {
+    List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+    List<RunMetricRow> rows = new ArrayList<>();
+    for (int i = 1; i < lines.size(); i++) { // skip header
+      String line = lines.get(i);
+      if (line.isBlank()) continue;
+      String[] parts = parseCsvLine(line);
+      if (parts.length < 27) continue;
+      try {
+        rows.add(
+            new RunMetricRow(
+                parts[0],
+                parts[1],
+                Integer.parseInt(parts[2]),
+                Integer.parseInt(parts[3]),
+                Integer.parseInt(parts[4]),
+                Integer.parseInt(parts[5]),
+                Integer.parseInt(parts[6]),
+                Integer.parseInt(parts[7]),
+                parts[8],
+                Integer.parseInt(parts[9]),
+                Integer.parseInt(parts[10]),
+                Integer.parseInt(parts[11]),
+                Integer.parseInt(parts[12]),
+                Integer.parseInt(parts[13]),
+                Boolean.parseBoolean(parts[14]),
+                parts[15],
+                parts[16],
+                parts[17],
+                Integer.parseInt(parts[18]),
+                Integer.parseInt(parts[19]),
+                parts[20],
+                Double.parseDouble(parts[21]),
+                Double.parseDouble(parts[22]),
+                Double.parseDouble(parts[23]),
+                Double.parseDouble(parts[24]),
+                Integer.parseInt(parts[25]),
+                Double.parseDouble(parts[26])));
+      } catch (NumberFormatException ignored) {
+        // skip malformed rows
+      }
+    }
+    return rows;
+  }
+
+  private static String[] parseCsvLine(String line) {
+    List<String> fields = new ArrayList<>();
+    StringBuilder current = new StringBuilder();
+    boolean inQuotes = false;
+    for (int i = 0; i < line.length(); i++) {
+      char c = line.charAt(i);
+      if (inQuotes) {
+        if (c == '"') {
+          if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+            current.append('"');
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          current.append(c);
+        }
+      } else {
+        if (c == '"') {
+          inQuotes = true;
+        } else if (c == ',') {
+          fields.add(current.toString());
+          current.setLength(0);
+        } else {
+          current.append(c);
+        }
+      }
+    }
+    fields.add(current.toString());
+    return fields.toArray(new String[0]);
   }
 
   static Path writeConfig(String outputDir, MassRunDialog.MassRunConfig config) throws IOException {
@@ -104,14 +241,51 @@ final class MassRunCsvWriter {
     props.setProperty("algorithms", String.join(",", config.algorithms()));
     props.setProperty("p2pStrategies", String.join(",", config.p2pStrategies()));
     props.setProperty("spawnScenarios", String.join(",", config.spawnScenarios()));
-    props.setProperty("kHops", config.kHops().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("rqsRadius", config.rqsRadiusValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("overlayMinNeighbors", config.overlayMinNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("overlayMaxNeighbors", config.overlayMaxNeighborsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("overlayShortcuts", config.overlayShortcutsValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("requestRepublishTicks", config.requestRepublishTicksValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("topologyScanTicks", config.topologyScanTicksValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("overlayMaxDistanceFactor", config.overlayMaxDistanceFactorValues().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty(
+        "kHops",
+        config.kHops().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty(
+        "rqsRadius",
+        config.rqsRadiusValues().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
+    props.setProperty(
+        "overlayMinNeighbors",
+        config.overlayMinNeighborsValues().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
+    props.setProperty(
+        "overlayMaxNeighbors",
+        config.overlayMaxNeighborsValues().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
+    props.setProperty(
+        "overlayShortcuts",
+        config.overlayShortcutsValues().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
+    props.setProperty(
+        "requestRepublishTicks",
+        config.requestRepublishTicksValues().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
+    props.setProperty(
+        "topologyScanTicks",
+        config.topologyScanTicksValues().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
+    props.setProperty(
+        "overlayMaxDistanceFactor",
+        config.overlayMaxDistanceFactorValues().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
     props.setProperty("idleRoamingModes", String.join(",", config.idleRoamingModes()));
     if (!config.idleRoamingModes().isEmpty()) {
       String firstMode = config.idleRoamingModes().getFirst();
@@ -128,19 +302,34 @@ final class MassRunCsvWriter {
     }
     props.setProperty("idleThresholdTicks", String.valueOf(config.idleThresholdTicks()));
     props.setProperty("idleCheckThrottleTicks", String.valueOf(config.idleCheckThrottleTicks()));
-    props.setProperty("randomTravelMaxDistanceMeters", String.valueOf(config.randomTravelMaxDistanceMeters()));
+    props.setProperty(
+        "randomTravelMaxDistanceMeters", String.valueOf(config.randomTravelMaxDistanceMeters()));
     props.setProperty("seenClientTtlTicks", String.valueOf(config.seenClientTtlTicks()));
     props.setProperty("runs", String.valueOf(config.runs()));
     props.setProperty("baseSeed", String.valueOf(config.baseSeed()));
     props.setProperty("outputDir", config.outputDir());
-    props.setProperty("taxiCounts", config.taxiCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
-    props.setProperty("clientCounts", config.clientCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty(
+        "taxiCounts",
+        config.taxiCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty(
+        "clientCounts",
+        config.clientCounts().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
     props.setProperty("clientSpawnWindow", String.valueOf(config.clientSpawnWindow()));
     props.setProperty("clientSpeed", String.valueOf(config.clientSpeed()));
-    props.setProperty("taxiSeatCounts", config.taxiSeatCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty(
+        "taxiSeatCounts",
+        config.taxiSeatCounts().stream()
+            .map(String::valueOf)
+            .reduce((a, b) -> a + "," + b)
+            .orElse(""));
     props.setProperty("taxiSpeed", String.valueOf(config.taxiSpeed()));
     props.setProperty("simulationSpeed", String.valueOf(config.simulationSpeed()));
-    props.setProperty("mapSize", config.mapSizes().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
+    props.setProperty(
+        "mapSize",
+        config.mapSizes().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     try (java.io.Writer w = Files.newBufferedWriter(configFile, StandardCharsets.UTF_8)) {
       props.store(w, "Mass Run Config – generated " + java.time.Instant.now());
     }
@@ -194,24 +383,24 @@ final class MassRunCsvWriter {
       if (group.isEmpty()) {
         continue;
       }
-      String algorithm = group.get(0).algorithm();
-      int kHops = group.get(0).kHops();
-      int requestRepublishTicks = group.get(0).requestRepublishTicks();
-      int rqsRadius = group.get(0).rqsRadius();
-      int taxiCount = group.get(0).taxiCount();
-      int clientCount = group.get(0).clientCount();
-      int taxiSeatCount = group.get(0).taxiSeatCount();
-      String p2pStrategy = group.get(0).p2pStrategy();
-      int p2pOverlayMinNeighbors = group.get(0).p2pOverlayMinNeighbors();
-      int p2pOverlayMaxNeighbors = group.get(0).p2pOverlayMaxNeighbors();
-      int p2pOverlayShortcuts = group.get(0).p2pOverlayShortcuts();
-      int p2pOverlayMaxDistanceFactor = group.get(0).p2pOverlayMaxDistanceFactor();
-      int p2pTopologyScanTicks = group.get(0).p2pTopologyScanTicks();
-      boolean idleRoamingEnabled = group.get(0).idleRoamingEnabled();
-      String idleRoamingStrategy = group.get(0).idleRoamingStrategy();
-      String idleRoamingMode = group.get(0).idleRoamingMode();
-      String spawnScenario = group.get(0).spawnScenario();
-      String metric = group.get(0).metric();
+      String algorithm = group.getFirst().algorithm();
+      int kHops = group.getFirst().kHops();
+      int requestRepublishTicks = group.getFirst().requestRepublishTicks();
+      int rqsRadius = group.getFirst().rqsRadius();
+      int taxiCount = group.getFirst().taxiCount();
+      int clientCount = group.getFirst().clientCount();
+      int taxiSeatCount = group.getFirst().taxiSeatCount();
+      String p2pStrategy = group.getFirst().p2pStrategy();
+      int p2pOverlayMinNeighbors = group.getFirst().p2pOverlayMinNeighbors();
+      int p2pOverlayMaxNeighbors = group.getFirst().p2pOverlayMaxNeighbors();
+      int p2pOverlayShortcuts = group.getFirst().p2pOverlayShortcuts();
+      int p2pOverlayMaxDistanceFactor = group.getFirst().p2pOverlayMaxDistanceFactor();
+      int p2pTopologyScanTicks = group.getFirst().p2pTopologyScanTicks();
+      boolean idleRoamingEnabled = group.getFirst().idleRoamingEnabled();
+      String idleRoamingStrategy = group.getFirst().idleRoamingStrategy();
+      String idleRoamingMode = group.getFirst().idleRoamingMode();
+      String spawnScenario = group.getFirst().spawnScenario();
+      String metric = group.getFirst().metric();
 
       double avgOfAvg = average(group, RunMetricRow::avg);
       aggregateRows.add(
@@ -246,45 +435,8 @@ final class MassRunCsvWriter {
     return aggregateRows;
   }
 
-  private static void writeRunCsv(Path file, List<RunMetricRow> rows) throws IOException {
-    List<String> lines = new ArrayList<>();
-    lines.add(
-        "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,metric,min,max,avg,sum,count,spread");
-    for (RunMetricRow row : rows) {
-      lines.add(
-          csv(
-              row.timestamp(),
-              row.algorithm(),
-              row.kHops(),
-              row.requestRepublishTicks(),
-              row.rqsRadius(),
-              row.taxiCount(),
-              row.clientCount(),
-              row.taxiSeatCount(),
-              row.p2pStrategy(),
-              row.p2pOverlayMinNeighbors(),
-              row.p2pOverlayMaxNeighbors(),
-              row.p2pOverlayShortcuts(),
-              row.p2pOverlayMaxDistanceFactor(),
-              row.p2pTopologyScanTicks(),
-              row.idleRoamingEnabled(),
-              row.idleRoamingStrategy(),
-              row.idleRoamingMode(),
-              row.spawnScenario(),
-              row.runIndex(),
-              row.worldSeed(),
-              row.metric(),
-              row.min(),
-              row.max(),
-              row.avg(),
-              row.sum(),
-              row.count(),
-              row.spread()));
-    }
-    Files.write(file, lines, StandardCharsets.UTF_8);
-  }
-
-  private static void writeAggregateCsv(Path file, List<AggregateMetricRow> rows) throws IOException {
+  private static void writeAggregateCsv(Path file, List<AggregateMetricRow> rows)
+      throws IOException {
     List<String> lines = new ArrayList<>();
     lines.add(
         "algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,metric,runs,avgOfAvg,stdDevOfAvg,minAvg,maxAvg,avgSpread,minSpread,maxSpread");
@@ -322,12 +474,16 @@ final class MassRunCsvWriter {
   }
 
   private static String csv(Object... values) {
-    return Arrays.stream(values).map(MassRunCsvWriter::escape).reduce((l, r) -> l + "," + r).orElse("");
+    return Arrays.stream(values)
+        .map(MassRunCsvWriter::escape)
+        .reduce((l, r) -> l + "," + r)
+        .orElse("");
   }
 
   private static String escape(Object value) {
     String text = Objects.toString(value, "");
-    boolean needsQuotes = text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\r");
+    boolean needsQuotes =
+        text.contains(",") || text.contains("\"") || text.contains("\n") || text.contains("\r");
     String escaped = text.replace("\"", "\"\"");
     return needsQuotes ? "\"" + escaped + "\"" : escaped;
   }
@@ -343,7 +499,8 @@ final class MassRunCsvWriter {
     return Double.parseDouble(text);
   }
 
-  private static double average(List<RunMetricRow> rows, java.util.function.ToDoubleFunction<RunMetricRow> selector) {
+  private static double average(
+      List<RunMetricRow> rows, java.util.function.ToDoubleFunction<RunMetricRow> selector) {
     if (rows.isEmpty()) {
       return 0d;
     }
@@ -354,7 +511,8 @@ final class MassRunCsvWriter {
     return sum / rows.size();
   }
 
-  private static double min(List<RunMetricRow> rows, java.util.function.ToDoubleFunction<RunMetricRow> selector) {
+  private static double min(
+      List<RunMetricRow> rows, java.util.function.ToDoubleFunction<RunMetricRow> selector) {
     double min = Double.POSITIVE_INFINITY;
     for (RunMetricRow row : rows) {
       min = Math.min(min, selector.applyAsDouble(row));
@@ -362,7 +520,8 @@ final class MassRunCsvWriter {
     return rows.isEmpty() ? 0d : min;
   }
 
-  private static double max(List<RunMetricRow> rows, java.util.function.ToDoubleFunction<RunMetricRow> selector) {
+  private static double max(
+      List<RunMetricRow> rows, java.util.function.ToDoubleFunction<RunMetricRow> selector) {
     double max = Double.NEGATIVE_INFINITY;
     for (RunMetricRow row : rows) {
       max = Math.max(max, selector.applyAsDouble(row));
@@ -445,8 +604,12 @@ final class MassRunCsvWriter {
   record OutputFiles(Path runCsv, Path aggregateCsv, Path configFile) {
     @Override
     public String toString() {
-      return String.format(Locale.ROOT, "%s | %s | %s", runCsv, aggregateCsv, configFile != null ? configFile : "no config");
+      return String.format(
+          Locale.ROOT,
+          "%s | %s | %s",
+          runCsv,
+          aggregateCsv,
+          configFile != null ? configFile : "no config");
     }
   }
 }
-
