@@ -234,7 +234,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
                 topologyViewsByNodeId.put(
                     nodeId,
                     new TopologyPeerView(
-                        nodeId, data.role, data.neighborIds, data.shortcutNeighborIds)),
+                        nodeId, data.role(), data.neighborIds(), data.shortcutNeighborIds())),
             (atStep, scanId) -> {
               lastTopologyScanAtStep = atStep;
               lastTopologyScanId = scanId;
@@ -278,7 +278,10 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   @Override
   protected AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     stepCounter++;
-    cleanupNoLongerWaiting(waitingClients);
+    // cleanup no longer waiting clients
+    for (Client c : waitingClients) {
+      runtimeState.pending.remove(c.getName());
+    }
     if (isTopologyScanEnabled()) {
       topologyManager.requestScanIfDue(false);
     }
@@ -363,19 +366,18 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
     // Non-embedded mode: infer idle targets from P2P-published vehicle positions
     if (clientService != null && network != null) {
-      Map<String, de.sikeller.aqs.model.Position> overlayPositions =
-          clientService.vehiclePositionSnapshot();
+      Map<String, Position> overlayPositions = clientService.vehiclePositionSnapshot();
       if (overlayPositions != null && !overlayPositions.isEmpty()) {
-        for (Map.Entry<String, de.sikeller.aqs.model.Position> e : overlayPositions.entrySet()) {
+        for (Map.Entry<String, Position> e : overlayPositions.entrySet()) {
           String vehicleNodeId = e.getKey();
-          de.sikeller.aqs.model.Position pos = e.getValue();
+          Position pos = e.getValue();
           if (pos == null) continue;
           String taxiName = vehicleNodeToTaxiName.getOrDefault(vehicleNodeId, vehicleNodeId);
           Taxi taxi = taxiByName.get(taxiName);
           if (taxi == null || !taxi.isEmpty()) {
             continue;
           }
-          de.sikeller.aqs.model.Position last = lastPublishedVehiclePositions.get(vehicleNodeId);
+          Position last = lastPublishedVehiclePositions.get(vehicleNodeId);
           long lastTick = last == null ? Long.MIN_VALUE : last.getTick();
           long thisTick = pos.getTick();
           if (thisTick > lastTick) {
@@ -517,16 +519,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     }
   }
 
-  private void cleanupNoLongerWaiting(Collection<Client> waitingClients) {
-    Set<String> waitingNames =
-        waitingClients.stream().map(Client::getName).collect(Collectors.toSet());
-    for (String clientName : runtimeState.pending.keySet()) {
-      if (!waitingNames.contains(clientName)) {
-        runtimeState.pending.remove(clientName);
-      }
-    }
-  }
-
   /** Handles a direct commit from an embedded vehicle. */
   private void handleDirectCommit(String requestId, String vehicleNodeId, String taxiName) {
     if (requestId == null || requestId.isBlank() || vehicleNodeId == null) {
@@ -563,7 +555,10 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     status.put(STATUS_KNOWN_PEERS, String.valueOf(network != null ? network.peers().size() : 0));
     status.put(
         STATUS_VEHICLE_PEERS,
-        String.valueOf(network != null ? countVehiclePeers(network.peers()) : 0));
+        String.valueOf(
+            network != null
+                ? network.peers().stream().filter(p -> p.role().equals(NodeRole.VEHICLE)).count()
+                : 0));
     status.put(STATUS_PENDING_REQUESTS, String.valueOf(runtimeState.pendingCount()));
     status.put(STATUS_MAPPED_VEHICLES, String.valueOf(vehicleNodeToTaxiName.size()));
     status.put(STATUS_TOPOLOGY_VIEWS, String.valueOf(topologyViewsByNodeId.size()));
@@ -827,14 +822,6 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
         vehicles.size(),
         vehicles.stream().map(NodeDescriptor::id).toList());
     refreshStatus(EVENT_DERIVED_TAXI_COUNT_PREFIX + vehicles.size());
-  }
-
-  private long countVehiclePeers(Set<NodeDescriptor> peers) {
-    long count = 0;
-    for (NodeDescriptor peer : peers) {
-      if (peer.role() == NodeRole.VEHICLE) count++;
-    }
-    return count;
   }
 
   private void refreshStatus(String event) {

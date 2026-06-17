@@ -49,9 +49,9 @@ class TopologyManagerTest {
 
     TopologyManager.TopologyData data = views.get("vehicle-1");
     assertNotNull(data);
-    assertEquals("VEHICLE", data.role);
-    assertEquals(Set.of("n1", "n2"), data.neighborIds);
-    assertEquals(Set.of("n2"), data.shortcutNeighborIds);
+    assertEquals("VEHICLE", data.role());
+    assertEquals(Set.of("n1", "n2"), data.neighborIds());
+    assertEquals(Set.of("n2"), data.shortcutNeighborIds());
     assertEquals(1, statusEvents.get());
   }
 
@@ -136,4 +136,3 @@ class TopologyManagerTest {
     }
   }
 }
-

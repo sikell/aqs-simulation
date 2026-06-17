@@ -72,10 +72,6 @@ final class RequestCoordinator {
 
   public void publishNewRequests(World world, Collection<Client> waitingClients) {
     ClientP2PService clientNode = clientNodeSupplier.get();
-    if (clientNode == null) {
-      return;
-    }
-
     Map<String, Integer> parameters = parametersSupplier.get();
     long stepCounter = stepCounterSupplier.getAsLong();
     int republishTicks = Math.max(1, parameters.getOrDefault(KEY_P2P_REQUEST_REPUBLISH_TICKS, 3));
