@@ -76,7 +76,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private volatile long lastCleanupTick = 0L;
   private volatile long lastActivityTick = -1L;
 
-  /** -- GETTER -- */
   @Getter private final IdleRoamingController idleRoamingController = new IdleRoamingController();
 
   private volatile int mapMaxX = 0;
@@ -356,15 +355,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       // past-avg-revisit.
       // (Busy case is already registered in commitForRequestIfPossible before reaching here.)
       if (!isVehicleBusy()) {
-        String rawX = openRequest.payload.get(P2PPayloadKeys.REQUEST_X);
-        String rawY = openRequest.payload.get(P2PPayloadKeys.REQUEST_Y);
-        if (rawX != null && rawY != null) {
-          try {
-            idleRoamingController.registerSeenClientPosition(
-                Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
-          } catch (NumberFormatException ignored) {
-          }
-        }
+        registerRequestForRoaming(openRequest);
       }
       return false;
     }
@@ -400,6 +391,19 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         openRequest.originNodeId,
         trigger);
     return true;
+  }
+
+  private void registerRequestForRoaming(OpenRideRequest openRequest) {
+    String reqId = openRequest.requestId;
+    String rawX = openRequest.payload.get(P2PPayloadKeys.REQUEST_X);
+    String rawY = openRequest.payload.get(P2PPayloadKeys.REQUEST_Y);
+    if (rawX != null && rawY != null && !seenRideRequests.containsKey(reqId)) {
+      try {
+        idleRoamingController.registerSeenClientPosition(
+            Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
+      } catch (NumberFormatException ignored) {
+      }
+    }
   }
 
   private boolean isBestKnownVehicleForRequest(OpenRideRequest openRequest, int selfEtaSeconds) {
@@ -469,15 +473,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
     if (isVehicleBusy()) {
       // Register seen-but-unserved client position for past-avg-total / past-avg-revisit strategies
-      String rawX = request.payload.get(P2PPayloadKeys.REQUEST_X);
-      String rawY = request.payload.get(P2PPayloadKeys.REQUEST_Y);
-      if (rawX != null && rawY != null) {
-        try {
-          idleRoamingController.registerSeenClientPosition(
-              Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
-        } catch (NumberFormatException ignored) {
-        }
-      }
+      registerRequestForRoaming(request);
       return false;
     }
     return commitForRequestIfBest(request, TRIGGER_INCOMING);

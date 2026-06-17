@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import de.sikeller.aqs.p2p.service.util.TriConsumer;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,12 +29,6 @@ public class LocalVehicleNodeManager {
     VehicleP2PService create(String vehicleNodeId, P2PNetwork network);
   }
 
-  /** Callback for direct commits from embedded vehicles: (requestId, vehicleNodeId, taxiName). */
-  @FunctionalInterface
-  public interface DirectCommitReceiver {
-    void onCommit(String requestId, String vehicleNodeId, String taxiName);
-  }
-
   private final String vehicleNodePrefix;
   private final VehicleNodeFactory vehicleNodeFactory;
   private final Map<String, SyncedTaxiState> lastSyncedTaxiStates = new ConcurrentHashMap<>();
@@ -41,7 +36,7 @@ public class LocalVehicleNodeManager {
   private SpawnScenario lastAppliedSpawnScenario;
   private int lastAppliedMapMaxX = Integer.MIN_VALUE;
   private int lastAppliedMapMaxY = Integer.MIN_VALUE;
-  @Setter private volatile DirectCommitReceiver directCommitReceiver;
+  @Setter private volatile TriConsumer<String, String, String> directCommitReceiver;
 
   private record SyncedTaxiState(boolean available, int x, int y) {}
 
@@ -186,7 +181,7 @@ public class LocalVehicleNodeManager {
     vehicleNode.setSuppressPositionBroadcast(true);
     vehicleNode.setSharedPositionManager(sharedPositionManager);
     if (directCommitReceiver != null) {
-      vehicleNode.setDirectCommitCallback(directCommitReceiver::onCommit);
+      vehicleNode.setDirectCommitCallback(directCommitReceiver);
     }
     vehicleNode.setPeerResolver(
         peerId -> {
