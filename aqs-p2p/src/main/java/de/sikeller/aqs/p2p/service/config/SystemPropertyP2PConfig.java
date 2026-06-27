@@ -72,13 +72,6 @@ public class SystemPropertyP2PConfig implements P2PConfig {
     return Math.max(0, parsed);
   }
 
-  @Override
-  public int maxInboxMessages() {
-    String val = System.getProperty(P2PSystemProperties.MAX_INBOX_MESSAGES, "").trim();
-    if (val.isBlank()) return 10000;
-    return parseIntOrDefault(val, 10000);
-  }
-
   private static int parseIntOrDefault(String s, int defaultVal) {
     try {
       return Integer.parseInt(s);

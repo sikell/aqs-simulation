@@ -17,6 +17,4 @@ public interface P2PConfig {
   long positionRevisionThrottleTicks();
 
   int positionRevisionMinMoveMeters();
-
-  int maxInboxMessages();
 }
