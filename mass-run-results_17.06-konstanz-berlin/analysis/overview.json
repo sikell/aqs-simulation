@@ -1,0 +1,77 @@
+{
+  "rows": 34752,
+  "algorithms": [
+    "TaxiAlgorithmP2PCollector",
+    "TaxiAlgorithmSinglePassenger"
+  ],
+  "variants": [
+    "TaxiAlgorithmP2PCollector+greedy",
+    "TaxiAlgorithmP2PCollector+nearest",
+    "TaxiAlgorithmSinglePassenger"
+  ],
+  "metrics": [
+    "Calculation Time [millis]",
+    "Client Travel Time [min]",
+    "Client Waiting Time [min]",
+    "Custom Time [micros]",
+    "Simulation Time [millis]",
+    "Taxi Travel Distance [km]"
+  ],
+  "spawnScenarios": [
+    "BASELINE",
+    "RUSH_HOUR",
+    "SPATIAL_IMBALANCE",
+    "SPATIAL_ISLANDS"
+  ],
+  "varying_dims": {
+    "kHops": [
+      "0",
+      "1",
+      "2"
+    ],
+    "p2pRqsRadius": [
+      "1000",
+      "2000",
+      "3000"
+    ],
+    "taxiCount": [
+      "39",
+      "1685"
+    ],
+    "clientCount": [
+      "638",
+      "27762"
+    ],
+    "p2pOverlayShortcuts": [
+      "0",
+      "1"
+    ],
+    "algorithm": [
+      "TaxiAlgorithmP2PCollector",
+      "TaxiAlgorithmSinglePassenger"
+    ],
+    "p2pStrategy": [
+      "greedy",
+      "n/a",
+      "nearest"
+    ],
+    "spawnScenario": [
+      "BASELINE",
+      "RUSH_HOUR",
+      "SPATIAL_IMBALANCE",
+      "SPATIAL_ISLANDS"
+    ],
+    "idleRoamingMode": [
+      "nan",
+      "none",
+      "past-avg",
+      "past-avg-revisit",
+      "past-avg-total",
+      "random"
+    ]
+  },
+  "runIndex_range": [
+    1,
+    4
+  ]
+}
