@@ -1,14 +1,6 @@
 {
   "rows": 34752,
-  "algorithms": [
-    "TaxiAlgorithmP2PCollector",
-    "TaxiAlgorithmSinglePassenger"
-  ],
-  "variants": [
-    "TaxiAlgorithmP2PCollector+greedy",
-    "TaxiAlgorithmP2PCollector+nearest",
-    "TaxiAlgorithmSinglePassenger"
-  ],
+  "iterations": 5792,
   "metrics": [
     "Calculation Time [millis]",
     "Client Travel Time [min]",
@@ -17,61 +9,39 @@
     "Simulation Time [millis]",
     "Taxi Travel Distance [km]"
   ],
+  "algorithms": {
+    "TaxiAlgorithmP2PCollector": 34560,
+    "TaxiAlgorithmSinglePassenger": 192
+  },
+  "taxiClientPairs": [
+    {
+      "taxiCount": 39,
+      "clientCount": 638
+    },
+    {
+      "taxiCount": 1685,
+      "clientCount": 27762
+    }
+  ],
   "spawnScenarios": [
     "BASELINE",
     "RUSH_HOUR",
     "SPATIAL_IMBALANCE",
     "SPATIAL_ISLANDS"
   ],
-  "varying_dims": {
-    "kHops": [
-      "0",
-      "1",
-      "2"
-    ],
-    "p2pRqsRadius": [
-      "1000",
-      "2000",
-      "3000"
-    ],
-    "taxiCount": [
-      "39",
-      "1685"
-    ],
-    "clientCount": [
-      "638",
-      "27762"
-    ],
-    "p2pOverlayShortcuts": [
-      "0",
-      "1"
-    ],
-    "algorithm": [
-      "TaxiAlgorithmP2PCollector",
-      "TaxiAlgorithmSinglePassenger"
-    ],
-    "p2pStrategy": [
-      "greedy",
-      "n/a",
-      "nearest"
-    ],
-    "spawnScenario": [
-      "BASELINE",
-      "RUSH_HOUR",
-      "SPATIAL_IMBALANCE",
-      "SPATIAL_ISLANDS"
-    ],
-    "idleRoamingMode": [
-      "nan",
-      "none",
-      "past-avg",
-      "past-avg-revisit",
-      "past-avg-total",
-      "random"
-    ]
-  },
-  "runIndex_range": [
-    1,
-    4
+  "timestampMin": "2026-06-17 16:16:41.177414541+00:00",
+  "timestampMax": "2026-06-27 18:53:21.410214765+00:00",
+  "days": [
+    "2026-06-17",
+    "2026-06-18",
+    "2026-06-19",
+    "2026-06-20",
+    "2026-06-21",
+    "2026-06-22",
+    "2026-06-23",
+    "2026-06-24",
+    "2026-06-25",
+    "2026-06-26",
+    "2026-06-27"
   ]
 }
