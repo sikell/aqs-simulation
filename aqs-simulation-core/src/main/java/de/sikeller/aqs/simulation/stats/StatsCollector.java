@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class StatsCollector {
-  private static final String DOUBLE_FORMAT = "%.02f";
+  private static final String DOUBLE_FORMAT = "%.03f";
   private Result<Double> travelDistance;
   private Result<Long> waitingTime;
   private Result<Long> travelTime;
