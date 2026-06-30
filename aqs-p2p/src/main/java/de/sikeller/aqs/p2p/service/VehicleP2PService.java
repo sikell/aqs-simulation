@@ -67,6 +67,8 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   // Track first-seen tick per requestId for deduplication and eviction
   private final ConcurrentMap<String, Long> seenRideRequests = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, OpenRideRequest> openRideRequests = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, Long> roamingRegisteredRideRequests =
+      new ConcurrentHashMap<>();
   private final ConcurrentMap<String, String> forwardedPayloadCache = new ConcurrentHashMap<>();
   private volatile long busyUntilTick;
   private volatile long currentSimulationTick;
@@ -351,16 +353,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           openRequest.requestId,
           isVehicleBusy(),
           shouldOffer(openRequest.payload));
-      // Register out-of-range clients as "seen but not served" for past-avg-total /
-      // past-avg-revisit.
-      // (Busy case is already registered in commitForRequestIfPossible before reaching here.)
-      if (!isVehicleBusy()) {
-        registerRequestForRoaming(openRequest);
-      }
+      registerRequestForRoaming(openRequest);
       return false;
     }
 
     if (!shouldReoffer(openRequest, currentSimulationTick)) {
+      registerRequestForRoaming(openRequest);
       return false;
     }
 
@@ -372,12 +370,14 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       etaSeconds =
           P2PGeoUtils.etaSeconds(simulationX, simulationY, reqX, reqY, cachedAssumedSpeedMps);
       if (!isBestKnownVehicleForRequest(openRequest, etaSeconds)) {
+        registerRequestForRoaming(openRequest);
         return false;
       }
     }
 
     // Atomically claim so concurrent triggers cannot double-commit
     if (!openRideRequests.remove(openRequest.requestId, openRequest)) {
+      registerRequestForRoaming(openRequest);
       return false;
     }
     busyUntilTick = currentSimulationTick + cachedCommitLeaseTicks;
@@ -397,7 +397,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     String reqId = openRequest.requestId;
     String rawX = openRequest.payload.get(P2PPayloadKeys.REQUEST_X);
     String rawY = openRequest.payload.get(P2PPayloadKeys.REQUEST_Y);
-    if (rawX != null && rawY != null && !seenRideRequests.containsKey(reqId)) {
+    if (rawX != null
+        && rawY != null
+        && roamingRegisteredRideRequests.putIfAbsent(reqId, currentSimulationTick) == null) {
       try {
         idleRoamingController.registerSeenClientPosition(
             Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
@@ -539,6 +541,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         .entrySet()
         .removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > cachedRequestCacheTtlTicks);
     seenRideRequests
+        .entrySet()
+        .removeIf(entry -> nowTick - entry.getValue() > cachedRequestCacheTtlTicks);
+    roamingRegisteredRideRequests
         .entrySet()
         .removeIf(entry -> nowTick - entry.getValue() > cachedRequestCacheTtlTicks);
     if (forwardedPayloadCache.size() > MAX_FORWARDED_PAYLOAD_CACHE_SIZE) {

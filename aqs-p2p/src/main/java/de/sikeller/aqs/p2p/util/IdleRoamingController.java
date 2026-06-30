@@ -39,7 +39,7 @@ public class IdleRoamingController {
   /** Average of past pickup positions AND seen-but-not-served client positions combined. */
   private static final String IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL = "past-avg-total";
 
-  /** Revisit a random position where a waiting client was previously seen but not served. */
+  /** Revisit a position where a waiting client was previously seen but not served. */
   private static final String IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT = "past-avg-revisit";
 
   private volatile long lastIdleCheckTick = 0L;
@@ -380,8 +380,8 @@ public class IdleRoamingController {
   }
 
   /**
-   * past-avg-revisit: returns to a random position where a waiting client was previously seen but
-   * not served (within TTL). Falls back to random if no valid seen client positions remain.
+   * past-avg-revisit: returns to the nearest position where a waiting client was previously seen
+   * but not served (within TTL). Stays put if no valid seen client positions remain.
    */
   private synchronized Position generatePastAvgRevisitTarget(
       int currentX,
@@ -393,12 +393,12 @@ public class IdleRoamingController {
     countValidSeenPositions(currentSimulationTick); // Clean up expired entries
     if (seenClientPositions.isEmpty()) {
       log.info(
-          "No past-avg-revisit data recorded yet (0 valid seen clients), falling back to random roaming");
+          "No past-avg-revisit data recorded yet (0 valid seen clients), staying at current position");
       cachedRevisitTarget.set(null);
-      return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY, taxi);
+      return new Position(currentX, currentY);
     }
-    // Pick a random previously seen client position to revisit
-    int idx = randomTravelGeneratorPerTaxi.get(taxi).nextInt(seenClientPositions.size());
+
+    int idx = nearestSeenClientIndex(currentX, currentY);
     int[] revisit = seenClientPositions.get(idx).position;
     int targetX = clampToMapX(revisit[0], mapMaxX);
     int targetY = clampToMapY(revisit[1], mapMaxY);
@@ -411,6 +411,20 @@ public class IdleRoamingController {
         idx,
         seenClientPositions.size());
     return new Position(targetX, targetY);
+  }
+
+  private int nearestSeenClientIndex(int currentX, int currentY) {
+    int bestIndex = 0;
+    double bestDistance = Double.MAX_VALUE;
+    for (int i = 0; i < seenClientPositions.size(); i++) {
+      int[] pos = seenClientPositions.get(i).position;
+      double distance = P2PGeoUtils.distance(currentX, currentY, pos[0], pos[1]);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    }
+    return bestIndex;
   }
 
   private Position nearestSpatialIslandCenter(
