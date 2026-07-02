@@ -6,6 +6,7 @@ import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.service.position.PositionManager;
 import de.sikeller.aqs.p2p.service.util.AliasSampler;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
+import de.sikeller.aqs.p2p.util.P2PRunContext;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -50,7 +51,7 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
     Set<String> usedIds = new HashSet<>();
     if (excludedPeerIds != null) usedIds.addAll(excludedPeerIds);
 
-    long globalSeed = Long.getLong("worldSeed", 0L);
+    long globalSeed = P2PRunContext.worldSeed();
     String nodeProbabilityStr =
         System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "1.0").trim();
     double nodeProbability = clamp(parseDoubleOrDefault(nodeProbabilityStr, 1.0), 0.0, 1.0);

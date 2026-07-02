@@ -28,7 +28,6 @@ public class SimulationRunner implements SimulationControl {
   private final ResultVisualization resultVisualization;
   private final SimulationResultSink resultSink;
   private final StatsCollector statsCollector = new StatsCollector();
-  private final EventDispatcher eventDispatcher = EventDispatcher.instance();
   private final List<SimulationObserver> listeners = new LinkedList<>();
   private volatile boolean running = false;
   private volatile int speed = 15;
@@ -55,17 +54,37 @@ public class SimulationRunner implements SimulationControl {
     this.resultSink = resultSink == null ? this.resultVisualization::showResults : resultSink;
   }
 
-  public static SimulationResultSink noVisualizationResultSink() {
-    return table -> {};
+  @Override
+  public SimulationControl newIsolated(TaxiAlgorithm algorithm) {
+    return new SimulationRunner(
+        WorldObject.builder().build(),
+        new Algorithm(algorithm),
+        new WorldGeneratorScenario(),
+        table -> {});
   }
 
   @SneakyThrows
   @SuppressWarnings(value = "BusyWait")
   public void run() {
+    run(0L);
+  }
+
+  @Override
+  public void runUntilFinished(long timeoutMs) throws Exception {
+    start();
+    long deadlineNanos =
+        timeoutMs <= 0 ? 0L : System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+    run(deadlineNanos);
+  }
+
+  @SuppressWarnings(value = "BusyWait")
+  private void run(long deadlineNanos) throws Exception {
     if (!simulationInitialized) {
       return;
     }
 
+    EventDispatcher eventDispatcher = EventDispatcher.instance();
+    eventDispatcher.resetEvents();
     latestResultTable = null;
     latestTickDataPoints = List.of();
     latestRequestDataPoints = List.of();
@@ -85,6 +104,12 @@ public class SimulationRunner implements SimulationControl {
       Thread.sleep(sleepMillis);
       if (!running) {
         continue;
+      }
+      if (deadlineNanos > 0 && System.nanoTime() >= deadlineNanos) {
+        running = false;
+        simulationFinished = true;
+        eventDispatcher.resetEvents();
+        throw new IllegalStateException("Simulation timeout.");
       }
       var simulationStartTime = System.nanoTime();
       var currentTime = world.getCurrentTime() + 1;

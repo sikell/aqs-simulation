@@ -23,6 +23,14 @@ public interface SimulationControl {
 
   void setSpeed(int speed);
 
+  default SimulationControl newIsolated(TaxiAlgorithm algorithm) {
+    throw new UnsupportedOperationException("Isolated simulation is not available.");
+  }
+
+  default void runUntilFinished(long timeoutMs) throws Exception {
+    throw new UnsupportedOperationException("Blocking simulation run is not available.");
+  }
+
   default ResultTable getLatestResultTable() {
     return null;
   }

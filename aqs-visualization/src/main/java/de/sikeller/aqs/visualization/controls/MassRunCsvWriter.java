@@ -455,6 +455,7 @@ final class MassRunCsvWriter {
     props.setProperty("runs", String.valueOf(config.runs()));
     props.setProperty("baseSeed", String.valueOf(config.baseSeed()));
     props.setProperty("outputDir", config.outputDir());
+    props.setProperty("parallelWorkers", String.valueOf(config.parallelWorkers()));
     props.setProperty(
         "taxiCounts",
         config.taxiCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));

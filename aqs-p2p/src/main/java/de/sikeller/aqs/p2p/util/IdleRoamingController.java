@@ -271,7 +271,7 @@ public class IdleRoamingController {
     // This ensures consistency across runs for random selection
     // while maintaining independence per taxi
     randomTravelGeneratorPerTaxi.computeIfAbsent(
-        taxi, t -> new Random(Long.getLong("worldSeed", 0L) ^ t.hashCode()));
+        taxi, t -> new Random(P2PRunContext.worldSeed() ^ t.hashCode()));
 
     String strategy = resolveIdleRoamingStrategy();
     if (IDLE_ROAMING_STRATEGY_RETURN_TO_HQ.equals(strategy)) {

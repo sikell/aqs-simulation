@@ -29,7 +29,9 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.SpinnerNumberModel;
 
 final class MassRunDialog extends JDialog {
   private final List<String> availableAlgorithms;
@@ -44,6 +46,7 @@ final class MassRunDialog extends JDialog {
   private final JTextField runsField;
   private final JTextField baseSeedField;
   private final JTextField outputDirField;
+  private final JSpinner parallelWorkersSpinner;
   private final JTextField taxiCountsField;
   private final JTextField clientCountsField;
   private final JTextField clientSpawnWindowField;
@@ -83,9 +86,17 @@ final class MassRunDialog extends JDialog {
     runsField = new JTextField(String.valueOf(defaults.runs()));
     baseSeedField = new JTextField(String.valueOf(defaults.baseSeed()));
     outputDirField = new JTextField(defaults.outputDir());
+    parallelWorkersSpinner =
+        new JSpinner(
+            new SpinnerNumberModel(
+                defaults.parallelWorkers(),
+                1,
+                Math.max(1, Runtime.getRuntime().availableProcessors()),
+                1));
     addRow(runPanel, "Runs", runsField);
     addRow(runPanel, "Base seed", baseSeedField);
     addRow(runPanel, "Output dir", outputDirField);
+    addRow(runPanel, "Parallel workers", parallelWorkersSpinner);
 
     JPanel worldPanel = new JPanel(new GridLayout(0, 2, 8, 8));
     worldPanel.setBorder(BorderFactory.createTitledBorder("World Parameters"));
@@ -256,6 +267,7 @@ final class MassRunDialog extends JDialog {
       int runs = parseInt(runsField.getText(), 1);
       int baseSeed = Integer.parseInt(baseSeedField.getText().trim());
       String outputDir = outputDirField.getText().trim();
+      int parallelWorkers = ((Number) parallelWorkersSpinner.getValue()).intValue();
       List<Integer> taxiCounts = parseCsvIntList(taxiCountsField.getText(), 1, "taxi count");
       List<Integer> clientCounts = parseCsvIntList(clientCountsField.getText(), 1, "client count");
       int clientSpawnWindow = parseInt(clientSpawnWindowField.getText(), 0);
@@ -301,6 +313,7 @@ final class MassRunDialog extends JDialog {
               runs,
               baseSeed,
               outputDir,
+              parallelWorkers,
               taxiCounts,
               clientCounts,
               clientSpawnWindow,
@@ -380,6 +393,7 @@ final class MassRunDialog extends JDialog {
     props.setProperty("runs", runsField.getText());
     props.setProperty("baseSeed", baseSeedField.getText());
     props.setProperty("outputDir", outputDirField.getText());
+    props.setProperty("parallelWorkers", String.valueOf(parallelWorkersSpinner.getValue()));
     props.setProperty("taxiCounts", taxiCountsField.getText());
     props.setProperty("clientCounts", clientCountsField.getText());
     props.setProperty("clientSpawnWindow", clientSpawnWindowField.getText());
@@ -449,6 +463,9 @@ final class MassRunDialog extends JDialog {
     setFieldIfPresent(runsField, props, "runs");
     setFieldIfPresent(baseSeedField, props, "baseSeed");
     setFieldIfPresent(outputDirField, props, "outputDir");
+    if (props.containsKey("parallelWorkers")) {
+      parallelWorkersSpinner.setValue(parseInt(props.getProperty("parallelWorkers"), 1));
+    }
     setFieldIfPresent(taxiCountsField, props, "taxiCounts");
     setFieldIfPresent(clientCountsField, props, "clientCounts");
     setFieldIfPresent(clientSpawnWindowField, props, "clientSpawnWindow");
@@ -599,6 +616,7 @@ final class MassRunDialog extends JDialog {
       int runs,
       int baseSeed,
       String outputDir,
+      int parallelWorkers,
       String taxiCountsCsv,
       String clientCountsCsv,
       int clientSpawnWindow,
@@ -628,6 +646,7 @@ final class MassRunDialog extends JDialog {
       int runs,
       int baseSeed,
       String outputDir,
+      int parallelWorkers,
       List<Integer> taxiCounts,
       List<Integer> clientCounts,
       int clientSpawnWindow,

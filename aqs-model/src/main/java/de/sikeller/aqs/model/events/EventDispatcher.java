@@ -1,14 +1,14 @@
 package de.sikeller.aqs.model.events;
 
 import lombok.extern.slf4j.Slf4j;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 
 @Slf4j
 public class EventDispatcher implements EventList {
-  private static final EventDispatcher instance = new EventDispatcher();
+  private static final ThreadLocal<EventDispatcher> INSTANCE =
+      ThreadLocal.withInitial(EventDispatcher::new);
   private final List<Event> eventList = new LinkedList<>();
   private final List<Consumer<Event>> listeners = new LinkedList<>();
 
@@ -30,12 +30,14 @@ public class EventDispatcher implements EventList {
   }
 
   public static EventDispatcher instance() {
-    return instance;
+    return INSTANCE.get();
   }
 
   public static void dispatch(Event event) {
-    instance.dispatchEvent(event);
+    instance().dispatchEvent(event);
   }
 
-  public void resetEvents() { this.eventList.clear();}
+  public void resetEvents() {
+    this.eventList.clear();
   }
+}
