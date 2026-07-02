@@ -1,6 +1,7 @@
 package de.sikeller.aqs.p2p.service.config;
 
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
+import de.sikeller.aqs.p2p.util.P2PRunContext;
 
 /**
  * System-property backed P2PConfig. Centralises access to system properties used by the P2P
@@ -9,7 +10,7 @@ import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 public class SystemPropertyP2PConfig implements P2PConfig {
   @Override
   public int overlayMinNeighbors() {
-    String configured = System.getProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "").trim();
+    String configured = P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, "").trim();
     if (configured.isBlank()) return 0;
     int parsed = parseIntOrDefault(configured, 0);
     return Math.max(0, parsed);
@@ -17,7 +18,7 @@ public class SystemPropertyP2PConfig implements P2PConfig {
 
   @Override
   public int overlayMaxNeighbors() {
-    String configured = System.getProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "").trim();
+    String configured = P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "").trim();
     if (configured.isBlank()) return Integer.MAX_VALUE;
     int parsed = parseIntOrDefault(configured, Integer.MAX_VALUE);
     return Math.max(1, parsed);
@@ -25,7 +26,7 @@ public class SystemPropertyP2PConfig implements P2PConfig {
 
   @Override
   public double overlayMaxDistance() {
-    String configured = System.getProperty(P2PSystemProperties.OVERLAY_MAX_DISTANCE, "").trim();
+    String configured = P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_MAX_DISTANCE, "").trim();
     if (configured.isBlank()) return Double.MAX_VALUE;
     double parsed = parseDoubleOrDefault(configured, Double.MAX_VALUE);
     return Math.max(0d, parsed);
@@ -33,21 +34,21 @@ public class SystemPropertyP2PConfig implements P2PConfig {
 
   @Override
   public String overlayShortcutStrategy() {
-    return System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg")
+    return P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg")
         .trim()
         .toLowerCase();
   }
 
   @Override
   public int overlayShortcuts() {
-    String configured = System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, "").trim();
+    String configured = P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, "").trim();
     if (configured.isBlank()) return 1;
     return Math.max(0, parseIntOrDefault(configured, 1));
   }
 
   @Override
   public long positionTtlTicks() {
-    String val = System.getProperty(P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, "").trim();
+    String val = P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, "").trim();
     if (val.isBlank()) return 200L;
     long parsed = parseLongOrDefault(val, 200L);
     return Math.max(1L, parsed);
@@ -56,7 +57,7 @@ public class SystemPropertyP2PConfig implements P2PConfig {
   @Override
   public long positionRevisionThrottleTicks() {
     String val =
-        System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, "").trim();
+        P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS, "").trim();
     if (val.isBlank()) return 5L;
     long parsed = parseLongOrDefault(val, 5L);
     return Math.max(1L, parsed);
@@ -65,7 +66,7 @@ public class SystemPropertyP2PConfig implements P2PConfig {
   @Override
   public int positionRevisionMinMoveMeters() {
     String val =
-        System.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, "")
+        P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS, "")
             .trim();
     if (val.isBlank()) return 50;
     int parsed = parseIntOrDefault(val, 50);

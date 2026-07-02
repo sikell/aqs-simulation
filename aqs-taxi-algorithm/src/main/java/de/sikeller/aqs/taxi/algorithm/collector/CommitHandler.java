@@ -71,7 +71,7 @@ final class CommitHandler {
         pending.clientName(),
         vehicleNodeId,
         selectedTaxi.getName());
-    runtimeState.pending.remove(pending.clientName());
+    runtimeState.removeByClient(pending.clientName());
     refreshStatusCallback.accept("assigned-" + pending.requestId());
     onAssignedCallback.accept(pending.requestId(), vehicleNodeId, client);
   }

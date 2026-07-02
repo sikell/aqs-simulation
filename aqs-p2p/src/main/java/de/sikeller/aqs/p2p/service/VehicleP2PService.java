@@ -15,6 +15,7 @@ import de.sikeller.aqs.p2p.service.strategy.VehicleRequestSelectionStrategies;
 import de.sikeller.aqs.p2p.service.util.TriConsumer;
 import de.sikeller.aqs.p2p.util.IdleRoamingController;
 import de.sikeller.aqs.p2p.util.P2PGeoUtils;
+import de.sikeller.aqs.p2p.util.P2PRunContext;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -98,28 +99,28 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     cachedCommitLeaseTicks =
         Math.max(
             1L,
-            Long.getLong(
+            P2PRunContext.getLong(
                 P2PSystemProperties.VEHICLE_COMMIT_LEASE_TICKS,
                 DEFAULT_VEHICLE_COMMIT_LEASE_TICKS));
     cachedReofferMinIntervalTicks =
         Math.max(
             0L,
-            Long.getLong(
+            P2PRunContext.getLong(
                 P2PSystemProperties.VEHICLE_REOFFER_MIN_INTERVAL_TICKS,
                 DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS));
     cachedReofferMoveDistanceM =
         Math.max(
             1,
-            Integer.getInteger(
+            P2PRunContext.getInt(
                 P2PSystemProperties.VEHICLE_REOFFER_MOVE_DISTANCE_METERS,
                 DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M));
     cachedRequestCacheTtlTicks =
         Math.max(
             1L,
-            Long.getLong(
+            P2PRunContext.getLong(
                 P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
                 DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
-    String speedStr = System.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS);
+    String speedStr = P2PRunContext.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS);
     cachedAssumedSpeedMps =
         (speedStr == null || speedStr.isBlank())
             ? DEFAULT_ASSUMED_SPEED_MPS
@@ -492,7 +493,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
 
     String strategyKey =
-        System.getProperty(
+        P2PRunContext.getProperty(
             P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY,
             NearestVehicleRequestSelectionStrategy.KEY);
     var strategy = VehicleRequestSelectionStrategies.resolve(strategyKey);

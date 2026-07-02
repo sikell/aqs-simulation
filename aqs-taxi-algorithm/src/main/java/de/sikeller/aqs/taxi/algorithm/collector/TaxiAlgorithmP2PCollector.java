@@ -14,6 +14,7 @@ import de.sikeller.aqs.p2p.service.KeyValuePayload;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import de.sikeller.aqs.p2p.service.strategy.NearestVehicleRequestSelectionStrategy;
 import de.sikeller.aqs.p2p.util.IdleRoamingController;
+import de.sikeller.aqs.p2p.util.P2PRunContext;
 import de.sikeller.aqs.taxi.algorithm.AbstractTaxiAlgorithm;
 import de.sikeller.aqs.taxi.algorithm.distributed.rqs.RangeQuerySystem;
 import de.sikeller.aqs.taxi.algorithm.distributed.rqs.SimulatedRangeQuerySystem;
@@ -57,6 +58,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   private RequestCoordinator requestCoordinator;
   private final Map<String, VehicleP2PService> localVehicleNodesByTaxiName = new HashMap<>();
   private final TaxiCollectorRuntimeState runtimeState = new TaxiCollectorRuntimeState();
+  private final Map<String, String> previousP2PSystemProperties = new HashMap<>();
 
   private final LocalVehicleNodeManager localVehicleNodeManager =
       new LocalVehicleNodeManager(NODE_ID_VEHICLE_PREFIX);
@@ -279,9 +281,8 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   protected AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     stepCounter++;
     // cleanup no longer waiting clients
-    for (Client c : waitingClients) {
-      runtimeState.pending.remove(c.getName());
-    }
+    runtimeState.removeClientsNotIn(
+        waitingClients.stream().map(Client::getName).collect(Collectors.toSet()));
     if (isTopologyScanEnabled()) {
       topologyManager.requestScanIfDue(false);
     }
@@ -439,37 +440,38 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       refreshStatus(EVENT_ASSIGNED_PREFIX + pending.requestId());
       applied++;
     }
-    assignedClients.forEach(runtimeState.pending::remove);
+    assignedClients.forEach(runtimeState::removeByClient);
     return applied;
   }
 
   private void applyVehicleDispatchConfig() {
     String strategy = resolveVehicleSelectionStrategy();
-    System.setProperty(P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY, strategy);
-    System.setProperty(
+    setP2PProperty(P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY, strategy);
+    setP2PProperty(
         P2PSystemProperties.VEHICLE_COMMIT_LEASE_TICKS,
         String.valueOf(DEFAULT_VEHICLE_COMMIT_LEASE_TICKS));
-    System.setProperty(
+    setP2PProperty(
         P2PSystemProperties.VEHICLE_REOFFER_MIN_INTERVAL_TICKS,
         String.valueOf(DEFAULT_VEHICLE_REOFFER_INTERVAL_TICKS));
-    System.setProperty(
+    setP2PProperty(
         P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
         String.valueOf(DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
 
     // Idle travel: propagate to system properties
     boolean idleTravelEnabled = parameters.getOrDefault(P2P_IDLE_TRAVEL_ENABLED, 1) == 1;
-    System.setProperty(
+    setP2PProperty(
         P2PSystemProperties.VEHICLE_ROAMING_ENABLED, String.valueOf(idleTravelEnabled));
     long idleThresholdTicks =
         Math.max(1, parameters.getOrDefault(P2P_IDLE_TRAVEL_THRESHOLD_TICKS, 60));
-    System.setProperty(
+    setP2PProperty(
         P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, String.valueOf(idleThresholdTicks));
-    System.setProperty(VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY, resolveIdleRoamingStrategy());
+    setP2PProperty(VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY, resolveIdleRoamingStrategy());
   }
 
   private String resolveIdleRoamingStrategy() {
     String configured =
-        System.getProperty(VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY, IDLE_ROAMING_STRATEGY_RANDOM);
+        P2PRunContext.getProperty(
+            VEHICLE_IDLE_ROAMING_STRATEGY_PROPERTY, IDLE_ROAMING_STRATEGY_RANDOM);
     if (configured == null || configured.isBlank()) {
       return IDLE_ROAMING_STRATEGY_RANDOM;
     }
@@ -484,7 +486,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
   }
 
   private String resolveVehicleSelectionStrategy() {
-    String configured = System.getProperty(P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY, "");
+    String configured = P2PRunContext.getProperty(P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY, "");
     if (configured != null && !configured.isBlank()) {
       return configured.trim();
     }
@@ -506,15 +508,23 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
       Map<String, String> payload = KeyValuePayload.parse(message.payload());
       String vehicleNodeId = payload.getOrDefault(P2PPayloadKeys.VEHICLE, message.senderId());
+      String requestId = message.requestId();
+      if (requestId == null || requestId.isBlank()) {
+        requestId = payload.get(P2PPayloadKeys.REQUEST_ID);
+      }
 
-      TaxiCollectorRuntimeState.PendingRequest pending = runtimeState.pending.get(vehicleNodeId);
+      TaxiCollectorRuntimeState.PendingRequest pending = runtimeState.getByRequestId(requestId);
       if (pending == null) {
         continue;
       }
 
       if (P2PTopics.RIDE_COMMIT.equals(message.topic())) {
         runtimeState.registerTaxiKnowledge(vehicleNodeId, pending.clientName());
-        commitHandler.handleCommit(vehicleNodeId, pending, world);
+        if (commitHandler == null || world == null) {
+          runtimeState.markCommittedIfOpen(pending.requestId(), vehicleNodeId);
+        } else {
+          commitHandler.handleCommit(vehicleNodeId, pending, world);
+        }
       }
     }
   }
@@ -528,21 +538,14 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       vehicleNodeToTaxiName.put(vehicleNodeId, taxiName);
       taxiNameToVehicleNodeId.put(taxiName, vehicleNodeId);
     }
-    // FIXME
-    TaxiCollectorRuntimeState.PendingRequest pending =
-        runtimeState.pending.values().stream()
-            .filter(p -> requestId.equals(p.requestId()))
-            .findFirst()
-            .orElse(null);
+    TaxiCollectorRuntimeState.PendingRequest pending = runtimeState.getByRequestId(requestId);
     if (pending == null) {
       return;
     }
-    if (pending.committedVehicleNodeId() != null
-        && !pending.committedVehicleNodeId().equals(vehicleNodeId)) {
+    if (!runtimeState.markCommittedIfOpen(requestId, vehicleNodeId)) {
       return;
     }
     runtimeState.registerTaxiKnowledge(vehicleNodeId, pending.clientName());
-    pending.markCommitted(vehicleNodeId);
   }
 
   @Override
@@ -570,25 +573,25 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     status.put(STATUS_OVERLAY_MODE, VALUE_SMALL_WORLD);
     status.put(
         STATUS_OVERLAY_SHORTCUT_STRATEGY,
-        System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg"));
+        P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, "kleinberg"));
     String configuredMinNeighbors =
-        System.getProperty(
+        P2PRunContext.getProperty(
             P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, DEFAULT_OVERLAY_MIN_NEIGHBORS);
     status.put(STATUS_OVERLAY_MIN_NEIGHBORS, configuredMinNeighbors);
     status.put(
         STATUS_OVERLAY_MAX_NEIGHBORS,
-        System.getProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "100"));
+        P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, "100"));
     status.put(
         STATUS_OVERLAY_SHORTCUTS,
-        System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, DEFAULT_OVERLAY_SHORTCUTS));
+        P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, DEFAULT_OVERLAY_SHORTCUTS));
     status.put(
         STATUS_OVERLAY_MAX_DISTANCE,
-        System.getProperty(
+        P2PRunContext.getProperty(
             P2PSystemProperties.OVERLAY_MAX_DISTANCE,
             String.valueOf(resolveOverlayMaxDistance(parameters))));
     status.put(
         STATUS_OVERLAY_POSITION_TTL_TICKS,
-        System.getProperty(
+        P2PRunContext.getProperty(
             P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, DEFAULT_OVERLAY_POSITION_TTL_TICKS));
     String fixedRadius = String.valueOf(parameters.getOrDefault(P2P_FIXED_SEARCH_RADIUS, 5000));
     status.put(STATUS_RQS_FIXED_RADIUS, fixedRadius);
@@ -596,7 +599,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     status.put(STATUS_RQS_RECOGNITION_MODE, VALUE_TAXI_POSITION);
     status.put(
         STATUS_VEHICLE_CLIENT_SELECTION,
-        System.getProperty(
+        P2PRunContext.getProperty(
             P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY,
             NearestVehicleRequestSelectionStrategy.KEY));
     status.put(STATUS_CLIENT_RANGE_FILTER, "overlay-seeded-diffusion");
@@ -610,7 +613,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   @Override
   public Map<String, Set<String>> getTaxiKnowledgeByClientIds() {
-    Set<String> activeClientNames = runtimeState.pending.keySet();
+    Set<String> activeClientNames = runtimeState.activeClientNames();
 
     if (isEmbeddedSimulationMode() && !localVehicleNodesByTaxiName.isEmpty()) {
       Map<String, Set<String>> liveSnapshot = new LinkedHashMap<>();
@@ -639,7 +642,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return Map.of();
     }
     String strategy =
-        System.getProperty(
+        P2PRunContext.getProperty(
             P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM);
     Map<String, int[]> result = new LinkedHashMap<>();
     localVehicleNodesByTaxiName.forEach(
@@ -733,6 +736,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     lastTopologyScanId = "";
     lastStatusEvent = VALUE_UNKNOWN;
     lastPublishedVehiclePositions.clear();
+    restoreP2PSystemProperties();
   }
 
   private void ensureCollectorNode(Map<String, Integer> config) {
@@ -754,17 +758,40 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     long positionTtlTicks = Math.max(1, config.getOrDefault(P2P_OVERLAY_POSITION_TTL_TICKS, 200));
     long maxDistance = resolveOverlayMaxDistance(config);
 
-    System.setProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, String.valueOf(minNeighbors));
-    System.setProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, String.valueOf(maxNeighbors));
-    System.setProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, String.valueOf(shortcuts));
-    System.setProperty(
+    setP2PProperty(P2PSystemProperties.OVERLAY_MIN_NEIGHBORS, String.valueOf(minNeighbors));
+    setP2PProperty(P2PSystemProperties.OVERLAY_MAX_NEIGHBORS, String.valueOf(maxNeighbors));
+    setP2PProperty(P2PSystemProperties.OVERLAY_SHORTCUTS, String.valueOf(shortcuts));
+    setP2PProperty(
         P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS, String.valueOf(positionTtlTicks));
-    System.setProperty(P2PSystemProperties.OVERLAY_MAX_DISTANCE, String.valueOf(maxDistance));
-    if (System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY) == null) {
+    setP2PProperty(P2PSystemProperties.OVERLAY_MAX_DISTANCE, String.valueOf(maxDistance));
+    if (P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY) == null) {
       int strategyFlag = config.getOrDefault(P2P_OVERLAY_SHORTCUT_STRATEGY, 1);
-      System.setProperty(
+      setP2PProperty(
           P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY, strategyFlag == 0 ? "ring" : "kleinberg");
     }
+  }
+
+  private void setP2PProperty(String key, String value) {
+    if (!P2PRunContext.isActive()) {
+      previousP2PSystemProperties.putIfAbsent(key, System.getProperty(key));
+    }
+    P2PRunContext.setProperty(key, value);
+  }
+
+  private void restoreP2PSystemProperties() {
+    if (P2PRunContext.isActive()) {
+      previousP2PSystemProperties.clear();
+      return;
+    }
+    previousP2PSystemProperties.forEach(
+        (key, value) -> {
+          if (value == null) {
+            System.clearProperty(key);
+          } else {
+            System.setProperty(key, value);
+          }
+        });
+    previousP2PSystemProperties.clear();
   }
 
   private long resolveOverlayMaxDistance(Map<String, Integer> config) {

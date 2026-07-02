@@ -91,7 +91,7 @@ final class MassRunDialog extends JDialog {
             new SpinnerNumberModel(
                 defaults.parallelWorkers(),
                 1,
-                Math.max(1, Runtime.getRuntime().availableProcessors()),
+                Math.max(1, Runtime.getRuntime().availableProcessors() * 4),
                 1));
     addRow(runPanel, "Runs", runsField);
     addRow(runPanel, "Base seed", baseSeedField);

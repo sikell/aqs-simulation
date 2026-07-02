@@ -53,7 +53,7 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
 
     long globalSeed = P2PRunContext.worldSeed();
     String nodeProbabilityStr =
-        System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "1.0").trim();
+        P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY, "1.0").trim();
     double nodeProbability = clamp(parseDoubleOrDefault(nodeProbabilityStr, 1.0), 0.0, 1.0);
     if (nodeProbability < 1.0) {
       List<String> allIds = new ArrayList<>();
@@ -74,7 +74,7 @@ public class KleinbergShortcutStrategy implements ShortcutStrategy {
     }
 
     String rStr =
-        System.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0").trim();
+        P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R, "2.0").trim();
     double r = Math.max(0.0, parseDoubleOrDefault(rStr, 2.0));
     long seed = globalSeed ^ (long) Objects.hash(self.id());
     Random rnd = new Random(seed);

@@ -28,12 +28,57 @@ public final class TaxiCollectorRuntimeState {
     if (requestId == null || requestId.isBlank() || clientName == null || clientName.isBlank()) {
       return;
     }
+    if (getByRequestId(requestId) != null) {
+      throw new IllegalStateException("Request id was already pending");
+    }
 
     PendingRequest pr = new PendingRequest(requestId, clientName, lastPublishedStep);
     PendingRequest previousByClient = pending.put(clientName, pr);
     if (previousByClient != null) {
       throw new IllegalStateException("Client was already pending");
     }
+  }
+
+  PendingRequest getByClient(String clientName) {
+    return pending.get(clientName);
+  }
+
+  PendingRequest getByRequestId(String requestId) {
+    if (requestId == null || requestId.isBlank()) {
+      return null;
+    }
+    return pending.values().stream()
+        .filter(pendingRequest -> requestId.equals(pendingRequest.requestId()))
+        .findFirst()
+        .orElse(null);
+  }
+
+  boolean markCommittedIfOpen(String requestId, String vehicleNodeId) {
+    PendingRequest pendingRequest = getByRequestId(requestId);
+    if (pendingRequest == null || vehicleNodeId == null || vehicleNodeId.isBlank()) {
+      return false;
+    }
+    if (pendingRequest.committedVehicleNodeId() != null) {
+      return pendingRequest.committedVehicleNodeId().equals(vehicleNodeId);
+    }
+    pendingRequest.markCommitted(vehicleNodeId);
+    return true;
+  }
+
+  void removeByClient(String clientName) {
+    pending.remove(clientName);
+  }
+
+  void removeClientsNotIn(Set<String> activeClientNames) {
+    if (activeClientNames == null || activeClientNames.isEmpty()) {
+      pending.clear();
+      return;
+    }
+    pending.keySet().removeIf(clientName -> !activeClientNames.contains(clientName));
+  }
+
+  Set<String> activeClientNames() {
+    return Set.copyOf(pending.keySet());
   }
 
   public void registerTaxiKnowledge(String taxiId, String clientName) {

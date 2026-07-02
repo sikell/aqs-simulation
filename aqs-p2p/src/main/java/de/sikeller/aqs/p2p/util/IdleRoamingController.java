@@ -80,7 +80,8 @@ public class IdleRoamingController {
    */
   public synchronized void registerSeenClientPosition(int x, int y, long currentSimulationTick) {
     long ttlTicks =
-        Math.max(1L, Long.getLong(P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS, 1000L));
+        Math.max(
+            1L, P2PRunContext.getLong(P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS, 1000L));
     seenClientPositions.add(new SeenClientPositionWithTtl(x, y, currentSimulationTick, ttlTicks));
     // Update cached revisit target to the newly seen client so the HQ visualization
     // immediately reflects seen-but-unserved clients (not just when idle roaming kicks in)
@@ -198,15 +199,14 @@ public class IdleRoamingController {
       int mapMaxY,
       String nodeId,
       Consumer<Position> publishPosition) {
-    boolean enabled =
-        Boolean.parseBoolean(
-            System.getProperty(P2PSystemProperties.VEHICLE_ROAMING_ENABLED, "true"));
+    boolean enabled = P2PRunContext.getBoolean(P2PSystemProperties.VEHICLE_ROAMING_ENABLED, true);
     if (!enabled) {
       return;
     }
 
     long idleCheckThrottleTicks =
-        Math.max(1L, Long.getLong(P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS, 5L));
+        Math.max(
+            1L, P2PRunContext.getLong(P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS, 5L));
     if (currentSimulationTick - lastIdleCheckTick < idleCheckThrottleTicks) {
       return;
     }
@@ -222,7 +222,7 @@ public class IdleRoamingController {
     }
 
     long idleThresholdTicks =
-        Math.max(1L, Long.getLong(P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, 10L));
+        Math.max(1L, P2PRunContext.getLong(P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, 10L));
     long idleDurationTicks = currentSimulationTick - lastActivityTick;
     if (idleDurationTicks < idleThresholdTicks) {
       return;
@@ -299,7 +299,7 @@ public class IdleRoamingController {
 
   private String resolveIdleRoamingStrategy() {
     String configured =
-        System.getProperty(
+        P2PRunContext.getProperty(
             P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, IDLE_ROAMING_STRATEGY_RANDOM);
     if (configured == null || configured.isBlank()) {
       return IDLE_ROAMING_STRATEGY_RANDOM;
@@ -465,7 +465,7 @@ public class IdleRoamingController {
     int maxDistanceMeters =
         Math.max(
             1,
-            Integer.getInteger(
+            P2PRunContext.getInt(
                 P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS, 20000));
 
     double angle = randomTravelGeneratorPerTaxi.get(taxi).nextDouble() * 2 * Math.PI;

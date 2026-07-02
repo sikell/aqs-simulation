@@ -6,6 +6,7 @@ import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.api.P2PTopics;
 import de.sikeller.aqs.p2p.service.config.P2PConfig;
 import de.sikeller.aqs.p2p.service.position.PositionManager;
+import de.sikeller.aqs.p2p.util.P2PRunContext;
 import java.util.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -125,7 +126,7 @@ public class OverlaySelectorImpl implements OverlaySelector {
 
   private boolean isCollectorNodeId(String nodeId) {
     if (nodeId == null || nodeId.isBlank()) return false;
-    String configured = System.getProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, "");
+    String configured = P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, "");
     if (!configured.isBlank() && configured.equals(nodeId)) return true;
     return nodeId.startsWith("sim-collector-");
   }

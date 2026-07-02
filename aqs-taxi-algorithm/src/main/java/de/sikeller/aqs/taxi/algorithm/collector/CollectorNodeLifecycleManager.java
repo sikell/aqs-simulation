@@ -5,6 +5,7 @@ import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.service.ClientP2PService;
 import de.sikeller.aqs.p2p.transport.inmemory.InMemoryP2PNetwork;
 import de.sikeller.aqs.p2p.transport.network.LanP2PNetwork;
+import de.sikeller.aqs.p2p.util.P2PRunContext;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
@@ -70,14 +71,14 @@ public class CollectorNodeLifecycleManager {
   public void ensureCollectorNode(Map<String, Integer> config, String multicastGroup) {
     if (clientNode != null && network != null) {
       if (!collectorNodeId.isBlank()) {
-        System.setProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, collectorNodeId);
+        P2PRunContext.setProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, collectorNodeId);
       }
       return;
     }
 
     if (isEmbeddedSimulationMode(config)) {
       collectorNodeId = localCollectorNodeId;
-      System.setProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, collectorNodeId);
+      P2PRunContext.setProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, collectorNodeId);
       network = embeddedNetworkFactory.create();
       clientNode = clientNodeFactory.create(collectorNodeId, network);
       clientNode.start();
@@ -88,7 +89,7 @@ public class CollectorNodeLifecycleManager {
     int tcpPort = config.getOrDefault(P2P_TCP_PORT, 46100);
     int discoveryPort = config.getOrDefault(P2P_DISCOVERY_PORT, 45892);
     collectorNodeId = collectorNodePrefix + tcpPort;
-    System.setProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, collectorNodeId);
+    P2PRunContext.setProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, collectorNodeId);
 
     network = lanNetworkFactory.create(multicastGroup, discoveryPort, tcpPort, 10_000, 2_000);
     clientNode = clientNodeFactory.create(collectorNodeId, network);
@@ -110,9 +111,9 @@ public class CollectorNodeLifecycleManager {
     network = null;
     if (!collectorNodeId.isBlank()) {
       String configuredCollector =
-          System.getProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, "");
+          P2PRunContext.getProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, "");
       if (collectorNodeId.equals(configuredCollector)) {
-        System.clearProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID);
+        P2PRunContext.setProperty(P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID, null);
       }
       collectorNodeId = "";
     }

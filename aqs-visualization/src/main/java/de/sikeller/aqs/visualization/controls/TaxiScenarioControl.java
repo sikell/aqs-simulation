@@ -1094,54 +1094,45 @@ public class TaxiScenarioControl extends AbstractControl {
       Consumer<Integer> setProgressValue)
       throws Exception {
     List<MassRunTask> tasks = buildMassRunTasks(config);
-    Map<GlobalP2PConfigKey, List<MassRunTask>> groups = new LinkedHashMap<>();
-    tasks.forEach(
-        task -> groups.computeIfAbsent(task.globalKey(), ignored -> new ArrayList<>()).add(task));
     int totalRuns = tasks.size();
     int doneRuns = 0;
     int nextAutoSavePercent = 25;
 
     try {
-      for (List<MassRunTask> groupTasks : groups.values()) {
-        if (groupTasks.isEmpty()) {
-          continue;
+      int workers = Math.min(Math.max(1, config.parallelWorkers()), Math.max(1, tasks.size()));
+      ExecutorService executor = Executors.newFixedThreadPool(workers);
+      ExecutorCompletionService<MassRunTaskResult> completion =
+          new ExecutorCompletionService<>(executor);
+      try {
+        publishProgress.accept(progressUpdate(0, totalRuns, "Running with " + workers + " workers"));
+        for (MassRunTask task : tasks) {
+          completion.submit(() -> new MassRunTaskResult(task, executeMassRunTask(config, task)));
         }
-        applyGlobalP2PProperties(groupTasks.getFirst().globalKey());
-        int workers = Math.min(Math.max(1, config.parallelWorkers()), groupTasks.size());
-        ExecutorService executor = Executors.newFixedThreadPool(workers);
-        ExecutorCompletionService<MassRunTaskResult> completion =
-            new ExecutorCompletionService<>(executor);
-        try {
-          for (MassRunTask task : groupTasks) {
-            publishProgress.accept(progressUpdate(doneRuns, totalRuns, task.currentRunParams()));
-            completion.submit(() -> new MassRunTaskResult(task, executeMassRunTask(config, task)));
+        for (int i = 0; i < tasks.size(); i++) {
+          MassRunTaskResult completed = takeMassRunResult(completion);
+          String timestamp = Instant.now().toString();
+          int written =
+              writeMassRunResult(
+                  config, completed.task(), completed.result(), timestamp, snapshotSaveLock);
+          totalRowsWritten.addAndGet(written);
+          doneRuns++;
+          int progress = progressPercent(doneRuns, totalRuns);
+          while (nextAutoSavePercent <= 100 && progress >= nextAutoSavePercent) {
+            int marker = nextAutoSavePercent;
+            int currentTotal = totalRowsWritten.get();
+            SwingUtilities.invokeLater(
+                () ->
+                    updateMassRunSaveStatus(
+                        progressDialog,
+                        "Progress: " + marker + "% (" + currentTotal + " rows written)"));
+            nextAutoSavePercent += 25;
           }
-          for (int i = 0; i < groupTasks.size(); i++) {
-            MassRunTaskResult completed = takeMassRunResult(completion);
-            String timestamp = Instant.now().toString();
-            int written =
-                writeMassRunResult(
-                    config, completed.task(), completed.result(), timestamp, snapshotSaveLock);
-            totalRowsWritten.addAndGet(written);
-            doneRuns++;
-            int progress = progressPercent(doneRuns, totalRuns);
-            while (nextAutoSavePercent <= 100 && progress >= nextAutoSavePercent) {
-              int marker = nextAutoSavePercent;
-              int currentTotal = totalRowsWritten.get();
-              SwingUtilities.invokeLater(
-                  () ->
-                      updateMassRunSaveStatus(
-                          progressDialog,
-                          "Progress: " + marker + "% (" + currentTotal + " rows written)"));
-              nextAutoSavePercent += 25;
-            }
-            setProgressValue.accept(progress);
-            publishProgress.accept(
-                progressUpdate(doneRuns, totalRuns, completed.task().currentRunParams()));
-          }
-        } finally {
-          executor.shutdownNow();
+          setProgressValue.accept(progress);
+          publishProgress.accept(
+              progressUpdate(doneRuns, totalRuns, completed.task().currentRunParams()));
         }
+      } finally {
+        executor.shutdownNow();
       }
       Path configFile;
       synchronized (snapshotSaveLock) {
@@ -1333,7 +1324,7 @@ public class TaxiScenarioControl extends AbstractControl {
     SimulationControl runner = simulation.newIsolated(taxiAlgorithm);
     runner.setRealtimeVisualizationEnabled(false);
     runner.setSpeed(config.simulationSpeed());
-    P2PRunContext.setWorldSeed(task.seed());
+    P2PRunContext.begin(task.seed());
     try {
       applyGlobalP2PProperties(task.globalKey());
       runner.init(parameters);
@@ -1445,19 +1436,19 @@ public class TaxiScenarioControl extends AbstractControl {
     boolean idleRoamingEnabled = !"none".equals(key.idleRoamingMode());
     String idleRoamingStrategy =
         idleRoamingEnabled ? key.idleRoamingMode() : IDLE_ROAMING_STRATEGY_RANDOM;
-    System.setProperty(P2P_VEHICLE_STRATEGY_PROPERTY, key.p2pStrategy());
-    System.setProperty(
+    P2PRunContext.setProperty(P2P_VEHICLE_STRATEGY_PROPERTY, key.p2pStrategy());
+    P2PRunContext.setProperty(
         P2PSystemProperties.VEHICLE_ROAMING_ENABLED, String.valueOf(idleRoamingEnabled));
-    System.setProperty(P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, idleRoamingStrategy);
-    System.setProperty(
+    P2PRunContext.setProperty(P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY, idleRoamingStrategy);
+    P2PRunContext.setProperty(
         P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS, String.valueOf(key.idleThresholdTicks()));
-    System.setProperty(
+    P2PRunContext.setProperty(
         P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS,
         String.valueOf(key.idleCheckThrottleTicks()));
-    System.setProperty(
+    P2PRunContext.setProperty(
         P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
         String.valueOf(key.randomTravelMaxDistanceMeters()));
-    System.setProperty(
+    P2PRunContext.setProperty(
         P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS,
         String.valueOf(key.seenClientTtlTicks()));
   }

@@ -97,7 +97,7 @@ public class SimulationRunner implements SimulationControl {
     var simulationCalculationTime = CollectorMinMaxAverage.longCollector();
     CollectorTimeSeries.Collector<TickDataPoint> tickDataPoints =
         CollectorTimeSeries.newCollector();
-    int seenEventCount = eventDispatcher.getAll().size();
+    int seenEventCount = eventDispatcher.size();
     while (!world.isFinished()) {
       int sleepMillis =
           Math.max(0, (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1)));
@@ -121,9 +121,8 @@ public class SimulationRunner implements SimulationControl {
           result.getCalculationTime() != null ? result.getCalculationTime() : 0);
       log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
-      List<Event> events = eventDispatcher.getAll();
-      TickEventCounts tickEventCounts = tickEventCounts(events, seenEventCount);
-      seenEventCount = events.size();
+      TickEventCounts tickEventCounts = tickEventCounts(eventDispatcher, seenEventCount);
+      seenEventCount = eventDispatcher.size();
       tickDataPoints.collect(
           new TickDataPoint(
               currentTime,
@@ -235,7 +234,7 @@ public class SimulationRunner implements SimulationControl {
     this.resultVisualization.openResults();
   }
 
-  private TickEventCounts tickEventCounts(List<Event> events, int fromIndex) {
+  private TickEventCounts tickEventCounts(EventDispatcher events, int fromIndex) {
     int served = 0;
     long waitingSum = 0;
     int waitingCount = 0;

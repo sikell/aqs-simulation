@@ -1,6 +1,7 @@
 package de.sikeller.aqs.model.events;
 
 import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -9,7 +10,7 @@ import java.util.function.Consumer;
 public class EventDispatcher implements EventList {
   private static final ThreadLocal<EventDispatcher> INSTANCE =
       ThreadLocal.withInitial(EventDispatcher::new);
-  private final List<Event> eventList = new LinkedList<>();
+  private final List<Event> eventList = new ArrayList<>();
   private final List<Consumer<Event>> listeners = new LinkedList<>();
 
   public void dispatchEvent(Event event) {
@@ -22,7 +23,17 @@ public class EventDispatcher implements EventList {
   }
 
   public List<Event> getAll() {
-    return new LinkedList<>(eventList);
+    return new ArrayList<>(eventList);
+  }
+
+  @Override
+  public int size() {
+    return eventList.size();
+  }
+
+  @Override
+  public Event get(int index) {
+    return eventList.get(index);
   }
 
   public void registerListener(Consumer<Event> listener) {
