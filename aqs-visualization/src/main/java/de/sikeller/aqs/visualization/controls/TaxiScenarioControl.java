@@ -999,8 +999,15 @@ public class TaxiScenarioControl extends AbstractControl {
     AtomicInteger totalRowsWritten = new AtomicInteger(0);
     // Clean up previous results file so we don't append to stale data
     try {
-      Path prevResults = Paths.get(config.outputDir()).resolve("mass-run-results.csv");
-      Files.deleteIfExists(prevResults);
+      Path outputDir = Paths.get(config.outputDir());
+      for (String fileName :
+          List.of(
+              "mass-run-results.csv",
+              "mass-run-aggregates.csv",
+              "mass-run-time-series.csv",
+              "mass-run-requests.csv")) {
+        Files.deleteIfExists(outputDir.resolve(fileName));
+      }
     } catch (Exception ignored) {
       // best-effort cleanup
     }
@@ -1172,6 +1179,52 @@ public class TaxiScenarioControl extends AbstractControl {
                                                     runIndex,
                                                     seed,
                                                     timestamp));
+                                            MassRunCsvWriter.appendTickRows(
+                                                config.outputDir(),
+                                                result.tickDataPoints(),
+                                                timestamp,
+                                                result.executedAlgorithm(),
+                                                kHops,
+                                                result.executedRequestRepublishTicks(),
+                                                result.executedRqsRadius(),
+                                                taxiCount,
+                                                clientCount,
+                                                taxiSeatCount,
+                                                result.executedStrategy(),
+                                                result.executedOverlayMinNeighbors(),
+                                                result.executedOverlayMaxNeighbors(),
+                                                result.executedOverlayShortcuts(),
+                                                result.executedOverlayMaxDistanceFactor(),
+                                                result.executedTopologyScanTicks(),
+                                                result.executedIdleRoamingEnabled(),
+                                                result.executedIdleRoamingStrategy(),
+                                                result.executedIdleRoamingMode(),
+                                                result.executedSpawnScenario(),
+                                                runIndex,
+                                                seed);
+                                            MassRunCsvWriter.appendRequestRows(
+                                                config.outputDir(),
+                                                result.requestDataPoints(),
+                                                timestamp,
+                                                result.executedAlgorithm(),
+                                                kHops,
+                                                result.executedRequestRepublishTicks(),
+                                                result.executedRqsRadius(),
+                                                taxiCount,
+                                                clientCount,
+                                                taxiSeatCount,
+                                                result.executedStrategy(),
+                                                result.executedOverlayMinNeighbors(),
+                                                result.executedOverlayMaxNeighbors(),
+                                                result.executedOverlayShortcuts(),
+                                                result.executedOverlayMaxDistanceFactor(),
+                                                result.executedTopologyScanTicks(),
+                                                result.executedIdleRoamingEnabled(),
+                                                result.executedIdleRoamingStrategy(),
+                                                result.executedIdleRoamingMode(),
+                                                result.executedSpawnScenario(),
+                                                runIndex,
+                                                seed);
 
                                             // Fortschritt pro abgeschlossener Iteration
                                             // aktualisieren
@@ -1260,7 +1313,9 @@ public class TaxiScenarioControl extends AbstractControl {
               }
               Path runFile = Paths.get(config.outputDir()).resolve("mass-run-results.csv");
               Path aggFile = Paths.get(config.outputDir()).resolve("mass-run-aggregates.csv");
-              return new MassRunCsvWriter.OutputFiles(runFile, aggFile, configFile);
+              Path tickFile = Paths.get(config.outputDir()).resolve("mass-run-time-series.csv");
+              Path requestFile = Paths.get(config.outputDir()).resolve("mass-run-requests.csv");
+              return new MassRunCsvWriter.OutputFiles(runFile, aggFile, tickFile, requestFile, configFile);
             } catch (Exception ex) {
               if (!isMassRunTimeoutException(ex)) {
                 throw ex;
@@ -1459,6 +1514,8 @@ public class TaxiScenarioControl extends AbstractControl {
               simulation.start();
               return new MassRunIterationResult(
                   null,
+                  List.of(),
+                  List.of(),
                   executedAlgorithm,
                   executedStrategy,
                   executedRequestRepublishTicks,
@@ -1507,6 +1564,8 @@ public class TaxiScenarioControl extends AbstractControl {
     }
     return new MassRunIterationResult(
         table,
+        simulation.getLatestTickDataPoints(),
+        simulation.getLatestRequestDataPoints(),
         result.executedAlgorithm(),
         result.executedStrategy(),
         result.executedRequestRepublishTicks(),
@@ -1768,6 +1827,8 @@ public class TaxiScenarioControl extends AbstractControl {
 
   private record MassRunIterationResult(
       ResultTable table,
+      List<de.sikeller.aqs.model.TickDataPoint> tickDataPoints,
+      List<de.sikeller.aqs.model.RequestDataPoint> requestDataPoints,
       String executedAlgorithm,
       String executedStrategy,
       int executedRequestRepublishTicks,

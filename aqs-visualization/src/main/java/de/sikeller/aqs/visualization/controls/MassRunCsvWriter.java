@@ -1,11 +1,14 @@
 package de.sikeller.aqs.visualization.controls;
 
+import de.sikeller.aqs.model.RequestDataPoint;
 import de.sikeller.aqs.model.ResultTable;
+import de.sikeller.aqs.model.TickDataPoint;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -129,17 +132,174 @@ final class MassRunCsvWriter {
               row.count(),
               row.spread()));
     }
-    java.nio.file.StandardOpenOption[] opts =
+    StandardOpenOption[] opts =
         writeHeader
-            ? new java.nio.file.StandardOpenOption[] {
-              java.nio.file.StandardOpenOption.CREATE,
-              java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
+            ? new StandardOpenOption[] {
+              StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
             }
-            : new java.nio.file.StandardOpenOption[] {
-              java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND
-            };
+            : new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.APPEND};
     Files.write(runFile, lines, StandardCharsets.UTF_8, opts);
     return newRows.size();
+  }
+
+  static int appendTickRows(
+      String outputDir,
+      List<TickDataPoint> points,
+      String timestamp,
+      String algorithm,
+      int kHops,
+      int requestRepublishTicks,
+      int rqsRadius,
+      int taxiCount,
+      int clientCount,
+      int taxiSeatCount,
+      String p2pStrategy,
+      int p2pOverlayMinNeighbors,
+      int p2pOverlayMaxNeighbors,
+      int p2pOverlayShortcuts,
+      int p2pOverlayMaxDistanceFactor,
+      int p2pTopologyScanTicks,
+      boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
+      String idleRoamingMode,
+      String spawnScenario,
+      int runIndex,
+      int worldSeed)
+      throws IOException {
+    if (points == null || points.isEmpty()) return 0;
+    List<String> lines = new ArrayList<>();
+    for (TickDataPoint point : points) {
+      double waitingAvg =
+          point.waitingTimeCount() == 0
+              ? 0
+              : 1.0 * point.waitingTimeSum() / point.waitingTimeCount();
+      lines.add(
+          csv(
+              timestamp,
+              algorithm,
+              kHops,
+              requestRepublishTicks,
+              rqsRadius,
+              taxiCount,
+              clientCount,
+              taxiSeatCount,
+              p2pStrategy,
+              p2pOverlayMinNeighbors,
+              p2pOverlayMaxNeighbors,
+              p2pOverlayShortcuts,
+              p2pOverlayMaxDistanceFactor,
+              p2pTopologyScanTicks,
+              idleRoamingEnabled,
+              idleRoamingStrategy,
+              idleRoamingMode,
+              spawnScenario,
+              runIndex,
+              worldSeed,
+              point.tick(),
+              point.calculationTimeNanos(),
+              point.calculationTimeNanos() / 1_000_000.0,
+              point.activeClientCount(),
+              point.servedRequestCount(),
+              point.waitingTimeSum(),
+              point.waitingTimeCount(),
+              waitingAvg,
+              point.finishedRequestCount()));
+    }
+    return appendRows(
+        outputDir,
+        "mass-run-time-series.csv",
+        "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,tick,calculationTimeNanos,calculationTimeMillis,activeClientCount,servedRequestCount,waitingTimeSum,waitingTimeCount,waitingTimeAvg,finishedRequestCount",
+        lines);
+  }
+
+  static int appendRequestRows(
+      String outputDir,
+      List<RequestDataPoint> points,
+      String timestamp,
+      String algorithm,
+      int kHops,
+      int requestRepublishTicks,
+      int rqsRadius,
+      int taxiCount,
+      int clientCount,
+      int taxiSeatCount,
+      String p2pStrategy,
+      int p2pOverlayMinNeighbors,
+      int p2pOverlayMaxNeighbors,
+      int p2pOverlayShortcuts,
+      int p2pOverlayMaxDistanceFactor,
+      int p2pTopologyScanTicks,
+      boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
+      String idleRoamingMode,
+      String spawnScenario,
+      int runIndex,
+      int worldSeed)
+      throws IOException {
+    if (points == null || points.isEmpty()) return 0;
+    List<String> lines = new ArrayList<>();
+    for (RequestDataPoint point : points) {
+      lines.add(
+          csv(
+              timestamp,
+              algorithm,
+              kHops,
+              requestRepublishTicks,
+              rqsRadius,
+              taxiCount,
+              clientCount,
+              taxiSeatCount,
+              p2pStrategy,
+              p2pOverlayMinNeighbors,
+              p2pOverlayMaxNeighbors,
+              p2pOverlayShortcuts,
+              p2pOverlayMaxDistanceFactor,
+              p2pTopologyScanTicks,
+              idleRoamingEnabled,
+              idleRoamingStrategy,
+              idleRoamingMode,
+              spawnScenario,
+              runIndex,
+              worldSeed,
+              point.clientName(),
+              point.spawnTime(),
+              point.pickupTime(),
+              point.finishTime(),
+              point.waitingTime(),
+              point.travelTime(),
+              point.originX(),
+              point.originY(),
+              point.targetX(),
+              point.targetY()));
+    }
+    return appendRows(
+        outputDir,
+        "mass-run-requests.csv",
+        "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,clientName,spawnTime,pickupTime,finishTime,waitingTime,travelTime,originX,originY,targetX,targetY",
+        lines);
+  }
+
+  private static int appendRows(String outputDir, String fileName, String header, List<String> rows)
+      throws IOException {
+    Path directory = Paths.get(outputDir);
+    Files.createDirectories(directory);
+    Path file = directory.resolve(fileName);
+    boolean writeHeader = !Files.exists(file) || Files.size(file) == 0;
+    List<String> lines = new ArrayList<>();
+    if (writeHeader) {
+      lines.add(header);
+    }
+    lines.addAll(rows);
+    Files.write(
+        file,
+        lines,
+        StandardCharsets.UTF_8,
+        writeHeader
+            ? new StandardOpenOption[] {
+              StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
+            }
+            : new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.APPEND});
+    return rows.size();
   }
 
   /**
@@ -588,14 +748,17 @@ final class MassRunCsvWriter {
       double minSpread,
       double maxSpread) {}
 
-  record OutputFiles(Path runCsv, Path aggregateCsv, Path configFile) {
+  record OutputFiles(
+      Path runCsv, Path aggregateCsv, Path timeSeriesCsv, Path requestCsv, Path configFile) {
     @Override
     public String toString() {
       return String.format(
           Locale.ROOT,
-          "%s | %s | %s",
+          "%s | %s | %s | %s | %s",
           runCsv,
           aggregateCsv,
+          timeSeriesCsv,
+          requestCsv,
           configFile != null ? configFile : "no config");
     }
   }

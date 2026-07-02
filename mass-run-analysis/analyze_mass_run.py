@@ -52,6 +52,56 @@ NUMERIC_COLS = [
     "spread",
 ]
 
+TIME_NUMERIC_COLS = [
+    "kHops",
+    "p2pRequestRepublishTicks",
+    "p2pRqsRadius",
+    "taxiCount",
+    "clientCount",
+    "taxiSeatCount",
+    "p2pOverlayMinNeighbors",
+    "p2pOverlayMaxNeighbors",
+    "p2pOverlayShortcuts",
+    "p2pOverlayMaxDistanceFactor",
+    "p2pTopologyScanTicks",
+    "runIndex",
+    "worldSeed",
+    "tick",
+    "calculationTimeNanos",
+    "calculationTimeMillis",
+    "activeClientCount",
+    "servedRequestCount",
+    "waitingTimeSum",
+    "waitingTimeCount",
+    "waitingTimeAvg",
+    "finishedRequestCount",
+]
+
+REQUEST_NUMERIC_COLS = [
+    "kHops",
+    "p2pRequestRepublishTicks",
+    "p2pRqsRadius",
+    "taxiCount",
+    "clientCount",
+    "taxiSeatCount",
+    "p2pOverlayMinNeighbors",
+    "p2pOverlayMaxNeighbors",
+    "p2pOverlayShortcuts",
+    "p2pOverlayMaxDistanceFactor",
+    "p2pTopologyScanTicks",
+    "runIndex",
+    "worldSeed",
+    "spawnTime",
+    "pickupTime",
+    "finishTime",
+    "waitingTime",
+    "travelTime",
+    "originX",
+    "originY",
+    "targetX",
+    "targetY",
+]
+
 P2P_COLS = [
     "kHops",
     "p2pRequestRepublishTicks",
@@ -72,6 +122,9 @@ EXACT_CONFIG_COLS = BASE_COLS + P2P_COLS
 MATCH_COLS = ["metric", "taxiCount", "clientCount", "taxiSeatCount", "spawnScenario"]
 CORE_METRIC_PATTERNS = ["Taxi Travel Distance", "Client Waiting Time", "Client Travel Time"]
 MAX_STRATIFIED_PLOTS = 36
+MAX_TIME_SERIES_PLOTS = 24
+MAX_REQUEST_PLOTS = 24
+DEFAULT_TICK_BLOCK_SIZE = 100
 
 
 @dataclass
@@ -79,6 +132,9 @@ class Config:
     input_csv: Path
     output_dir: Path
     metrics: list[str]
+    time_series_csv: Path
+    requests_csv: Path
+    tick_block_size: int
 
 
 def parse_args() -> Config:
@@ -86,11 +142,19 @@ def parse_args() -> Config:
     parser.add_argument("--input-csv", default="mass-run-results/mass-run-results.csv", type=Path)
     parser.add_argument("--output-dir", default="mass-run-results/analysis", type=Path)
     parser.add_argument("--metrics", default="", help="Comma-separated metric filter.")
+    parser.add_argument("--time-series-csv", default=None, type=Path)
+    parser.add_argument("--requests-csv", default=None, type=Path)
+    parser.add_argument("--tick-block-size", default=DEFAULT_TICK_BLOCK_SIZE, type=int)
     args = parser.parse_args()
+    time_series_csv = args.time_series_csv or args.input_csv.with_name("mass-run-time-series.csv")
+    requests_csv = args.requests_csv or args.input_csv.with_name("mass-run-requests.csv")
     return Config(
         input_csv=args.input_csv,
         output_dir=args.output_dir,
         metrics=[m.strip() for m in args.metrics.split(",") if m.strip()],
+        time_series_csv=time_series_csv,
+        requests_csv=requests_csv,
+        tick_block_size=max(1, args.tick_block_size),
     )
 
 
@@ -149,6 +213,33 @@ def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
         df.loc[~df["is_p2p"], P2P_COLS].notna(), "n/a"
     )
     return df
+
+
+def normalize_aux(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFrame:
+    for col in numeric_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    defaults = {
+        "p2pStrategy": "n/a",
+        "idleRoamingStrategy": "n/a",
+        "idleRoamingMode": "n/a",
+        "spawnScenario": "BASELINE",
+        "idleRoamingEnabled": False,
+    }
+    for col, default in defaults.items():
+        if col not in df.columns:
+            df[col] = default
+        df[col] = df[col].fillna(default)
+    for col in ["algorithm", "p2pStrategy", "idleRoamingStrategy", "idleRoamingMode", "spawnScenario"]:
+        if col in df.columns:
+            df[col] = df[col].astype(str).str.strip().replace({"": "n/a", "nan": "n/a"})
+    return df
+
+
+def load_optional_data(path: Path, numeric_cols: list[str]) -> pd.DataFrame:
+    if not path.exists():
+        return pd.DataFrame()
+    return normalize_aux(pd.read_csv(path), numeric_cols)
 
 
 def write_overview(df: pd.DataFrame, path: Path) -> dict:
@@ -219,6 +310,58 @@ def write_single_passenger(summary: pd.DataFrame, out: Path) -> None:
     single = summary[~summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
     single[BASE_COLS + ["runs", "avgMean", "avgStd", "avgMin", "avgMax", "servedRatioMean"]].to_csv(
         out / "single_passenger.csv", index=False
+    )
+
+
+def write_time_window_summary(time_df: pd.DataFrame, out: Path, tick_block_size: int) -> None:
+    if time_df.empty:
+        return
+    df = time_df.copy()
+    df["tickBlock"] = (df["tick"] // tick_block_size).astype("Int64")
+    df["waitingTimeAvgWeighted"] = np.where(
+        df["waitingTimeCount"].gt(0), df["waitingTimeSum"] / df["waitingTimeCount"], np.nan
+    )
+    (
+        df.groupby(["algorithm", "taxiCount", "clientCount", "spawnScenario", "tickBlock"], dropna=False)
+        .agg(
+            activeClientsMean=("activeClientCount", "mean"),
+            servedRequestsSum=("servedRequestCount", "sum"),
+            finishedRequestsSum=("finishedRequestCount", "sum"),
+            waitingTimeAvg=("waitingTimeAvgWeighted", "mean"),
+            calcTimeMillisMean=("calculationTimeMillis", "mean"),
+            rows=("tick", "size"),
+        )
+        .reset_index()
+        .to_csv(out / "time_window_summary.csv", index=False)
+    )
+
+
+def write_request_tail_summary(request_df: pd.DataFrame, out: Path) -> None:
+    if request_df.empty:
+        return
+    group_cols = [
+        "algorithm",
+        "taxiCount",
+        "clientCount",
+        "taxiSeatCount",
+        "spawnScenario",
+        "kHops",
+        "p2pRqsRadius",
+        "p2pStrategy",
+        "idleRoamingMode",
+    ]
+    (
+        request_df.groupby(group_cols, dropna=False)["waitingTime"]
+        .agg(
+            requests="size",
+            waitMean="mean",
+            waitP50=lambda s: s.quantile(0.50),
+            waitP90=lambda s: s.quantile(0.90),
+            waitP95=lambda s: s.quantile(0.95),
+            waitMax="max",
+        )
+        .reset_index()
+        .to_csv(out / "request_tail_summary.csv", index=False)
     )
 
 
@@ -655,7 +798,151 @@ def plot_interesting_trends(summary: pd.DataFrame, comp: pd.DataFrame, out: Path
     )
 
 
-def plot_thesis_focus(summary: pd.DataFrame, comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
+def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) -> list[dict[str, str]]:
+    if plt is None or time_df.empty:
+        return []
+    files = []
+    df = time_df.copy()
+    df["tickBlock"] = (df["tick"] // tick_block_size).astype(int)
+    for (taxi_count, client_count, scenario), sub in df.groupby(
+        ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+    ):
+        block = (
+            sub.groupby(["tickBlock", "algorithm"], dropna=False)
+            .agg(
+                activeClients=("activeClientCount", "mean"),
+                servedRequests=("servedRequestCount", "mean"),
+                waitingTimeSum=("waitingTimeSum", "sum"),
+                waitingTimeCount=("waitingTimeCount", "sum"),
+            )
+            .reset_index()
+        )
+        if block.empty:
+            continue
+        block["waitingTimeAvg"] = np.where(
+            block["waitingTimeCount"].gt(0),
+            block["waitingTimeSum"] / block["waitingTimeCount"],
+            np.nan,
+        )
+        fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+        for algorithm, group in block.groupby("algorithm", dropna=False):
+            group = group.sort_values("tickBlock")
+            label = str(algorithm).replace("TaxiAlgorithm", "")
+            axes[0].plot(group["tickBlock"], group["activeClients"], linewidth=1.8, label=label)
+            axes[1].plot(group["tickBlock"], group["servedRequests"], linewidth=1.8, label=label)
+            axes[2].plot(group["tickBlock"], group["waitingTimeAvg"], linewidth=1.8, label=label)
+        axes[0].set_ylabel("Active clients")
+        axes[1].set_ylabel("Served / tick")
+        axes[2].set_ylabel("Avg wait / tick")
+        axes[2].set_xlabel(f"Tick block ({tick_block_size} ticks)")
+        axes[0].set_title(f"Load windows | {city_label(taxi_count, client_count)} | {scenario}")
+        for ax in axes:
+            ax.grid(alpha=0.2)
+        axes[0].legend(fontsize=8, ncol=2)
+        fig.tight_layout()
+        name = f"time_windows_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+        fig.savefig(out / name, dpi=140)
+        plt.close(fig)
+        files.append(plot_entry(name, "Time windows", "Averages all configs/runs by algorithm and tick block. Use time_window_summary.csv for exact values."))
+        if len(files) >= MAX_TIME_SERIES_PLOTS:
+            break
+    return files
+
+
+def plot_request_distributions(request_df: pd.DataFrame, out: Path) -> list[dict[str, str]]:
+    if plt is None or request_df.empty:
+        return []
+    files = []
+    for (taxi_count, client_count, scenario), sub in request_df.groupby(
+        ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+    ):
+        fig, ax = plt.subplots(figsize=(8, 4.8))
+        plotted = 0
+        for algorithm, group in sub.groupby("algorithm", dropna=False):
+            waits = pd.to_numeric(group["waitingTime"], errors="coerce").dropna()
+            if waits.empty:
+                continue
+            ax.hist(
+                waits,
+                bins=40,
+                histtype="step",
+                density=True,
+                linewidth=1.8,
+                label=str(algorithm).replace("TaxiAlgorithm", ""),
+            )
+            plotted += 1
+        if plotted == 0:
+            plt.close(fig)
+            continue
+        ax.set_title(f"Waiting-time distribution | {city_label(taxi_count, client_count)} | {scenario}")
+        ax.set_xlabel("Waiting time [ticks]")
+        ax.set_ylabel("Density")
+        ax.legend(fontsize=8)
+        fig.tight_layout()
+        name = f"wait_distribution_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+        fig.savefig(out / name, dpi=140)
+        plt.close(fig)
+        files.append(plot_entry(name, "Request tails", "Uses per-request rows. p90/p95 are tail cut lines in table form, histogram shows full shape."))
+        if len(files) >= MAX_REQUEST_PLOTS:
+            break
+    return files
+
+
+def plot_spatial_waits(request_df: pd.DataFrame, out: Path) -> list[dict[str, str]]:
+    if plt is None or request_df.empty:
+        return []
+    files = []
+    spatial = request_df[request_df["spawnScenario"].str.contains("SPATIAL", case=False, na=False)].copy()
+    if spatial.empty:
+        spatial = request_df.copy()
+    for (taxi_count, client_count, scenario), sub in spatial.groupby(
+        ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+    ):
+        plot_df = sub.dropna(subset=["originX", "originY", "waitingTime"])
+        if plot_df.empty:
+            continue
+        if len(plot_df) > 8000:
+            plot_df = plot_df.sample(8000, random_state=42)
+        fig, ax = plt.subplots(figsize=(6.5, 6))
+        points = ax.scatter(
+            plot_df["originX"],
+            plot_df["originY"],
+            c=plot_df["waitingTime"],
+            s=8,
+            alpha=0.65,
+            cmap="viridis",
+        )
+        ax.set_title(f"Origin wait map | {city_label(taxi_count, client_count)} | {scenario}")
+        ax.set_xlabel("Origin X")
+        ax.set_ylabel("Origin Y")
+        ax.set_aspect("equal", adjustable="box")
+        fig.colorbar(points, ax=ax, label="Waiting time [ticks]")
+        fig.tight_layout()
+        name = f"spatial_waits_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+        fig.savefig(out / name, dpi=140)
+        plt.close(fig)
+        files.append(plot_entry(name, "Spatial maps", "Per-request pickup-origin wait map. Darker/higher colors expose weak regions."))
+        if len(files) >= MAX_REQUEST_PLOTS:
+            break
+    return files
+
+
+def plot_new_metrics(time_df: pd.DataFrame, request_df: pd.DataFrame, out: Path, tick_block_size: int) -> list[dict[str, str]]:
+    return (
+        plot_time_windows(time_df, out, tick_block_size)
+        + plot_request_distributions(request_df, out)
+        + plot_spatial_waits(request_df, out)
+    )
+
+
+def plot_thesis_focus(
+    summary: pd.DataFrame,
+    comp: pd.DataFrame,
+    out: Path,
+    time_df: pd.DataFrame,
+    request_df: pd.DataFrame,
+    tick_block_size: int,
+) -> list[dict[str, str]]:
     return (
         plot_best_vs_single(comp, out)
         + plot_scale_trends(comp, out)
@@ -663,6 +950,7 @@ def plot_thesis_focus(summary: pd.DataFrame, comp: pd.DataFrame, out: Path) -> l
         + plot_roaming_trends(summary, out)
         + plot_topology_trends(summary, out)
         + plot_interesting_trends(summary, comp, out)
+        + plot_new_metrics(time_df, request_df, out, tick_block_size)
     )
 
 
@@ -762,7 +1050,7 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
         for item in plot_files
     ]
     plot_sections = []
-    for section in ["Best P2P", "Hypothesis plots", "Interesting trends", "Plots"]:
+    for section in ["Best P2P", "Hypothesis plots", "Interesting trends", "Time windows", "Request tails", "Spatial maps", "Plots"]:
         records = [record for record in plot_records if record["section"] == section]
         if not records:
             continue
@@ -1012,12 +1300,16 @@ def main() -> None:
     config = parse_args()
     dirs = ensure_dirs(config.output_dir)
     df = load_data(config.input_csv, config.metrics)
+    time_df = load_optional_data(config.time_series_csv, TIME_NUMERIC_COLS)
+    request_df = load_optional_data(config.requests_csv, REQUEST_NUMERIC_COLS)
     overview = write_overview(df, dirs["base"] / "overview.json")
     summary = aggregate_exact_configs(df, dirs["tables"])
     comp = compare_p2p_to_single(summary, dirs["tables"])
     write_single_passenger(summary, dirs["tables"])
+    write_time_window_summary(time_df, dirs["tables"], config.tick_block_size)
+    write_request_tail_summary(request_df, dirs["tables"])
     write_effect_screens(df, dirs["stats"])
-    plots = plot_thesis_focus(summary, comp, dirs["plots"])
+    plots = plot_thesis_focus(summary, comp, dirs["plots"], time_df, request_df, config.tick_block_size)
     write_report(dirs["base"], overview, plots)
     print(f"[analyze] {len(df)} rows -> {dirs['base'] / 'report.html'}")
 

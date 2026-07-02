@@ -108,7 +108,6 @@ public class StatsCollector {
           algorithm.get().getName(),
           runCounter
         };
-
     return new ResultTable(columns, data, data.length);
   }
 

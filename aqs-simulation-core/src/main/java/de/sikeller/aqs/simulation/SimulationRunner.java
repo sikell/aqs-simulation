@@ -1,6 +1,9 @@
 package de.sikeller.aqs.simulation;
 
 import de.sikeller.aqs.model.*;
+import de.sikeller.aqs.model.events.Event;
+import de.sikeller.aqs.model.events.EventClientEntersTaxi;
+import de.sikeller.aqs.model.events.EventClientFinished;
 import de.sikeller.aqs.model.TickDataPoint;
 import de.sikeller.aqs.model.events.EventDispatcher;
 import de.sikeller.aqs.simulation.result.SimulationResultSink;
@@ -32,6 +35,8 @@ public class SimulationRunner implements SimulationControl {
   private volatile boolean simulationInitialized = false;
   private volatile boolean simulationFinished = false;
   private volatile ResultTable latestResultTable;
+  private volatile List<TickDataPoint> latestTickDataPoints = List.of();
+  private volatile List<RequestDataPoint> latestRequestDataPoints = List.of();
   private volatile boolean realtimeVisualizationEnabled = true;
 
   public SimulationRunner(WorldObject world, Algorithm algorithm, WorldGenerator worldGenerator) {
@@ -62,6 +67,8 @@ public class SimulationRunner implements SimulationControl {
     }
 
     latestResultTable = null;
+    latestTickDataPoints = List.of();
+    latestRequestDataPoints = List.of();
     simulationFinished = false;
     simulationInitialized = false;
 
@@ -70,7 +77,8 @@ public class SimulationRunner implements SimulationControl {
     var customCalculationTime = CollectorMinMaxAverage.longCollector();
     var simulationCalculationTime = CollectorMinMaxAverage.longCollector();
     CollectorTimeSeries.Collector<TickDataPoint> tickDataPoints =
-        realtimeVisualizationEnabled ? CollectorTimeSeries.newCollector() : null;
+        CollectorTimeSeries.newCollector();
+    int seenEventCount = eventDispatcher.getAll().size();
     while (!world.isFinished()) {
       int sleepMillis =
           Math.max(0, (int) Math.min(1000, Math.round(Math.pow(100.0 / speed, 2.0) - 1)));
@@ -86,12 +94,20 @@ public class SimulationRunner implements SimulationControl {
       algorithmCalculationTime.collect(calculationTime);
       customCalculationTime.collect(
           result.getCalculationTime() != null ? result.getCalculationTime() : 0);
-      if (tickDataPoints != null) {
-        int activeClients = world.getActiveClientsCount();
-        tickDataPoints.collect(new TickDataPoint(currentTime, calculationTime, activeClients));
-      }
       log.debug("Step {}: {} in {} nanos", currentTime, result, calculationTime);
       worldSimulator.move(currentTime);
+      List<Event> events = eventDispatcher.getAll();
+      TickEventCounts tickEventCounts = tickEventCounts(events, seenEventCount);
+      seenEventCount = events.size();
+      tickDataPoints.collect(
+          new TickDataPoint(
+              currentTime,
+              calculationTime,
+              world.getActiveClientsCount(),
+              tickEventCounts.servedRequestCount(),
+              tickEventCounts.waitingTimeSum(),
+              tickEventCounts.waitingTimeCount(),
+              tickEventCounts.finishedRequestCount()));
       if (realtimeVisualizationEnabled) {
         notifyVisualizationListeners(false);
       }
@@ -113,6 +129,8 @@ public class SimulationRunner implements SimulationControl {
     }
 
     latestResultTable = statsCollector.tableResults();
+    latestTickDataPoints = tickDataPoints.result();
+    latestRequestDataPoints = requestDataPoints(eventDispatcher.getAll());
     try {
       if (realtimeVisualizationEnabled) {
         resultSink.accept(latestResultTable);
@@ -120,8 +138,8 @@ public class SimulationRunner implements SimulationControl {
     } catch (Exception e) {
       log.error(e.getMessage(), e);
     }
-    if (realtimeVisualizationEnabled && tickDataPoints != null) {
-      resultVisualization.showLoadChart(tickDataPoints.result(), algorithm.get().getName());
+    if (realtimeVisualizationEnabled) {
+      resultVisualization.showLoadChart(latestTickDataPoints, algorithm.get().getName());
     }
     eventDispatcher.resetEvents();
 
@@ -130,7 +148,7 @@ public class SimulationRunner implements SimulationControl {
   }
 
   private void notifyVisualizationListeners(boolean forceUpdate) {
-      listeners.forEach(l -> l.onUpdate(world, forceUpdate));
+    listeners.forEach(l -> l.onUpdate(world, forceUpdate));
   }
 
   public void print() {
@@ -178,7 +196,72 @@ public class SimulationRunner implements SimulationControl {
     return latestResultTable;
   }
 
+  @Override
+  public List<TickDataPoint> getLatestTickDataPoints() {
+    return latestTickDataPoints;
+  }
+
+  @Override
+  public List<RequestDataPoint> getLatestRequestDataPoints() {
+    return latestRequestDataPoints;
+  }
+
   public void showResultVisualization() {
     this.resultVisualization.openResults();
   }
+
+  private TickEventCounts tickEventCounts(List<Event> events, int fromIndex) {
+    int served = 0;
+    long waitingSum = 0;
+    int waitingCount = 0;
+    int finished = 0;
+    for (int i = fromIndex; i < events.size(); i++) {
+      Event event = events.get(i);
+      if (event instanceof EventClientEntersTaxi enter) {
+        served++;
+        waitingSum += enter.getCurrentTime() - enter.getClient().getSpawnTime();
+        waitingCount++;
+      } else if (event instanceof EventClientFinished) {
+        finished++;
+      }
+    }
+    return new TickEventCounts(served, waitingSum, waitingCount, finished);
+  }
+
+  private List<RequestDataPoint> requestDataPoints(List<Event> events) {
+    Map<String, EventClientEntersTaxi> pickups = new LinkedHashMap<>();
+    Map<String, EventClientFinished> finishes = new HashMap<>();
+    for (Event event : events) {
+      if (event instanceof EventClientEntersTaxi enter) {
+        pickups.putIfAbsent(enter.getClient().getName(), enter);
+      } else if (event instanceof EventClientFinished finish) {
+        finishes.put(finish.getClient().getName(), finish);
+      }
+    }
+    List<RequestDataPoint> rows = new ArrayList<>();
+    for (EventClientEntersTaxi enter : pickups.values()) {
+      EventClientFinished finish = finishes.get(enter.getClient().getName());
+      Position origin = enter.getClient().getPosition();
+      Position target = enter.getClient().getTarget();
+      rows.add(
+          new RequestDataPoint(
+              enter.getClient().getName(),
+              enter.getClient().getSpawnTime(),
+              enter.getCurrentTime(),
+              finish != null ? finish.getCurrentTime() : -1,
+              enter.getCurrentTime() - enter.getClient().getSpawnTime(),
+              finish != null ? finish.getTravelTime() : -1,
+              origin.getX(),
+              origin.getY(),
+              target.getX(),
+              target.getY()));
+    }
+    return rows;
+  }
+
+  private record TickEventCounts(
+      int servedRequestCount,
+      long waitingTimeSum,
+      int waitingTimeCount,
+      int finishedRequestCount) {}
 }
