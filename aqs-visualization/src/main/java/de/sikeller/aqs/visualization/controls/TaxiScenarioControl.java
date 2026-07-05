@@ -1003,16 +1003,14 @@ public class TaxiScenarioControl extends AbstractControl {
     Object snapshotSaveLock = new Object();
     AtomicBoolean manualSaveInProgress = new AtomicBoolean(false);
     AtomicInteger totalRowsWritten = new AtomicInteger(0);
-    // Clean up previous results file so we don't append to stale data
     try {
       Path outputDir = Paths.get(config.outputDir());
-      for (String fileName :
-          List.of(
-              "mass-run-results.csv",
-              "mass-run-aggregates.csv",
-              "mass-run-time-series.csv",
-              "mass-run-requests.csv")) {
-        Files.deleteIfExists(outputDir.resolve(fileName));
+      if (!Files.exists(outputDir.resolve("mass-run-results.csv"))) {
+        for (String fileName :
+            List.of(
+                "mass-run-aggregates.csv", "mass-run-time-series.csv", "mass-run-requests.csv")) {
+          Files.deleteIfExists(outputDir.resolve(fileName));
+        }
       }
     } catch (Exception ignored) {
       // best-effort cleanup
@@ -1093,18 +1091,39 @@ public class TaxiScenarioControl extends AbstractControl {
       Consumer<MassRunProgressUpdate> publishProgress,
       Consumer<Integer> setProgressValue)
       throws Exception {
-    List<MassRunTask> tasks = buildMassRunTasks(config);
-    int totalRuns = tasks.size();
-    int doneRuns = 0;
-    int nextAutoSavePercent = 25;
+    List<MassRunTask> allTasks = buildMassRunTasks(config);
+    Set<String> completedKeys = MassRunCsvWriter.completedRunKeys(config.outputDir());
+    List<MassRunTask> tasks =
+        allTasks.stream()
+            .filter(task -> !completedKeys.contains(massRunResultKey(task)))
+            .toList();
+    int totalRuns = allTasks.size();
+    int doneRuns = totalRuns - tasks.size();
+    int nextAutoSavePercent = ((progressPercent(doneRuns, totalRuns) / 25) + 1) * 25;
 
     try {
+      if (tasks.isEmpty()) {
+        publishProgress.accept(progressUpdate(doneRuns, totalRuns, "Nothing to resume"));
+        setProgressValue.accept(progressPercent(doneRuns, totalRuns));
+        Path configFile;
+        synchronized (snapshotSaveLock) {
+          MassRunCsvWriter.writeAggregateFromFile(config.outputDir());
+          configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
+        }
+        return massRunOutputFiles(config, configFile);
+      }
       int workers = Math.min(Math.max(1, config.parallelWorkers()), Math.max(1, tasks.size()));
       ExecutorService executor = Executors.newFixedThreadPool(workers);
       ExecutorCompletionService<MassRunTaskResult> completion =
           new ExecutorCompletionService<>(executor);
       try {
-        publishProgress.accept(progressUpdate(0, totalRuns, "Running with " + workers + " workers"));
+        publishProgress.accept(
+            progressUpdate(
+                doneRuns,
+                totalRuns,
+                completedKeys.isEmpty()
+                    ? "Running with " + workers + " workers"
+                    : "Resuming: skipped " + doneRuns + " completed runs"));
         int nextTaskIndex = 0;
         for (; nextTaskIndex < Math.min(workers, tasks.size()); nextTaskIndex++) {
           MassRunTask task = tasks.get(nextTaskIndex);
@@ -1145,11 +1164,7 @@ public class TaxiScenarioControl extends AbstractControl {
         MassRunCsvWriter.writeAggregateFromFile(config.outputDir());
         configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
       }
-      Path runFile = Paths.get(config.outputDir()).resolve("mass-run-results.csv");
-      Path aggFile = Paths.get(config.outputDir()).resolve("mass-run-aggregates.csv");
-      Path tickFile = Paths.get(config.outputDir()).resolve("mass-run-time-series.csv");
-      Path requestFile = Paths.get(config.outputDir()).resolve("mass-run-requests.csv");
-      return new MassRunCsvWriter.OutputFiles(runFile, aggFile, tickFile, requestFile, configFile);
+      return massRunOutputFiles(config, configFile);
     } catch (Exception ex) {
       throw new IllegalStateException(
           ex.getMessage()
@@ -1165,6 +1180,39 @@ public class TaxiScenarioControl extends AbstractControl {
   private MassRunProgressUpdate progressUpdate(int doneRuns, int totalRuns, String params) {
     return new MassRunProgressUpdate(
         doneRuns, totalRuns, progressPercent(doneRuns, totalRuns), params);
+  }
+
+  private MassRunCsvWriter.OutputFiles massRunOutputFiles(
+      MassRunDialog.MassRunConfig config, Path configFile) {
+    Path runFile = Paths.get(config.outputDir()).resolve("mass-run-results.csv");
+    Path aggFile = Paths.get(config.outputDir()).resolve("mass-run-aggregates.csv");
+    Path tickFile = Paths.get(config.outputDir()).resolve("mass-run-time-series.csv");
+    Path requestFile = Paths.get(config.outputDir()).resolve("mass-run-requests.csv");
+    return new MassRunCsvWriter.OutputFiles(runFile, aggFile, tickFile, requestFile, configFile);
+  }
+
+  private String massRunResultKey(MassRunTask task) {
+    MassRunExecution execution = massRunExecution(task);
+    return MassRunCsvWriter.runKey(
+        execution.executedAlgorithm(),
+        task.kHops(),
+        execution.executedRequestRepublishTicks(),
+        execution.executedRqsRadius(),
+        task.taxiCount(),
+        task.clientCount(),
+        task.taxiSeatCount(),
+        execution.executedStrategy(),
+        execution.executedOverlayMinNeighbors(),
+        execution.executedOverlayMaxNeighbors(),
+        execution.executedOverlayShortcuts(),
+        execution.executedOverlayMaxDistanceFactor(),
+        execution.executedTopologyScanTicks(),
+        execution.executedIdleRoamingEnabled(),
+        execution.executedIdleRoamingStrategy(),
+        execution.executedIdleRoamingMode(),
+        task.spawnScenario(),
+        task.runIndex(),
+        task.seed());
   }
 
   private MassRunTaskResult takeMassRunResult(
@@ -1490,7 +1538,6 @@ public class TaxiScenarioControl extends AbstractControl {
             task.seed(),
             timestamp);
     synchronized (snapshotSaveLock) {
-      int written = MassRunCsvWriter.appendRunRows(config.outputDir(), runRows);
       MassRunCsvWriter.appendTickRows(
           config.outputDir(),
           result.tickDataPoints(),
@@ -1537,7 +1584,7 @@ public class TaxiScenarioControl extends AbstractControl {
           result.executedSpawnScenario(),
           task.runIndex(),
           task.seed());
-      return written;
+      return MassRunCsvWriter.appendRunRows(config.outputDir(), runRows);
     }
   }
 

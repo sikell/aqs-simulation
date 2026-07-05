@@ -12,10 +12,13 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.StringJoiner;
 
 final class MassRunCsvWriter {
@@ -144,6 +147,90 @@ final class MassRunCsvWriter {
             : new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.APPEND};
     Files.write(runFile, lines, StandardCharsets.UTF_8, opts);
     return newRows.size();
+  }
+
+  static Set<String> completedRunKeys(String outputDir) throws IOException {
+    Path runFile = Paths.get(outputDir).resolve("mass-run-results.csv");
+    if (!Files.exists(runFile)) {
+      return Set.of();
+    }
+    Map<String, Set<String>> metricsByRun = new HashMap<>();
+    for (RunMetricRow row : readRunCsv(runFile)) {
+      metricsByRun.computeIfAbsent(runKey(row), ignored -> new HashSet<>()).add(row.metric());
+    }
+    Set<String> completed = new HashSet<>();
+    for (Map.Entry<String, Set<String>> entry : metricsByRun.entrySet()) {
+      if (entry.getValue().size() >= 6) {
+        completed.add(entry.getKey());
+      }
+    }
+    return completed;
+  }
+
+  static String runKey(
+      String algorithm,
+      int kHops,
+      int requestRepublishTicks,
+      int rqsRadius,
+      int taxiCount,
+      int clientCount,
+      int taxiSeatCount,
+      String p2pStrategy,
+      int p2pOverlayMinNeighbors,
+      int p2pOverlayMaxNeighbors,
+      int p2pOverlayShortcuts,
+      int p2pOverlayMaxDistanceFactor,
+      int p2pTopologyScanTicks,
+      boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
+      String idleRoamingMode,
+      String spawnScenario,
+      int runIndex,
+      int worldSeed) {
+    return String.join(
+        "|",
+        algorithm,
+        String.valueOf(kHops),
+        String.valueOf(requestRepublishTicks),
+        String.valueOf(rqsRadius),
+        String.valueOf(taxiCount),
+        String.valueOf(clientCount),
+        String.valueOf(taxiSeatCount),
+        p2pStrategy,
+        String.valueOf(p2pOverlayMinNeighbors),
+        String.valueOf(p2pOverlayMaxNeighbors),
+        String.valueOf(p2pOverlayShortcuts),
+        String.valueOf(p2pOverlayMaxDistanceFactor),
+        String.valueOf(p2pTopologyScanTicks),
+        String.valueOf(idleRoamingEnabled),
+        idleRoamingStrategy,
+        idleRoamingMode,
+        spawnScenario,
+        String.valueOf(runIndex),
+        String.valueOf(worldSeed));
+  }
+
+  private static String runKey(RunMetricRow row) {
+    return runKey(
+        row.algorithm(),
+        row.kHops(),
+        row.requestRepublishTicks(),
+        row.rqsRadius(),
+        row.taxiCount(),
+        row.clientCount(),
+        row.taxiSeatCount(),
+        row.p2pStrategy(),
+        row.p2pOverlayMinNeighbors(),
+        row.p2pOverlayMaxNeighbors(),
+        row.p2pOverlayShortcuts(),
+        row.p2pOverlayMaxDistanceFactor(),
+        row.p2pTopologyScanTicks(),
+        row.idleRoamingEnabled(),
+        row.idleRoamingStrategy(),
+        row.idleRoamingMode(),
+        row.spawnScenario(),
+        row.runIndex(),
+        row.worldSeed());
   }
 
   static int appendTickRows(
