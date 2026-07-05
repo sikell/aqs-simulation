@@ -1105,10 +1105,12 @@ public class TaxiScenarioControl extends AbstractControl {
           new ExecutorCompletionService<>(executor);
       try {
         publishProgress.accept(progressUpdate(0, totalRuns, "Running with " + workers + " workers"));
-        for (MassRunTask task : tasks) {
+        int nextTaskIndex = 0;
+        for (; nextTaskIndex < Math.min(workers, tasks.size()); nextTaskIndex++) {
+          MassRunTask task = tasks.get(nextTaskIndex);
           completion.submit(() -> new MassRunTaskResult(task, executeMassRunTask(config, task)));
         }
-        for (int i = 0; i < tasks.size(); i++) {
+        while (doneRuns < totalRuns) {
           MassRunTaskResult completed = takeMassRunResult(completion);
           String timestamp = Instant.now().toString();
           int written =
@@ -1130,6 +1132,10 @@ public class TaxiScenarioControl extends AbstractControl {
           setProgressValue.accept(progress);
           publishProgress.accept(
               progressUpdate(doneRuns, totalRuns, completed.task().currentRunParams()));
+          if (nextTaskIndex < tasks.size()) {
+            MassRunTask task = tasks.get(nextTaskIndex++);
+            completion.submit(() -> new MassRunTaskResult(task, executeMassRunTask(config, task)));
+          }
         }
       } finally {
         executor.shutdownNow();

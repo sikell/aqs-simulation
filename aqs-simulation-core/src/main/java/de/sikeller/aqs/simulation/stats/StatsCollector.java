@@ -6,6 +6,7 @@ import de.sikeller.aqs.model.*;
 import de.sikeller.aqs.model.events.EventClientEntersTaxi;
 import de.sikeller.aqs.model.events.EventClientFinished;
 import de.sikeller.aqs.model.events.EventList;
+import java.util.ArrayList;
 import de.sikeller.aqs.simulation.stats.CollectorMinMaxAverage.Result;
 import lombok.extern.slf4j.Slf4j;
 
@@ -133,11 +134,12 @@ public class StatsCollector {
   }
 
   private void collectClientWaitingTime(EventList eventList) {
-    var enterEvents =
-        eventList.getAll().stream()
-            .filter(e -> e instanceof EventClientEntersTaxi)
-            .map(e -> (EventClientEntersTaxi) e)
-            .toList();
+    var enterEvents = new ArrayList<EventClientEntersTaxi>();
+    for (int i = 0; i < eventList.size(); i++) {
+      if (eventList.get(i) instanceof EventClientEntersTaxi event) {
+        enterEvents.add(event);
+      }
+    }
 
     waitingTime =
         new CollectorMinMaxAverage<EventClientEntersTaxi>()
@@ -146,11 +148,12 @@ public class StatsCollector {
   }
 
   private void collectClientTravelTime(EventList eventList) {
-    var finishedEvents =
-        eventList.getAll().stream()
-            .filter(e -> e instanceof EventClientFinished)
-            .map(e -> (EventClientFinished) e)
-            .toList();
+    var finishedEvents = new ArrayList<EventClientFinished>();
+    for (int i = 0; i < eventList.size(); i++) {
+      if (eventList.get(i) instanceof EventClientFinished event) {
+        finishedEvents.add(event);
+      }
+    }
 
     travelTime =
         new CollectorMinMaxAverage<EventClientFinished>()

@@ -1,6 +1,7 @@
 package de.sikeller.aqs.simulation.stats;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -21,7 +22,7 @@ public class CollectorTimeSeries {
     }
 
     public List<N> result() {
-      return new ArrayList<>(series);
+      return Collections.unmodifiableList(series);
     }
   }
 

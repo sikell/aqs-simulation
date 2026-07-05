@@ -3,6 +3,7 @@ package de.sikeller.aqs.visualization.controls;
 import de.sikeller.aqs.model.RequestDataPoint;
 import de.sikeller.aqs.model.ResultTable;
 import de.sikeller.aqs.model.TickDataPoint;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,14 +11,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 final class MassRunCsvWriter {
+  private static final int TIME_SERIES_BUCKET_TICKS =
+      Math.max(1, Integer.getInteger("aqs.massRun.timeSeriesBucketTicks", 1000));
+
   private MassRunCsvWriter() {}
 
   static List<RunMetricRow> toRunRows(
@@ -167,14 +171,24 @@ final class MassRunCsvWriter {
       int worldSeed)
       throws IOException {
     if (points == null || points.isEmpty()) return 0;
-    List<String> lines = new ArrayList<>();
-    for (TickDataPoint point : points) {
-      double waitingAvg =
-          point.waitingTimeCount() == 0
-              ? 0
-              : 1.0 * point.waitingTimeSum() / point.waitingTimeCount();
-      lines.add(
-          csv(
+    try (BufferedWriter writer =
+        openAppender(
+            outputDir,
+            "mass-run-time-series.csv",
+            "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,tick,calculationTimeNanos,calculationTimeMillis,activeClientCount,servedRequestCount,waitingTimeSum,waitingTimeCount,waitingTimeAvg,finishedRequestCount")) {
+      long bucketStart = -1;
+      long calculationTimeNanosSum = 0;
+      long activeClientCountSum = 0;
+      long servedRequestCountSum = 0;
+      long waitingTimeSum = 0;
+      long waitingTimeCount = 0;
+      long finishedRequestCountSum = 0;
+      int bucketRows = 0;
+      for (TickDataPoint point : points) {
+        long pointBucket = (point.tick() / TIME_SERIES_BUCKET_TICKS) * TIME_SERIES_BUCKET_TICKS;
+        if (bucketRows > 0 && pointBucket != bucketStart) {
+          writeTickBucket(
+              writer,
               timestamp,
               algorithm,
               kHops,
@@ -195,21 +209,133 @@ final class MassRunCsvWriter {
               spawnScenario,
               runIndex,
               worldSeed,
-              point.tick(),
-              point.calculationTimeNanos(),
-              point.calculationTimeNanos() / 1_000_000.0,
-              point.activeClientCount(),
-              point.servedRequestCount(),
-              point.waitingTimeSum(),
-              point.waitingTimeCount(),
-              waitingAvg,
-              point.finishedRequestCount()));
+              bucketStart,
+              calculationTimeNanosSum,
+              activeClientCountSum,
+              servedRequestCountSum,
+              waitingTimeSum,
+              waitingTimeCount,
+              finishedRequestCountSum,
+              bucketRows);
+          calculationTimeNanosSum = 0;
+          activeClientCountSum = 0;
+          servedRequestCountSum = 0;
+          waitingTimeSum = 0;
+          waitingTimeCount = 0;
+          finishedRequestCountSum = 0;
+          bucketRows = 0;
+        }
+        bucketStart = pointBucket;
+        calculationTimeNanosSum += point.calculationTimeNanos();
+        activeClientCountSum += point.activeClientCount();
+        servedRequestCountSum += point.servedRequestCount();
+        waitingTimeSum += point.waitingTimeSum();
+        waitingTimeCount += point.waitingTimeCount();
+        finishedRequestCountSum += point.finishedRequestCount();
+        bucketRows++;
+      }
+      if (bucketRows > 0) {
+        writeTickBucket(
+            writer,
+            timestamp,
+            algorithm,
+            kHops,
+            requestRepublishTicks,
+            rqsRadius,
+            taxiCount,
+            clientCount,
+            taxiSeatCount,
+            p2pStrategy,
+            p2pOverlayMinNeighbors,
+            p2pOverlayMaxNeighbors,
+            p2pOverlayShortcuts,
+            p2pOverlayMaxDistanceFactor,
+            p2pTopologyScanTicks,
+            idleRoamingEnabled,
+            idleRoamingStrategy,
+            idleRoamingMode,
+            spawnScenario,
+            runIndex,
+            worldSeed,
+            bucketStart,
+            calculationTimeNanosSum,
+            activeClientCountSum,
+            servedRequestCountSum,
+            waitingTimeSum,
+            waitingTimeCount,
+            finishedRequestCountSum,
+            bucketRows);
+      }
     }
-    return appendRows(
-        outputDir,
-        "mass-run-time-series.csv",
-        "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,tick,calculationTimeNanos,calculationTimeMillis,activeClientCount,servedRequestCount,waitingTimeSum,waitingTimeCount,waitingTimeAvg,finishedRequestCount",
-        lines);
+    return (points.size() + TIME_SERIES_BUCKET_TICKS - 1) / TIME_SERIES_BUCKET_TICKS;
+  }
+
+  private static void writeTickBucket(
+      BufferedWriter writer,
+      String timestamp,
+      String algorithm,
+      int kHops,
+      int requestRepublishTicks,
+      int rqsRadius,
+      int taxiCount,
+      int clientCount,
+      int taxiSeatCount,
+      String p2pStrategy,
+      int p2pOverlayMinNeighbors,
+      int p2pOverlayMaxNeighbors,
+      int p2pOverlayShortcuts,
+      int p2pOverlayMaxDistanceFactor,
+      int p2pTopologyScanTicks,
+      boolean idleRoamingEnabled,
+      String idleRoamingStrategy,
+      String idleRoamingMode,
+      String spawnScenario,
+      int runIndex,
+      int worldSeed,
+      long tick,
+      long calculationTimeNanosSum,
+      long activeClientCountSum,
+      long servedRequestCountSum,
+      long waitingTimeSum,
+      long waitingTimeCount,
+      long finishedRequestCountSum,
+      int bucketRows)
+      throws IOException {
+    long calculationTimeNanosAvg = calculationTimeNanosSum / bucketRows;
+    double activeClientCountAvg = 1.0 * activeClientCountSum / bucketRows;
+    double waitingAvg = waitingTimeCount == 0 ? 0 : 1.0 * waitingTimeSum / waitingTimeCount;
+    writer.write(
+        csv(
+            timestamp,
+            algorithm,
+            kHops,
+            requestRepublishTicks,
+            rqsRadius,
+            taxiCount,
+            clientCount,
+            taxiSeatCount,
+            p2pStrategy,
+            p2pOverlayMinNeighbors,
+            p2pOverlayMaxNeighbors,
+            p2pOverlayShortcuts,
+            p2pOverlayMaxDistanceFactor,
+            p2pTopologyScanTicks,
+            idleRoamingEnabled,
+            idleRoamingStrategy,
+            idleRoamingMode,
+            spawnScenario,
+            runIndex,
+            worldSeed,
+            tick,
+            calculationTimeNanosAvg,
+            calculationTimeNanosAvg / 1_000_000.0,
+            activeClientCountAvg,
+            servedRequestCountSum,
+            waitingTimeSum,
+            waitingTimeCount,
+            waitingAvg,
+            finishedRequestCountSum));
+    writer.newLine();
   }
 
   static int appendRequestRows(
@@ -237,69 +363,85 @@ final class MassRunCsvWriter {
       int worldSeed)
       throws IOException {
     if (points == null || points.isEmpty()) return 0;
-    List<String> lines = new ArrayList<>();
-    for (RequestDataPoint point : points) {
-      lines.add(
-          csv(
-              timestamp,
-              algorithm,
-              kHops,
-              requestRepublishTicks,
-              rqsRadius,
-              taxiCount,
-              clientCount,
-              taxiSeatCount,
-              p2pStrategy,
-              p2pOverlayMinNeighbors,
-              p2pOverlayMaxNeighbors,
-              p2pOverlayShortcuts,
-              p2pOverlayMaxDistanceFactor,
-              p2pTopologyScanTicks,
-              idleRoamingEnabled,
-              idleRoamingStrategy,
-              idleRoamingMode,
-              spawnScenario,
-              runIndex,
-              worldSeed,
-              point.clientName(),
-              point.spawnTime(),
-              point.pickupTime(),
-              point.finishTime(),
-              point.waitingTime(),
-              point.travelTime(),
-              point.originX(),
-              point.originY(),
-              point.targetX(),
-              point.targetY()));
+    try (BufferedWriter writer =
+        openAppender(
+            outputDir,
+            "mass-run-requests.csv",
+            "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,clientName,spawnTime,pickupTime,finishTime,waitingTime,travelTime,originX,originY,targetX,targetY")) {
+      for (RequestDataPoint point : points) {
+        writer.write(
+            csv(
+                timestamp,
+                algorithm,
+                kHops,
+                requestRepublishTicks,
+                rqsRadius,
+                taxiCount,
+                clientCount,
+                taxiSeatCount,
+                p2pStrategy,
+                p2pOverlayMinNeighbors,
+                p2pOverlayMaxNeighbors,
+                p2pOverlayShortcuts,
+                p2pOverlayMaxDistanceFactor,
+                p2pTopologyScanTicks,
+                idleRoamingEnabled,
+                idleRoamingStrategy,
+                idleRoamingMode,
+                spawnScenario,
+                runIndex,
+                worldSeed,
+                point.clientName(),
+                point.spawnTime(),
+                point.pickupTime(),
+                point.finishTime(),
+                point.waitingTime(),
+                point.travelTime(),
+                point.originX(),
+                point.originY(),
+                point.targetX(),
+                point.targetY()));
+        writer.newLine();
+      }
     }
-    return appendRows(
-        outputDir,
-        "mass-run-requests.csv",
-        "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,clientName,spawnTime,pickupTime,finishTime,waitingTime,travelTime,originX,originY,targetX,targetY",
-        lines);
+    return points.size();
   }
 
   private static int appendRows(String outputDir, String fileName, String header, List<String> rows)
+      throws IOException {
+    try (BufferedWriter writer = openAppender(outputDir, fileName, header)) {
+      for (String row : rows) {
+        writer.write(row);
+        writer.newLine();
+      }
+    }
+    return rows.size();
+  }
+
+  private static BufferedWriter openAppender(String outputDir, String fileName, String header)
       throws IOException {
     Path directory = Paths.get(outputDir);
     Files.createDirectories(directory);
     Path file = directory.resolve(fileName);
     boolean writeHeader = !Files.exists(file) || Files.size(file) == 0;
-    List<String> lines = new ArrayList<>();
+    BufferedWriter writer =
+        Files.newBufferedWriter(
+            file,
+            StandardCharsets.UTF_8,
+            writeHeader
+                ? new StandardOpenOption[] {
+                  StandardOpenOption.CREATE,
+                  StandardOpenOption.TRUNCATE_EXISTING,
+                  StandardOpenOption.WRITE
+                }
+                : new StandardOpenOption[] {
+                  StandardOpenOption.CREATE, StandardOpenOption.APPEND, StandardOpenOption.WRITE
+                });
     if (writeHeader) {
-      lines.add(header);
+      writer.write(header);
+      writer.newLine();
     }
-    lines.addAll(rows);
-    Files.write(
-        file,
-        lines,
-        StandardCharsets.UTF_8,
-        writeHeader
-            ? new StandardOpenOption[] {
-              StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
-            }
-            : new StandardOpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.APPEND});
-    return rows.size();
+    return writer;
   }
 
   /**
@@ -456,6 +598,7 @@ final class MassRunCsvWriter {
     props.setProperty("baseSeed", String.valueOf(config.baseSeed()));
     props.setProperty("outputDir", config.outputDir());
     props.setProperty("parallelWorkers", String.valueOf(config.parallelWorkers()));
+    props.setProperty("timeSeriesBucketTicks", String.valueOf(TIME_SERIES_BUCKET_TICKS));
     props.setProperty(
         "taxiCounts",
         config.taxiCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
@@ -622,10 +765,11 @@ final class MassRunCsvWriter {
   }
 
   private static String csv(Object... values) {
-    return Arrays.stream(values)
-        .map(MassRunCsvWriter::escape)
-        .reduce((l, r) -> l + "," + r)
-        .orElse("");
+    StringJoiner row = new StringJoiner(",");
+    for (Object value : values) {
+      row.add(escape(value));
+    }
+    return row.toString();
   }
 
   private static String escape(Object value) {

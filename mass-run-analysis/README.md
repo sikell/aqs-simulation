@@ -16,7 +16,7 @@ python mass-run-analysis/analyze_mass_run.py --input-csv mass-run-results/mass-r
 
 If present next to the input CSV, these files are analyzed automatically:
 
-- `mass-run-time-series.csv`
+- `mass-run-time-series.csv` (bucketed by 1000 ticks by default)
 - `mass-run-requests.csv`
 
 ## Output
