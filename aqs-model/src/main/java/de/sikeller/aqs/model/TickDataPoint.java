@@ -8,5 +8,13 @@ public record TickDataPoint(
     int servedRequestCount,
     long waitingTimeSum,
     int waitingTimeCount,
-    int finishedRequestCount) {}
+    int finishedRequestCount) {
+  public static int bucketTicks() {
+    return Math.max(
+        1,
+        Integer.getInteger(
+            "aqs.simulation.tickSeriesBucketTicks",
+            Integer.getInteger("aqs.massRun.timeSeriesBucketTicks", 1000)));
+  }
+}
 

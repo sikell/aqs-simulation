@@ -1008,7 +1008,9 @@ public class TaxiScenarioControl extends AbstractControl {
       if (!Files.exists(outputDir.resolve("mass-run-results.csv"))) {
         for (String fileName :
             List.of(
-                "mass-run-aggregates.csv", "mass-run-time-series.csv", "mass-run-requests.csv")) {
+                "mass-run-aggregates.csv",
+                "mass-run-time-series.csv",
+                "mass-run-request-heatmap.csv")) {
           Files.deleteIfExists(outputDir.resolve(fileName));
         }
       }
@@ -1187,7 +1189,7 @@ public class TaxiScenarioControl extends AbstractControl {
     Path runFile = Paths.get(config.outputDir()).resolve("mass-run-results.csv");
     Path aggFile = Paths.get(config.outputDir()).resolve("mass-run-aggregates.csv");
     Path tickFile = Paths.get(config.outputDir()).resolve("mass-run-time-series.csv");
-    Path requestFile = Paths.get(config.outputDir()).resolve("mass-run-requests.csv");
+    Path requestFile = Paths.get(config.outputDir()).resolve("mass-run-request-heatmap.csv");
     return new MassRunCsvWriter.OutputFiles(runFile, aggFile, tickFile, requestFile, configFile);
   }
 

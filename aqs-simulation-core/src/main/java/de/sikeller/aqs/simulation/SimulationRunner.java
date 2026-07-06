@@ -97,6 +97,7 @@ public class SimulationRunner implements SimulationControl {
     var simulationCalculationTime = CollectorMinMaxAverage.longCollector();
     CollectorTimeSeries.Collector<TickDataPoint> tickDataPoints =
         CollectorTimeSeries.newCollector();
+    TickDataBucket tickDataBucket = new TickDataBucket(TickDataPoint.bucketTicks());
     int seenEventCount = eventDispatcher.size();
     while (!world.isFinished()) {
       int sleepMillis =
@@ -123,7 +124,7 @@ public class SimulationRunner implements SimulationControl {
       worldSimulator.move(currentTime);
       TickEventCounts tickEventCounts = tickEventCounts(eventDispatcher, seenEventCount);
       seenEventCount = eventDispatcher.size();
-      tickDataPoints.collect(
+      tickDataBucket.collect(
           new TickDataPoint(
               currentTime,
               calculationTime,
@@ -131,12 +132,14 @@ public class SimulationRunner implements SimulationControl {
               tickEventCounts.servedRequestCount(),
               tickEventCounts.waitingTimeSum(),
               tickEventCounts.waitingTimeCount(),
-              tickEventCounts.finishedRequestCount()));
+              tickEventCounts.finishedRequestCount()),
+          tickDataPoints::collect);
       if (realtimeVisualizationEnabled) {
         notifyVisualizationListeners(false);
       }
       simulationCalculationTime.collect(System.nanoTime() - simulationStartTime);
     }
+    tickDataBucket.flush(tickDataPoints::collect);
 
     if (realtimeVisualizationEnabled) {
       eventDispatcher.print();
@@ -288,4 +291,55 @@ public class SimulationRunner implements SimulationControl {
       long waitingTimeSum,
       int waitingTimeCount,
       int finishedRequestCount) {}
+
+  static final class TickDataBucket {
+    private final int bucketTicks;
+    private long bucketStart = -1;
+    private long calculationTimeNanosSum;
+    private long activeClientCountSum;
+    private int servedRequestCountSum;
+    private long waitingTimeSum;
+    private int waitingTimeCount;
+    private int finishedRequestCountSum;
+    private int rows;
+
+    TickDataBucket(int bucketTicks) {
+      this.bucketTicks = Math.max(1, bucketTicks);
+    }
+
+    void collect(TickDataPoint point, java.util.function.Consumer<TickDataPoint> sink) {
+      long pointBucket = (point.tick() / bucketTicks) * bucketTicks;
+      if (rows > 0 && pointBucket != bucketStart) {
+        flush(sink);
+      }
+      bucketStart = pointBucket;
+      calculationTimeNanosSum += point.calculationTimeNanos();
+      activeClientCountSum += point.activeClientCount();
+      servedRequestCountSum += point.servedRequestCount();
+      waitingTimeSum += point.waitingTimeSum();
+      waitingTimeCount += point.waitingTimeCount();
+      finishedRequestCountSum += point.finishedRequestCount();
+      rows++;
+    }
+
+    void flush(java.util.function.Consumer<TickDataPoint> sink) {
+      if (rows == 0) return;
+      sink.accept(
+          new TickDataPoint(
+              bucketStart,
+              calculationTimeNanosSum / rows,
+              Math.toIntExact(Math.round(1.0 * activeClientCountSum / rows)),
+              servedRequestCountSum,
+              waitingTimeSum,
+              waitingTimeCount,
+              finishedRequestCountSum));
+      calculationTimeNanosSum = 0;
+      activeClientCountSum = 0;
+      servedRequestCountSum = 0;
+      waitingTimeSum = 0;
+      waitingTimeCount = 0;
+      finishedRequestCountSum = 0;
+      rows = 0;
+    }
+  }
 }

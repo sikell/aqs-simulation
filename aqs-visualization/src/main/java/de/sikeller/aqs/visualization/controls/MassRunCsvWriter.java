@@ -22,8 +22,8 @@ import java.util.Set;
 import java.util.StringJoiner;
 
 final class MassRunCsvWriter {
-  private static final int TIME_SERIES_BUCKET_TICKS =
-      Math.max(1, Integer.getInteger("aqs.massRun.timeSeriesBucketTicks", 1000));
+  private static final int REQUEST_HEATMAP_ZONES =
+      Math.max(1, Integer.getInteger("aqs.massRun.requestHeatmapZones", 20));
 
   private MassRunCsvWriter() {}
 
@@ -263,66 +263,8 @@ final class MassRunCsvWriter {
             outputDir,
             "mass-run-time-series.csv",
             "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,tick,calculationTimeNanos,calculationTimeMillis,activeClientCount,servedRequestCount,waitingTimeSum,waitingTimeCount,waitingTimeAvg,finishedRequestCount")) {
-      long bucketStart = -1;
-      long calculationTimeNanosSum = 0;
-      long activeClientCountSum = 0;
-      long servedRequestCountSum = 0;
-      long waitingTimeSum = 0;
-      long waitingTimeCount = 0;
-      long finishedRequestCountSum = 0;
-      int bucketRows = 0;
       for (TickDataPoint point : points) {
-        long pointBucket = (point.tick() / TIME_SERIES_BUCKET_TICKS) * TIME_SERIES_BUCKET_TICKS;
-        if (bucketRows > 0 && pointBucket != bucketStart) {
-          writeTickBucket(
-              writer,
-              timestamp,
-              algorithm,
-              kHops,
-              requestRepublishTicks,
-              rqsRadius,
-              taxiCount,
-              clientCount,
-              taxiSeatCount,
-              p2pStrategy,
-              p2pOverlayMinNeighbors,
-              p2pOverlayMaxNeighbors,
-              p2pOverlayShortcuts,
-              p2pOverlayMaxDistanceFactor,
-              p2pTopologyScanTicks,
-              idleRoamingEnabled,
-              idleRoamingStrategy,
-              idleRoamingMode,
-              spawnScenario,
-              runIndex,
-              worldSeed,
-              bucketStart,
-              calculationTimeNanosSum,
-              activeClientCountSum,
-              servedRequestCountSum,
-              waitingTimeSum,
-              waitingTimeCount,
-              finishedRequestCountSum,
-              bucketRows);
-          calculationTimeNanosSum = 0;
-          activeClientCountSum = 0;
-          servedRequestCountSum = 0;
-          waitingTimeSum = 0;
-          waitingTimeCount = 0;
-          finishedRequestCountSum = 0;
-          bucketRows = 0;
-        }
-        bucketStart = pointBucket;
-        calculationTimeNanosSum += point.calculationTimeNanos();
-        activeClientCountSum += point.activeClientCount();
-        servedRequestCountSum += point.servedRequestCount();
-        waitingTimeSum += point.waitingTimeSum();
-        waitingTimeCount += point.waitingTimeCount();
-        finishedRequestCountSum += point.finishedRequestCount();
-        bucketRows++;
-      }
-      if (bucketRows > 0) {
-        writeTickBucket(
+        writeTickPoint(
             writer,
             timestamp,
             algorithm,
@@ -344,20 +286,13 @@ final class MassRunCsvWriter {
             spawnScenario,
             runIndex,
             worldSeed,
-            bucketStart,
-            calculationTimeNanosSum,
-            activeClientCountSum,
-            servedRequestCountSum,
-            waitingTimeSum,
-            waitingTimeCount,
-            finishedRequestCountSum,
-            bucketRows);
+            point);
       }
     }
-    return (points.size() + TIME_SERIES_BUCKET_TICKS - 1) / TIME_SERIES_BUCKET_TICKS;
+    return points.size();
   }
 
-  private static void writeTickBucket(
+  private static void writeTickPoint(
       BufferedWriter writer,
       String timestamp,
       String algorithm,
@@ -379,18 +314,10 @@ final class MassRunCsvWriter {
       String spawnScenario,
       int runIndex,
       int worldSeed,
-      long tick,
-      long calculationTimeNanosSum,
-      long activeClientCountSum,
-      long servedRequestCountSum,
-      long waitingTimeSum,
-      long waitingTimeCount,
-      long finishedRequestCountSum,
-      int bucketRows)
+      TickDataPoint point)
       throws IOException {
-    long calculationTimeNanosAvg = calculationTimeNanosSum / bucketRows;
-    double activeClientCountAvg = 1.0 * activeClientCountSum / bucketRows;
-    double waitingAvg = waitingTimeCount == 0 ? 0 : 1.0 * waitingTimeSum / waitingTimeCount;
+    double waitingAvg =
+        point.waitingTimeCount() == 0 ? 0 : 1.0 * point.waitingTimeSum() / point.waitingTimeCount();
     writer.write(
         csv(
             timestamp,
@@ -413,15 +340,15 @@ final class MassRunCsvWriter {
             spawnScenario,
             runIndex,
             worldSeed,
-            tick,
-            calculationTimeNanosAvg,
-            calculationTimeNanosAvg / 1_000_000.0,
-            activeClientCountAvg,
-            servedRequestCountSum,
-            waitingTimeSum,
-            waitingTimeCount,
+            point.tick(),
+            point.calculationTimeNanos(),
+            point.calculationTimeNanos() / 1_000_000.0,
+            point.activeClientCount(),
+            point.servedRequestCount(),
+            point.waitingTimeSum(),
+            point.waitingTimeCount(),
             waitingAvg,
-            finishedRequestCountSum));
+            point.finishedRequestCount()));
     writer.newLine();
   }
 
@@ -450,12 +377,13 @@ final class MassRunCsvWriter {
       int worldSeed)
       throws IOException {
     if (points == null || points.isEmpty()) return 0;
+    List<RequestZoneBucket> buckets = aggregateRequestZones(points);
     try (BufferedWriter writer =
         openAppender(
             outputDir,
-            "mass-run-requests.csv",
-            "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,clientName,spawnTime,pickupTime,finishTime,waitingTime,travelTime,originX,originY,targetX,targetY")) {
-      for (RequestDataPoint point : points) {
+            "mass-run-request-heatmap.csv",
+            "timestamp,algorithm,kHops,p2pRequestRepublishTicks,p2pRqsRadius,taxiCount,clientCount,taxiSeatCount,p2pStrategy,p2pOverlayMinNeighbors,p2pOverlayMaxNeighbors,p2pOverlayShortcuts,p2pOverlayMaxDistanceFactor,p2pTopologyScanTicks,idleRoamingEnabled,idleRoamingStrategy,idleRoamingMode,spawnScenario,runIndex,worldSeed,zoneX,zoneY,originX,originY,requestCount,finishedCount,waitingTimeSum,waitingTimeAvg,waitingTimeMax,travelTimeSum,travelTimeAvg")) {
+      for (RequestZoneBucket point : buckets) {
         writer.write(
             csv(
                 timestamp,
@@ -478,20 +406,49 @@ final class MassRunCsvWriter {
                 spawnScenario,
                 runIndex,
                 worldSeed,
-                point.clientName(),
-                point.spawnTime(),
-                point.pickupTime(),
-                point.finishTime(),
-                point.waitingTime(),
-                point.travelTime(),
-                point.originX(),
-                point.originY(),
-                point.targetX(),
-                point.targetY()));
+                point.zoneX,
+                point.zoneY,
+                point.centerX,
+                point.centerY,
+                point.requestCount,
+                point.finishedCount,
+                point.waitingTimeSum,
+                point.waitingTimeAvg(),
+                point.waitingTimeMax,
+                point.travelTimeSum,
+                point.travelTimeAvg()));
         writer.newLine();
       }
     }
-    return points.size();
+    return buckets.size();
+  }
+
+  private static List<RequestZoneBucket> aggregateRequestZones(List<RequestDataPoint> points) {
+    int maxX = 1;
+    int maxY = 1;
+    for (RequestDataPoint point : points) {
+      maxX = Math.max(maxX, Math.max(point.originX(), point.targetX()));
+      maxY = Math.max(maxY, Math.max(point.originY(), point.targetY()));
+    }
+    int zoneSizeX = Math.max(1, (maxX + REQUEST_HEATMAP_ZONES) / REQUEST_HEATMAP_ZONES);
+    int zoneSizeY = Math.max(1, (maxY + REQUEST_HEATMAP_ZONES) / REQUEST_HEATMAP_ZONES);
+    Map<String, RequestZoneBucket> buckets = new LinkedHashMap<>();
+    for (RequestDataPoint point : points) {
+      int zoneX = Math.min(REQUEST_HEATMAP_ZONES - 1, Math.max(0, point.originX() / zoneSizeX));
+      int zoneY = Math.min(REQUEST_HEATMAP_ZONES - 1, Math.max(0, point.originY() / zoneSizeY));
+      String key = zoneX + ":" + zoneY;
+      buckets
+          .computeIfAbsent(
+              key,
+              ignored ->
+                  new RequestZoneBucket(
+                      zoneX,
+                      zoneY,
+                      zoneX * zoneSizeX + zoneSizeX / 2,
+                      zoneY * zoneSizeY + zoneSizeY / 2))
+          .collect(point);
+    }
+    return new ArrayList<>(buckets.values());
   }
 
   private static int appendRows(String outputDir, String fileName, String header, List<String> rows)
@@ -685,7 +642,8 @@ final class MassRunCsvWriter {
     props.setProperty("baseSeed", String.valueOf(config.baseSeed()));
     props.setProperty("outputDir", config.outputDir());
     props.setProperty("parallelWorkers", String.valueOf(config.parallelWorkers()));
-    props.setProperty("timeSeriesBucketTicks", String.valueOf(TIME_SERIES_BUCKET_TICKS));
+    props.setProperty("timeSeriesBucketTicks", String.valueOf(TickDataPoint.bucketTicks()));
+    props.setProperty("requestHeatmapZones", String.valueOf(REQUEST_HEATMAP_ZONES));
     props.setProperty(
         "taxiCounts",
         config.taxiCounts().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
@@ -992,6 +950,43 @@ final class MassRunCsvWriter {
           timeSeriesCsv,
           requestCsv,
           configFile != null ? configFile : "no config");
+    }
+  }
+
+  private static final class RequestZoneBucket {
+    private final int zoneX;
+    private final int zoneY;
+    private final int centerX;
+    private final int centerY;
+    private int requestCount;
+    private int finishedCount;
+    private long waitingTimeSum;
+    private long waitingTimeMax;
+    private long travelTimeSum;
+
+    RequestZoneBucket(int zoneX, int zoneY, int centerX, int centerY) {
+      this.zoneX = zoneX;
+      this.zoneY = zoneY;
+      this.centerX = centerX;
+      this.centerY = centerY;
+    }
+
+    private void collect(RequestDataPoint point) {
+      requestCount++;
+      waitingTimeSum += point.waitingTime();
+      waitingTimeMax = Math.max(waitingTimeMax, point.waitingTime());
+      if (point.travelTime() >= 0) {
+        finishedCount++;
+        travelTimeSum += point.travelTime();
+      }
+    }
+
+    private double waitingTimeAvg() {
+      return requestCount == 0 ? 0 : 1.0 * waitingTimeSum / requestCount;
+    }
+
+    private double travelTimeAvg() {
+      return finishedCount == 0 ? 0 : 1.0 * travelTimeSum / finishedCount;
     }
   }
 }

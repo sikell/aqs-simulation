@@ -91,15 +91,29 @@ REQUEST_NUMERIC_COLS = [
     "p2pTopologyScanTicks",
     "runIndex",
     "worldSeed",
-    "spawnTime",
-    "pickupTime",
-    "finishTime",
-    "waitingTime",
-    "travelTime",
     "originX",
     "originY",
-    "targetX",
-    "targetY",
+    "zoneX",
+    "zoneY",
+    "requestCount",
+    "finishedCount",
+    "waitingTimeSum",
+    "waitingTimeAvg",
+    "waitingTimeMax",
+    "travelTimeSum",
+    "travelTimeAvg",
+]
+
+REQUEST_HEATMAP_REQUIRED_COLS = [
+    "algorithm",
+    "taxiCount",
+    "clientCount",
+    "spawnScenario",
+    "originX",
+    "originY",
+    "requestCount",
+    "waitingTimeAvg",
+    "waitingTimeMax",
 ]
 
 P2P_COLS = [
@@ -143,11 +157,11 @@ def parse_args() -> Config:
     parser.add_argument("--output-dir", default="mass-run-results/analysis", type=Path)
     parser.add_argument("--metrics", default="", help="Comma-separated metric filter.")
     parser.add_argument("--time-series-csv", default=None, type=Path)
-    parser.add_argument("--requests-csv", default=None, type=Path)
+    parser.add_argument("--requests-csv", default=None, type=Path, help="Request heatmap CSV.")
     parser.add_argument("--tick-block-size", default=DEFAULT_TICK_BLOCK_SIZE, type=int)
     args = parser.parse_args()
     time_series_csv = args.time_series_csv or args.input_csv.with_name("mass-run-time-series.csv")
-    requests_csv = args.requests_csv or args.input_csv.with_name("mass-run-requests.csv")
+    requests_csv = args.requests_csv or args.input_csv.with_name("mass-run-request-heatmap.csv")
     return Config(
         input_csv=args.input_csv,
         output_dir=args.output_dir,
@@ -240,6 +254,16 @@ def load_optional_data(path: Path, numeric_cols: list[str]) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
     return normalize_aux(pd.read_csv(path), numeric_cols)
+
+
+def load_request_data(path: Path) -> pd.DataFrame:
+    if not path.exists():
+        return pd.DataFrame()
+    df = normalize_aux(pd.read_csv(path), REQUEST_NUMERIC_COLS)
+    missing = [col for col in REQUEST_HEATMAP_REQUIRED_COLS if col not in df.columns]
+    if missing:
+        raise ValueError(f"Request heatmap CSV missing required columns: {missing}")
+    return df
 
 
 def write_overview(df: pd.DataFrame, path: Path) -> dict:
@@ -350,19 +374,18 @@ def write_request_tail_summary(request_df: pd.DataFrame, out: Path) -> None:
         "p2pStrategy",
         "idleRoamingMode",
     ]
-    (
-        request_df.groupby(group_cols, dropna=False)["waitingTime"]
-        .agg(
-            requests="size",
-            waitMean="mean",
-            waitP50=lambda s: s.quantile(0.50),
-            waitP90=lambda s: s.quantile(0.90),
-            waitP95=lambda s: s.quantile(0.95),
-            waitMax="max",
-        )
-        .reset_index()
-        .to_csv(out / "request_tail_summary.csv", index=False)
+    df = request_df.copy()
+    df["requestCount"] = pd.to_numeric(df["requestCount"], errors="coerce").fillna(0)
+    df["waitingTimeSum"] = pd.to_numeric(df["waitingTimeSum"], errors="coerce").fillna(
+        df["waitingTimeAvg"] * df["requestCount"]
     )
+    grouped = df.groupby(group_cols, dropna=False).agg(
+        requests=("requestCount", "sum"),
+        waitingSum=("waitingTimeSum", "sum"),
+        waitMax=("waitingTimeMax", "max"),
+    )
+    grouped["waitMean"] = grouped["waitingSum"] / grouped["requests"].where(grouped["requests"] != 0)
+    grouped.drop(columns=["waitingSum"]).reset_index().to_csv(out / "request_tail_summary.csv", index=False)
 
 
 def pair_effect(df: pd.DataFrame, factor: str, a: object, b: object) -> pd.DataFrame:
@@ -849,45 +872,6 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
     return files
 
 
-def plot_request_distributions(request_df: pd.DataFrame, out: Path) -> list[dict[str, str]]:
-    if plt is None or request_df.empty:
-        return []
-    files = []
-    for (taxi_count, client_count, scenario), sub in request_df.groupby(
-        ["taxiCount", "clientCount", "spawnScenario"], dropna=False
-    ):
-        fig, ax = plt.subplots(figsize=(8, 4.8))
-        plotted = 0
-        for algorithm, group in sub.groupby("algorithm", dropna=False):
-            waits = pd.to_numeric(group["waitingTime"], errors="coerce").dropna()
-            if waits.empty:
-                continue
-            ax.hist(
-                waits,
-                bins=40,
-                histtype="step",
-                density=True,
-                linewidth=1.8,
-                label=str(algorithm).replace("TaxiAlgorithm", ""),
-            )
-            plotted += 1
-        if plotted == 0:
-            plt.close(fig)
-            continue
-        ax.set_title(f"Waiting-time distribution | {city_label(taxi_count, client_count)} | {scenario}")
-        ax.set_xlabel("Waiting time [ticks]")
-        ax.set_ylabel("Density")
-        ax.legend(fontsize=8)
-        fig.tight_layout()
-        name = f"wait_distribution_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
-        fig.savefig(out / name, dpi=140)
-        plt.close(fig)
-        files.append(plot_entry(name, "Request tails", "Uses per-request rows. p90/p95 are tail cut lines in table form, histogram shows full shape."))
-        if len(files) >= MAX_REQUEST_PLOTS:
-            break
-    return files
-
-
 def plot_spatial_waits(request_df: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None or request_df.empty:
         return []
@@ -898,17 +882,17 @@ def plot_spatial_waits(request_df: pd.DataFrame, out: Path) -> list[dict[str, st
     for (taxi_count, client_count, scenario), sub in spatial.groupby(
         ["taxiCount", "clientCount", "spawnScenario"], dropna=False
     ):
-        plot_df = sub.dropna(subset=["originX", "originY", "waitingTime"])
+        plot_df = sub.dropna(subset=["originX", "originY", "waitingTimeAvg"])
         if plot_df.empty:
             continue
-        if len(plot_df) > 8000:
-            plot_df = plot_df.sample(8000, random_state=42)
+        counts = pd.to_numeric(plot_df["requestCount"], errors="coerce").fillna(1)
+        sizes = 12 + 42 * counts / max(1, counts.max())
         fig, ax = plt.subplots(figsize=(6.5, 6))
         points = ax.scatter(
             plot_df["originX"],
             plot_df["originY"],
-            c=plot_df["waitingTime"],
-            s=8,
+            c=plot_df["waitingTimeAvg"],
+            s=sizes,
             alpha=0.65,
             cmap="viridis",
         )
@@ -921,7 +905,7 @@ def plot_spatial_waits(request_df: pd.DataFrame, out: Path) -> list[dict[str, st
         name = f"spatial_waits_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
         fig.savefig(out / name, dpi=140)
         plt.close(fig)
-        files.append(plot_entry(name, "Spatial maps", "Per-request pickup-origin wait map. Darker/higher colors expose weak regions."))
+        files.append(plot_entry(name, "Spatial maps", "Origin-zone wait heatmap. Darker/higher colors expose weak regions."))
         if len(files) >= MAX_REQUEST_PLOTS:
             break
     return files
@@ -930,7 +914,6 @@ def plot_spatial_waits(request_df: pd.DataFrame, out: Path) -> list[dict[str, st
 def plot_new_metrics(time_df: pd.DataFrame, request_df: pd.DataFrame, out: Path, tick_block_size: int) -> list[dict[str, str]]:
     return (
         plot_time_windows(time_df, out, tick_block_size)
-        + plot_request_distributions(request_df, out)
         + plot_spatial_waits(request_df, out)
     )
 
@@ -1301,7 +1284,7 @@ def main() -> None:
     dirs = ensure_dirs(config.output_dir)
     df = load_data(config.input_csv, config.metrics)
     time_df = load_optional_data(config.time_series_csv, TIME_NUMERIC_COLS)
-    request_df = load_optional_data(config.requests_csv, REQUEST_NUMERIC_COLS)
+    request_df = load_request_data(config.requests_csv)
     overview = write_overview(df, dirs["base"] / "overview.json")
     summary = aggregate_exact_configs(df, dirs["tables"])
     comp = compare_p2p_to_single(summary, dirs["tables"])
