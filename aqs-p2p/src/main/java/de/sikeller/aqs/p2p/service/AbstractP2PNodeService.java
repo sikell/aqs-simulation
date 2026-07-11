@@ -226,6 +226,10 @@ public abstract class AbstractP2PNodeService implements P2PNodeService {
 
   public record OverlayNeighborSnapshot(Set<String> neighborIds, Set<String> shortcutIds) {}
 
+  protected void clearOverlaySelectionCache() {
+    overlaySelectionCache.clear();
+  }
+
   protected void handleIncoming(P2PMessage message) {
     messagesReceived.incrementAndGet();
 

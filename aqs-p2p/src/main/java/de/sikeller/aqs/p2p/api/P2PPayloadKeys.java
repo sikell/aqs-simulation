@@ -26,4 +26,16 @@ public final class P2PPayloadKeys {
   public static final String POSITION_X = "x";
   public static final String POSITION_Y = "y";
   public static final String POSITION_TICK = "tick";
+  public static final String AVAILABLE = "available";
+  public static final String MAP_MAX_X = "mapMaxX";
+  public static final String MAP_MAX_Y = "mapMaxY";
+  public static final String SPAWN_SCENARIO = "spawnScenario";
+  public static final String PICKUP_X = "pickupX";
+  public static final String PICKUP_Y = "pickupY";
+  public static final String HQ_X = "hqX";
+  public static final String HQ_Y = "hqY";
+  public static final String REVISIT_X = "revisitX";
+  public static final String REVISIT_Y = "revisitY";
+  public static final String AVG_TOTAL_X = "avgTotalX";
+  public static final String AVG_TOTAL_Y = "avgTotalY";
 }

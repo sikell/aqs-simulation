@@ -77,6 +77,32 @@ class InMemoryP2PNetworkTest {
   }
 
   @Test
+  void vehicleWithoutPositionCanCommitNetworkRequest() {
+    var network = new InMemoryP2PNetwork();
+
+    try (var client = new ClientP2PService("client-no-position", network);
+        var vehicle = new VehicleP2PService("vehicle-no-position", network)) {
+      client.start();
+      vehicle.start();
+
+      String requestId =
+          client.requestRide(
+              "(0,0)",
+              "(100,100)",
+              node -> node.id().equals("vehicle-no-position"),
+              0,
+              Map.of("requestX", "0", "requestY", "0", "searchRadius", "100"));
+
+      long commits =
+          client.inboxSnapshot().stream()
+              .filter(msg -> msg.topic().equals(P2PTopics.RIDE_COMMIT))
+              .filter(msg -> requestId.equals(msg.requestId()))
+              .count();
+      assertEquals(1, commits);
+    }
+  }
+
+  @Test
   void clientReceivesCommitFromAtLeastOneVehicle() {
     var network = new InMemoryP2PNetwork();
 
@@ -605,4 +631,3 @@ class InMemoryP2PNetworkTest {
     }
   }
 }
-

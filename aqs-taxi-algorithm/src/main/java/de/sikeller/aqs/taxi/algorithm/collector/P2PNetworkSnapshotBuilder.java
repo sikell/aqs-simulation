@@ -23,16 +23,35 @@ public final class P2PNetworkSnapshotBuilder {
       String localRole,
       Collection<NodeDescriptor> peers,
       Map<String, TopologyViewData> topologyViewsByNodeId) {
+    return build(localNodeId, localRole, peers, topologyViewsByNodeId, Map.of());
+  }
+
+  public P2PNetworkSnapshot build(
+      String localNodeId,
+      String localRole,
+      Collection<NodeDescriptor> peers,
+      Map<String, TopologyViewData> topologyViewsByNodeId,
+      Map<String, String> nodeAliases) {
+    Map<String, String> aliases = nodeAliases == null ? Map.of() : nodeAliases;
+    String displayLocalNodeId = alias(localNodeId, aliases);
     Map<String, NodeDescriptor> peerById =
         peers == null
             ? Map.of()
-            : peers.stream().collect(Collectors.toMap(NodeDescriptor::id, p -> p));
+            : peers.stream()
+                .map(peer -> new NodeDescriptor(alias(peer.id(), aliases), peer.role()))
+                .collect(Collectors.toMap(NodeDescriptor::id, p -> p, (left, right) -> left));
     Map<String, TopologyViewData> views =
-        topologyViewsByNodeId == null ? Map.of() : Map.copyOf(topologyViewsByNodeId);
+        topologyViewsByNodeId == null
+            ? Map.of()
+            : topologyViewsByNodeId.values().stream()
+                .map(view -> alias(view, aliases))
+                .collect(
+                    Collectors.toMap(
+                        TopologyViewData::nodeId, view -> view, (left, right) -> left));
 
     TreeSet<String> nodeIds = new TreeSet<>(peerById.keySet());
-    if (localNodeId != null && !localNodeId.isBlank()) {
-      nodeIds.add(localNodeId);
+    if (displayLocalNodeId != null && !displayLocalNodeId.isBlank()) {
+      nodeIds.add(displayLocalNodeId);
     }
     nodeIds.addAll(views.keySet());
     views.values().forEach(view -> nodeIds.addAll(view.neighborIds()));
@@ -43,8 +62,8 @@ public final class P2PNetworkSnapshotBuilder {
                 nodeId ->
                     new P2PNetworkNodeSnapshot(
                         nodeId,
-                        resolveRole(nodeId, localNodeId, localRole, peerById, views),
-                        nodeId.equals(localNodeId)))
+                        resolveRole(nodeId, displayLocalNodeId, localRole, peerById, views),
+                        nodeId.equals(displayLocalNodeId)))
             .collect(Collectors.toList());
 
     Map<String, Boolean> shortcutByEdgeKey = new HashMap<>();
@@ -76,7 +95,8 @@ public final class P2PNetworkSnapshotBuilder {
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
-    return new P2PNetworkSnapshot(localNodeId == null ? "" : localNodeId, nodes, edges);
+    return new P2PNetworkSnapshot(
+        displayLocalNodeId == null ? "" : displayLocalNodeId, nodes, edges);
   }
 
   private String resolveRole(
@@ -110,6 +130,23 @@ public final class P2PNetworkSnapshotBuilder {
         : rightNodeId + EDGE_KEY_SEPARATOR + leftNodeId;
   }
 
+  private TopologyViewData alias(TopologyViewData view, Map<String, String> aliases) {
+    return new TopologyViewData(
+        alias(view.nodeId(), aliases),
+        view.role(),
+        view.neighborIds().stream().map(id -> alias(id, aliases)).collect(Collectors.toSet()),
+        view.shortcutNeighborIds().stream()
+            .map(id -> alias(id, aliases))
+            .collect(Collectors.toSet()));
+  }
+
+  private String alias(String nodeId, Map<String, String> aliases) {
+    if (nodeId == null) {
+      return null;
+    }
+    return aliases.getOrDefault(nodeId, nodeId);
+  }
+
   public record TopologyViewData(
       String nodeId, String role, Set<String> neighborIds, Set<String> shortcutNeighborIds) {
     public TopologyViewData {
@@ -117,7 +154,9 @@ public final class P2PNetworkSnapshotBuilder {
       shortcutNeighborIds =
           shortcutNeighborIds == null
               ? Set.of()
-              : shortcutNeighborIds.stream().filter(neighborIds::contains).collect(Collectors.toSet());
+              : shortcutNeighborIds.stream()
+                  .filter(neighborIds::contains)
+                  .collect(Collectors.toSet());
     }
   }
 }

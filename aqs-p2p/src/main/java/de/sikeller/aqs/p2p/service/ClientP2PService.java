@@ -60,6 +60,11 @@ public class ClientP2PService extends AbstractP2PNodeService {
    * immediately drop the request instead of waiting for their busy-lease TTL to expire.
    */
   public void announceWinner(String requestId, String winnerVehicleId) {
+    announceWinner(requestId, winnerVehicleId, null, null);
+  }
+
+  public void announceWinner(
+      String requestId, String winnerVehicleId, Integer pickupX, Integer pickupY) {
     if (requestId == null || requestId.isBlank()) {
       return;
     }
@@ -67,6 +72,10 @@ public class ClientP2PService extends AbstractP2PNodeService {
     payload.put(P2PPayloadKeys.REQUEST_ID, requestId);
     if (winnerVehicleId != null && !winnerVehicleId.isBlank()) {
       payload.put(P2PPayloadKeys.WINNER_VEHICLE, winnerVehicleId);
+    }
+    if (pickupX != null && pickupY != null) {
+      payload.put(P2PPayloadKeys.PICKUP_X, String.valueOf(pickupX));
+      payload.put(P2PPayloadKeys.PICKUP_Y, String.valueOf(pickupY));
     }
     publishMessage(
         P2PTopics.RIDE_ASSIGNED,
@@ -79,6 +88,66 @@ public class ClientP2PService extends AbstractP2PNodeService {
         descriptor().id(),
         requestId,
         winnerVehicleId);
+  }
+
+  public void sendVehicleState(
+      String vehicleNodeId,
+      boolean available,
+      int x,
+      int y,
+      long simulationTick,
+      int mapMaxX,
+      int mapMaxY,
+      String spawnScenario) {
+    sendVehicleState(
+        vehicleNodeId,
+        available,
+        x,
+        y,
+        simulationTick,
+        mapMaxX,
+        mapMaxY,
+        spawnScenario,
+        Map.of());
+  }
+
+  public void sendVehicleState(
+      String vehicleNodeId,
+      boolean available,
+      int x,
+      int y,
+      long simulationTick,
+      int mapMaxX,
+      int mapMaxY,
+      String spawnScenario,
+      Map<String, String> config) {
+    if (vehicleNodeId == null || vehicleNodeId.isBlank()) {
+      return;
+    }
+    Map<String, String> payload = new LinkedHashMap<>();
+    payload.put(P2PPayloadKeys.AVAILABLE, String.valueOf(available));
+    payload.put(P2PPayloadKeys.POSITION_X, String.valueOf(x));
+    payload.put(P2PPayloadKeys.POSITION_Y, String.valueOf(y));
+    payload.put(P2PPayloadKeys.POSITION_TICK, String.valueOf(simulationTick));
+    payload.put(P2PPayloadKeys.MAP_MAX_X, String.valueOf(mapMaxX));
+    payload.put(P2PPayloadKeys.MAP_MAX_Y, String.valueOf(mapMaxY));
+    if (spawnScenario != null && !spawnScenario.isBlank()) {
+      payload.put(P2PPayloadKeys.SPAWN_SCENARIO, spawnScenario);
+    }
+    if (config != null) {
+      config.forEach(
+          (key, value) -> {
+            if (key != null && !key.isBlank() && value != null) {
+              payload.put(key, value);
+            }
+          });
+    }
+    sendToMessage(
+        vehicleNodeId,
+        P2PTopics.VEHICLE_STATE,
+        KeyValuePayload.write(payload),
+        "state-" + simulationTick + "-" + vehicleNodeId,
+        "");
   }
 
   public String requestTopologyScan() {

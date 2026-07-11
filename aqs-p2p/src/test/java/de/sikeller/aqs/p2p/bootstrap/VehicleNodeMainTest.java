@@ -2,6 +2,7 @@ package de.sikeller.aqs.p2p.bootstrap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +34,13 @@ class VehicleNodeMainTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> VehicleNodeMain.resolveTcpPort("vehicle-1", "99999"));
+  }
+
+  @Test
+  void defaultNodeIdIsVehicleId() {
+    String nodeId = VehicleNodeMain.defaultNodeId();
+
+    assertTrue(nodeId.startsWith("vehicle-"));
   }
 }
 

@@ -38,6 +38,33 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final String TRIGGER_INCOMING = "incoming";
   private static final long DEFAULT_VEHICLE_COMMIT_LEASE_TICKS = 20L;
   private static final double DEFAULT_ASSUMED_SPEED_MPS = 12.0;
+  private static final Set<String> REMOTE_CONFIG_KEYS =
+      Set.of(
+          P2PSystemProperties.OVERLAY_MIN_NEIGHBORS,
+          P2PSystemProperties.OVERLAY_MAX_NEIGHBORS,
+          P2PSystemProperties.OVERLAY_MAX_DISTANCE,
+          P2PSystemProperties.OVERLAY_SHORTCUTS,
+          P2PSystemProperties.OVERLAY_COLLECTOR_NODE_ID,
+          P2PSystemProperties.OVERLAY_PIN_COLLECTOR,
+          P2PSystemProperties.OVERLAY_POSITION_TTL_TICKS,
+          P2PSystemProperties.OVERLAY_POSITION_REVISION_THROTTLE_TICKS,
+          P2PSystemProperties.OVERLAY_POSITION_REVISION_MIN_MOVE_METERS,
+          P2PSystemProperties.OVERLAY_SHORTCUT_STRATEGY,
+          P2PSystemProperties.OVERLAY_SHORTCUT_KLEINBERG_R,
+          P2PSystemProperties.OVERLAY_SHORTCUT_NODE_PROBABILITY,
+          P2PSystemProperties.VEHICLE_OPEN_REQUEST_STRATEGY,
+          P2PSystemProperties.VEHICLE_COMMIT_LEASE_TICKS,
+          P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS,
+          P2PSystemProperties.VEHICLE_REOFFER_MIN_INTERVAL_TICKS,
+          P2PSystemProperties.VEHICLE_REOFFER_MOVE_DISTANCE_METERS,
+          P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
+          P2PSystemProperties.VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE,
+          P2PSystemProperties.VEHICLE_ROAMING_ENABLED,
+          P2PSystemProperties.VEHICLE_IDLE_THRESHOLD_TICKS,
+          P2PSystemProperties.VEHICLE_IDLE_CHECK_THROTTLE_TICKS,
+          P2PSystemProperties.VEHICLE_RANDOM_TRAVEL_MAX_DISTANCE_METERS,
+          P2PSystemProperties.VEHICLE_IDLE_ROAMING_STRATEGY,
+          P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS);
   private static final long DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS = 3L;
   private static final int DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M = 200;
   private static final long DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 600L;
@@ -207,6 +234,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (P2PTopics.RIDE_ASSIGNED.equals(message.topic())) {
       handleRideAssigned(message);
     }
+    if (P2PTopics.VEHICLE_STATE.equals(message.topic())) {
+      handleVehicleState(message);
+    }
   }
 
   /** Direct notification that a ride was assigned (embedded mode). */
@@ -294,9 +324,91 @@ public class VehicleP2PService extends AbstractP2PNodeService {
           requestId,
           winnerVehicleId);
     } else {
+      Integer pickupX = parseNullableInt(payload.get(P2PPayloadKeys.PICKUP_X));
+      Integer pickupY = parseNullableInt(payload.get(P2PPayloadKeys.PICKUP_Y));
+      if (pickupX != null && pickupY != null) {
+        idleRoamingController.registerPickupPosition(pickupX, pickupY);
+      }
       idleRoamingController.clearAll();
+      publishRoamingSnapshot();
       log.debug(
           "Vehicle {} received own win announcement requestId={}", descriptor().id(), requestId);
+    }
+  }
+
+  private void publishRoamingSnapshot() {
+    Map<String, String> payload = new LinkedHashMap<>();
+    putPoint(
+        payload,
+        P2PPayloadKeys.HQ_X,
+        P2PPayloadKeys.HQ_Y,
+        idleRoamingController.getHqPositionSnapshot());
+    putPoint(
+        payload,
+        P2PPayloadKeys.REVISIT_X,
+        P2PPayloadKeys.REVISIT_Y,
+        idleRoamingController.getRevisitTargetSnapshot());
+    putPoint(
+        payload,
+        P2PPayloadKeys.AVG_TOTAL_X,
+        P2PPayloadKeys.AVG_TOTAL_Y,
+        idleRoamingController.getAvgTotalPositionSnapshot());
+    if (!payload.isEmpty()) {
+      publish(P2PTopics.VEHICLE_ROAMING, KeyValuePayload.write(payload));
+    }
+  }
+
+  private void putPoint(Map<String, String> payload, String xKey, String yKey, int[] point) {
+    if (point == null || point.length < 2) {
+      return;
+    }
+    payload.put(xKey, String.valueOf(point[0]));
+    payload.put(yKey, String.valueOf(point[1]));
+  }
+
+  private Integer parseNullableInt(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    return Integer.parseInt(value.trim());
+  }
+
+  private void handleVehicleState(P2PMessage message) {
+    Map<String, String> payload = KeyValuePayload.parse(message.payload());
+    applyRemoteConfig(payload);
+    String rawX = payload.get(P2PPayloadKeys.POSITION_X);
+    String rawY = payload.get(P2PPayloadKeys.POSITION_Y);
+    String rawTick = payload.get(P2PPayloadKeys.POSITION_TICK);
+    if (rawX == null || rawY == null || rawTick == null) {
+      return;
+    }
+    String rawMapMaxX = payload.get(P2PPayloadKeys.MAP_MAX_X);
+    String rawMapMaxY = payload.get(P2PPayloadKeys.MAP_MAX_Y);
+    if (rawMapMaxX != null && rawMapMaxY != null) {
+      setMapBounds(Integer.parseInt(rawMapMaxX), Integer.parseInt(rawMapMaxY));
+    }
+    setSpawnScenario(SpawnScenario.fromLabel(payload.get(P2PPayloadKeys.SPAWN_SCENARIO)));
+    long tick = Long.parseLong(rawTick);
+    setSimulationState(
+        Boolean.parseBoolean(payload.getOrDefault(P2PPayloadKeys.AVAILABLE, "true")),
+        Integer.parseInt(rawX),
+        Integer.parseInt(rawY),
+        tick);
+    checkIdleTravelAtStep(tick);
+  }
+
+  private void applyRemoteConfig(Map<String, String> payload) {
+    boolean changed = false;
+    for (String key : REMOTE_CONFIG_KEYS) {
+      String value = payload.get(key);
+      if (value != null && !value.equals(P2PRunContext.getProperty(key))) {
+        P2PRunContext.setProperty(key, value);
+        changed = true;
+      }
+    }
+    if (changed) {
+      refreshCachedConfig();
+      clearOverlaySelectionCache();
     }
   }
 
@@ -364,11 +476,10 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     }
 
     // In embedded mode, skip expensive isBestKnownVehicle — just commit if in range.
-    if (!embeddedMode) {
-      int etaSeconds;
+    if (!embeddedMode && hasOwnPosition() && hasRequestPosition(openRequest.payload)) {
       int reqX = Integer.parseInt(openRequest.payload.get(P2PPayloadKeys.REQUEST_X));
       int reqY = Integer.parseInt(openRequest.payload.get(P2PPayloadKeys.REQUEST_Y));
-      etaSeconds =
+      int etaSeconds =
           P2PGeoUtils.etaSeconds(simulationX, simulationY, reqX, reqY, cachedAssumedSpeedMps);
       if (!isBestKnownVehicleForRequest(openRequest, etaSeconds)) {
         registerRequestForRoaming(openRequest);
@@ -404,6 +515,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
       try {
         idleRoamingController.registerSeenClientPosition(
             Integer.parseInt(rawX), Integer.parseInt(rawY), currentSimulationTick);
+        publishRoamingSnapshot();
       } catch (NumberFormatException ignored) {
       }
     }
@@ -411,6 +523,9 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
   private boolean isBestKnownVehicleForRequest(OpenRideRequest openRequest, int selfEtaSeconds) {
     if (openRequest == null || openRequest.payload == null) {
+      return true;
+    }
+    if (!hasRequestPosition(openRequest.payload)) {
       return true;
     }
     if (isForwardedRequest(openRequest.payload)) {
@@ -521,11 +636,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   }
 
   private double requestDistanceToVehicle(OpenRideRequest request) {
-    int reqX = Integer.parseInt(request.payload.get(P2PPayloadKeys.REQUEST_X));
-    int reqY = Integer.parseInt(request.payload.get(P2PPayloadKeys.REQUEST_Y));
-    if (simulationX == null || simulationY == null) {
+    if (simulationX == null || simulationY == null || !hasRequestPosition(request.payload)) {
       return Double.MAX_VALUE;
     }
+    int reqX = Integer.parseInt(request.payload.get(P2PPayloadKeys.REQUEST_X));
+    int reqY = Integer.parseInt(request.payload.get(P2PPayloadKeys.REQUEST_Y));
     return P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY);
   }
 
@@ -573,16 +688,32 @@ public class VehicleP2PService extends AbstractP2PNodeService {
     if (forwardedBy != null && !forwardedBy.isBlank()) {
       return true;
     }
-
-    int reqX = Integer.parseInt(requestPayload.get(P2PPayloadKeys.REQUEST_X));
-    int reqY = Integer.parseInt(requestPayload.get(P2PPayloadKeys.REQUEST_Y));
-    int searchRadius =
-        Math.max(0, Integer.parseInt(requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS).trim()));
-    if (simulationX == null || simulationY == null) {
+    if (P2PRunContext.getBoolean(P2PSystemProperties.VEHICLE_ALLOW_OUTSIDE_CLIENT_RANGE, false)) {
       return true;
     }
 
+    String searchRadiusValue = requestPayload.get(P2PPayloadKeys.SEARCH_RADIUS);
+    if (!hasOwnPosition()
+        || !hasRequestPosition(requestPayload)
+        || searchRadiusValue == null
+        || searchRadiusValue.isBlank()) {
+      return true;
+    }
+
+    int reqX = Integer.parseInt(requestPayload.get(P2PPayloadKeys.REQUEST_X));
+    int reqY = Integer.parseInt(requestPayload.get(P2PPayloadKeys.REQUEST_Y));
+    int searchRadius = Math.max(0, Integer.parseInt(searchRadiusValue.trim()));
     return P2PGeoUtils.distance(simulationX, simulationY, reqX, reqY) <= searchRadius;
+  }
+
+  private boolean hasOwnPosition() {
+    return simulationX != null && simulationY != null;
+  }
+
+  private boolean hasRequestPosition(Map<String, String> requestPayload) {
+    return requestPayload != null
+        && requestPayload.get(P2PPayloadKeys.REQUEST_X) != null
+        && requestPayload.get(P2PPayloadKeys.REQUEST_Y) != null;
   }
 
   private void forwardRideRequest(P2PMessage message, Map<String, String> requestPayload) {

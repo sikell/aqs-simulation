@@ -35,7 +35,10 @@ final class CommitHandler {
   }
 
   void handleCommit(
-      String vehicleNodeId, TaxiCollectorRuntimeState.PendingRequest pending, World world) {
+      String vehicleNodeId,
+      String taxiName,
+      TaxiCollectorRuntimeState.PendingRequest pending,
+      World world) {
     if (pending.committedVehicleNodeId() != null
         && !pending.committedVehicleNodeId().equals(vehicleNodeId)) {
       log.info(
@@ -45,15 +48,16 @@ final class CommitHandler {
           pending.committedVehicleNodeId());
       return;
     }
-    pending.markCommitted(vehicleNodeId);
-    log.info(
-        "[P2P-COLLECTOR] commit requestId={} client={} vehicle={}",
-        pending.requestId(),
-        pending.clientName(),
-        vehicleNodeId);
-
     Map<String, Taxi> emptyTaxisByName = emptyTaxisProvider.apply(world);
-    Taxi selectedTaxi = emptyTaxisByName.remove(vehicleNodeId);
+    Taxi selectedTaxi = emptyTaxisByName.remove(taxiName);
+    if (selectedTaxi == null) {
+      log.info(
+          "[P2P-COLLECTOR] ignored commit requestId={} vehicle={} mappedTaxi={} because taxi is not empty",
+          pending.requestId(),
+          vehicleNodeId,
+          taxiName);
+      return;
+    }
 
     Client client =
         world.getClients().stream()
@@ -64,6 +68,12 @@ final class CommitHandler {
       refreshStatusCallback.accept("commit-" + pending.requestId());
       return;
     }
+    pending.markCommitted(vehicleNodeId);
+    log.info(
+        "[P2P-COLLECTOR] commit requestId={} client={} vehicle={}",
+        pending.requestId(),
+        pending.clientName(),
+        vehicleNodeId);
     applyAssignment.accept(selectedTaxi, client, world);
     log.info(
         "[P2P-COLLECTOR] applied committed assignment requestId={} client={} vehicle={} taxiName={}",

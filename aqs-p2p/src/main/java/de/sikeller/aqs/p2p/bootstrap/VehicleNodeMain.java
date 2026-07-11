@@ -3,6 +3,7 @@ package de.sikeller.aqs.p2p.bootstrap;
 import de.sikeller.aqs.p2p.api.P2PSystemProperties;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
 import de.sikeller.aqs.p2p.transport.network.LanP2PNetwork;
+import java.net.InetAddress;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -15,7 +16,7 @@ public class VehicleNodeMain {
   private static final int DEFAULT_VEHICLE_PORT_BASE = 46000;
 
   public static void main(String[] args) throws Exception {
-    String nodeId = arg(args, "--id", "vehicle-1");
+    String nodeId = arg(args, "--id", defaultNodeId());
     String explicitTcpPort = arg(args, "--tcpPort", null);
     int tcpPort = resolveTcpPort(nodeId, explicitTcpPort);
     int discoveryPort = Integer.parseInt(arg(args, "--discoveryPort", "45892"));
@@ -86,6 +87,20 @@ public class VehicleNodeMain {
     }
 
     return DEFAULT_VEHICLE_TCP_PORT;
+  }
+
+  static String defaultNodeId() {
+    try {
+      String host = InetAddress.getLocalHost().getHostName();
+      if (host != null && !host.isBlank()) {
+        String normalized = host.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9-]", "-");
+        if (!normalized.isBlank()) {
+          return "vehicle-" + normalized;
+        }
+      }
+    } catch (Exception ignored) {
+    }
+    return "vehicle-1";
   }
 
   private static int parsePort(String value) {

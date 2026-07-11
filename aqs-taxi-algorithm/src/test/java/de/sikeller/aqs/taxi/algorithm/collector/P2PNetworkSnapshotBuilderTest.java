@@ -31,13 +31,13 @@ class P2PNetworkSnapshotBuilderTest {
 
     P2PNetworkSnapshot snapshot =
         builder.build(
-            "local-1",
-            "CLIENT",
-            List.of(new NodeDescriptor("peer-1", NodeRole.VEHICLE)),
-            views);
+            "local-1", "CLIENT", List.of(new NodeDescriptor("peer-1", NodeRole.VEHICLE)), views);
 
     Map<String, String> roleByNode =
-        snapshot.nodes().stream().collect(Collectors.toMap(P2PNetworkNodeSnapshot::id, P2PNetworkNodeSnapshot::role));
+        snapshot.nodes().stream()
+            .collect(
+                Collectors.toMap(
+                    P2PNetworkNodeSnapshot::id, P2PNetworkNodeSnapshot::role));
 
     assertEquals("CLIENT", roleByNode.get("local-1"));
     assertEquals("VEHICLE", roleByNode.get("peer-1"));
@@ -65,6 +65,32 @@ class P2PNetworkSnapshotBuilderTest {
     assertEquals("b", snapshot.edges().get(1).fromNodeId());
     assertEquals("c", snapshot.edges().get(1).toNodeId());
     assertFalse(snapshot.edges().get(1).shortcut());
+  }
+
+  @Test
+  void buildAliasesNodeIdsForLanDisplay() {
+    Map<String, P2PNetworkSnapshotBuilder.TopologyViewData> views =
+        Map.of(
+            "vehicle-host-a",
+            new P2PNetworkSnapshotBuilder.TopologyViewData(
+                "vehicle-host-a", "VEHICLE", Set.of("vehicle-host-b"), Set.of("vehicle-host-b")));
+
+    P2PNetworkSnapshot snapshot =
+        builder.build(
+            "collector-1",
+            "CLIENT",
+            List.of(new NodeDescriptor("vehicle-host-a", NodeRole.VEHICLE)),
+            views,
+            Map.of("vehicle-host-a", "t0", "vehicle-host-b", "t1"));
+
+    Set<String> nodeIds =
+        snapshot.nodes().stream().map(P2PNetworkNodeSnapshot::id).collect(Collectors.toSet());
+    assertTrue(nodeIds.contains("t0"));
+    assertTrue(nodeIds.contains("t1"));
+    assertFalse(nodeIds.contains("vehicle-host-a"));
+    assertEquals("t0", snapshot.edges().get(0).fromNodeId());
+    assertEquals("t1", snapshot.edges().get(0).toNodeId());
+    assertTrue(snapshot.edges().get(0).shortcut());
   }
 
   @Test

@@ -10,4 +10,6 @@ public final class P2PTopics {
   public static final String RIDE_COMMIT = "ride.commit";
   public static final String RIDE_ASSIGNED = "ride.assigned";
   public static final String VEHICLE_POSITION = "vehicle.position";
+  public static final String VEHICLE_STATE = "vehicle.state";
+  public static final String VEHICLE_ROAMING = "vehicle.roaming";
 }
