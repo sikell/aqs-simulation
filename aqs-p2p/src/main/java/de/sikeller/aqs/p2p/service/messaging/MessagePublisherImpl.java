@@ -1,6 +1,7 @@
 package de.sikeller.aqs.p2p.service.messaging;
 
 import de.sikeller.aqs.p2p.api.*;
+import de.sikeller.aqs.p2p.util.P2PRunContext;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -38,23 +39,29 @@ public class MessagePublisherImpl implements MessagePublisher {
       String requestId,
       String correlationId,
       Predicate<NodeDescriptor> targetFilter) {
-    P2PMessage msg =
-        requestId == null
-            ? P2PMessage.now(descriptor.id(), topic, payload)
-            : P2PMessage.now(
-                descriptor.id(),
-                topic,
-                payload,
-                requestId,
-                correlationId == null ? "" : correlationId);
-    var peers =
-        network.peers().stream().filter(peer -> !descriptor.id().equals(peer.id())).toList();
-    final Set<String> overlayIds = computeOverlayIds(topic, peers);
-    if (overlayIds == null || overlayIds.isEmpty()) {
-      network.broadcast(msg, targetFilter);
-    } else {
-      network.broadcast(msg, node -> targetFilter.test(node) && overlayIds.contains(node.id()));
-    }
+    P2PRunContext.measureCommunication(
+        () -> {
+          P2PMessage msg =
+              requestId == null
+                  ? P2PMessage.now(descriptor.id(), topic, payload)
+                  : P2PMessage.now(
+                      descriptor.id(),
+                      topic,
+                      payload,
+                      requestId,
+                      correlationId == null ? "" : correlationId);
+          var peers =
+              network.peers().stream()
+                  .filter(peer -> !descriptor.id().equals(peer.id()))
+                  .toList();
+          final Set<String> overlayIds = computeOverlayIds(topic, peers);
+          if (overlayIds == null || overlayIds.isEmpty()) {
+            network.broadcast(msg, targetFilter);
+          } else {
+            network.broadcast(
+                msg, node -> targetFilter.test(node) && overlayIds.contains(node.id()));
+          }
+        });
   }
 
   private Set<String> computeOverlayIds(String topic, List<NodeDescriptor> peers) {
@@ -69,15 +76,18 @@ public class MessagePublisherImpl implements MessagePublisher {
   @Override
   public void sendTo(
       String targetNodeId, String topic, String payload, String requestId, String correlationId) {
-    P2PMessage msg =
-        requestId == null
-            ? P2PMessage.now(descriptor.id(), topic, payload)
-            : P2PMessage.now(
-                descriptor.id(),
-                topic,
-                payload,
-                requestId,
-                correlationId == null ? "" : correlationId);
-    network.sendTo(targetNodeId, msg);
+    P2PRunContext.measureCommunication(
+        () -> {
+          P2PMessage msg =
+              requestId == null
+                  ? P2PMessage.now(descriptor.id(), topic, payload)
+                  : P2PMessage.now(
+                      descriptor.id(),
+                      topic,
+                      payload,
+                      requestId,
+                      correlationId == null ? "" : correlationId);
+          network.sendTo(targetNodeId, msg);
+        });
   }
 }

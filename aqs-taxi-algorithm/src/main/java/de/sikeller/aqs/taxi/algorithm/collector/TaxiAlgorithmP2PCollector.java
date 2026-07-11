@@ -286,6 +286,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
   @Override
   protected AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
+    P2PRunContext.drainCommunicationTimeNanos();
     stepCounter++;
     // cleanup no longer waiting clients
     runtimeState.removeClientsNotIn(
@@ -295,17 +296,17 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       topologyManager.requestScanIfDue(false);
     }
     if (waitingClients.isEmpty()) {
-      return ok();
+      return ok(P2PRunContext.drainCommunicationTimeNanos());
     }
     int applied = applyCommittedAssignments(world, waitingClients);
     if (isEmbeddedSimulationMode()) {
       applyIdleTravelTargets(world);
     }
     if (applied > 0) {
-      return ok();
+      return ok(P2PRunContext.drainCommunicationTimeNanos());
     }
     refreshStatus(EVENT_WAITING_FOR_COMMIT);
-    return ok();
+    return ok(P2PRunContext.drainCommunicationTimeNanos());
   }
 
   private void processNetworkCycle(World world, Collection<Client> waitingClients) {
@@ -330,7 +331,7 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
       return;
     }
     int newMessages = delta.size();
-    handleIncoming(world, delta);
+    P2PRunContext.measureCommunication(() -> handleIncoming(world, delta));
     log.debug(
         "[P2P-COLLECTOR] event t={} peers={} waiting={} newMessages={}",
         world.getCurrentTime(),
@@ -961,9 +962,11 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
     }
 
     if (isEmbeddedSimulationMode() && !localVehicleNodesByTaxiName.isEmpty()) {
-      for (VehicleP2PService vehicle : localVehicleNodesByTaxiName.values()) {
-        vehicle.notifyRideAssigned(requestId, winnerVehicleNodeId);
-      }
+      P2PRunContext.measureCommunication(
+          () ->
+              localVehicleNodesByTaxiName
+                  .values()
+                  .forEach(vehicle -> vehicle.notifyRideAssigned(requestId, winnerVehicleNodeId)));
       return;
     }
     if (clientService != null) {

@@ -167,7 +167,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
     var callback = directCommitCallback;
     if (embeddedMode && callback != null) {
-      callback.accept(requestId, nodeId, taxiName);
+      P2PRunContext.measureCommunication(() -> callback.accept(requestId, nodeId, taxiName));
       return;
     }
 

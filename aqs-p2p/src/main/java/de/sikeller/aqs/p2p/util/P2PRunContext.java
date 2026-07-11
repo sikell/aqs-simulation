@@ -6,12 +6,15 @@ import java.util.Map;
 public final class P2PRunContext {
   private static final ThreadLocal<Long> WORLD_SEED = new ThreadLocal<>();
   private static final ThreadLocal<Map<String, String>> PROPERTIES = new ThreadLocal<>();
+  private static final ThreadLocal<CommunicationTiming> COMMUNICATION_TIMING =
+      ThreadLocal.withInitial(CommunicationTiming::new);
 
   private P2PRunContext() {}
 
   public static void begin(long seed) {
     WORLD_SEED.set(seed);
     PROPERTIES.set(new HashMap<>());
+    COMMUNICATION_TIMING.set(new CommunicationTiming());
   }
 
   public static void setWorldSeed(long seed) {
@@ -86,8 +89,37 @@ public final class P2PRunContext {
     return value == null || value.isBlank() ? defaultValue : Boolean.parseBoolean(value);
   }
 
+  /** Records wall-clock CPU time spent in synchronous P2P message transport and handling. */
+  public static void measureCommunication(Runnable action) {
+    CommunicationTiming timing = COMMUNICATION_TIMING.get();
+    boolean outermost = timing.depth++ == 0;
+    long startedAt = outermost ? System.nanoTime() : 0L;
+    try {
+      action.run();
+    } finally {
+      timing.depth--;
+      if (outermost) {
+        timing.elapsedNanos += System.nanoTime() - startedAt;
+      }
+    }
+  }
+
+  /** Returns and resets communication time accumulated on the current mass-run worker thread. */
+  public static long drainCommunicationTimeNanos() {
+    CommunicationTiming timing = COMMUNICATION_TIMING.get();
+    long elapsedNanos = timing.elapsedNanos;
+    timing.elapsedNanos = 0L;
+    return elapsedNanos;
+  }
+
   public static void clear() {
     WORLD_SEED.remove();
     PROPERTIES.remove();
+    COMMUNICATION_TIMING.remove();
+  }
+
+  private static final class CommunicationTiming {
+    private int depth;
+    private long elapsedNanos;
   }
 }

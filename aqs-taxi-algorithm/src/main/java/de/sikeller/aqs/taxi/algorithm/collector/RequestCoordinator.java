@@ -8,6 +8,7 @@ import de.sikeller.aqs.p2p.api.NodeRole;
 import de.sikeller.aqs.p2p.api.P2PPayloadKeys;
 import de.sikeller.aqs.p2p.service.ClientP2PService;
 import de.sikeller.aqs.p2p.service.VehicleP2PService;
+import de.sikeller.aqs.p2p.util.P2PRunContext;
 import de.sikeller.aqs.taxi.algorithm.distributed.rqs.RangeQuerySystem;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -133,7 +134,8 @@ final class RequestCoordinator {
         for (String vehicleNodeId : seedVehicleNodeIds) {
           VehicleP2PService vehicle = vehicleNodeResolver.apply(vehicleNodeId);
           if (vehicle != null) {
-            vehicle.deliverRideRequestDirect(requestId, collectorNodeId, payload);
+            P2PRunContext.measureCommunication(
+                () -> vehicle.deliverRideRequestDirect(requestId, collectorNodeId, payload));
           }
         }
       } else {
