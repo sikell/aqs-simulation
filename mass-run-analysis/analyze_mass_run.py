@@ -138,7 +138,32 @@ CORE_METRIC_PATTERNS = ["Taxi Travel Distance", "Client Waiting Time", "Client T
 MAX_STRATIFIED_PLOTS = 36
 MAX_TIME_SERIES_PLOTS = 24
 MAX_REQUEST_PLOTS = 24
-DEFAULT_TICK_BLOCK_SIZE = 100
+DEFAULT_TICK_BLOCK_SIZE = 1000
+AUX_CHUNK_SIZE = 100_000
+
+TIME_SERIES_GROUP_COLS = [
+    "algorithm",
+    "taxiCount",
+    "clientCount",
+    "spawnScenario",
+    "tickBlock",
+]
+REQUEST_GROUP_COLS = [
+    "algorithm",
+    "taxiCount",
+    "clientCount",
+    "taxiSeatCount",
+    "spawnScenario",
+    "kHops",
+    "p2pRqsRadius",
+    "p2pStrategy",
+    "p2pOverlayShortcuts",
+    "idleRoamingMode",
+    "zoneX",
+    "zoneY",
+    "originX",
+    "originY",
+]
 
 
 @dataclass
@@ -250,20 +275,83 @@ def normalize_aux(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFrame:
     return df
 
 
-def load_optional_data(path: Path, numeric_cols: list[str]) -> pd.DataFrame:
+def load_time_series_summary(path: Path, tick_block_size: int) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
-    return normalize_aux(pd.read_csv(path), numeric_cols)
+    required = TIME_NUMERIC_COLS + ["algorithm", "spawnScenario"]
+    parts = []
+    for chunk in pd.read_csv(path, usecols=required, chunksize=AUX_CHUNK_SIZE, low_memory=False):
+        chunk = normalize_aux(chunk, TIME_NUMERIC_COLS)
+        chunk["tickBlock"] = (chunk["tick"] // tick_block_size).astype("int64")
+        parts.append(
+            chunk.groupby(TIME_SERIES_GROUP_COLS, dropna=False)
+            .agg(
+                activeClientsSum=("activeClientCount", "sum"),
+                servedRequestsSum=("servedRequestCount", "sum"),
+                finishedRequestsSum=("finishedRequestCount", "sum"),
+                waitingTimeSum=("waitingTimeSum", "sum"),
+                waitingTimeCount=("waitingTimeCount", "sum"),
+                calculationTimeMillisSum=("calculationTimeMillis", "sum"),
+                rows=("tick", "size"),
+            )
+            .reset_index()
+        )
+    if not parts:
+        return pd.DataFrame()
+    summary = (
+        pd.concat(parts, ignore_index=True)
+        .groupby(TIME_SERIES_GROUP_COLS, dropna=False)
+        .sum(numeric_only=True)
+        .reset_index()
+    )
+    summary["activeClientsMean"] = summary["activeClientsSum"] / summary["rows"]
+    summary["calcTimeMillisMean"] = summary["calculationTimeMillisSum"] / summary["rows"]
+    summary["waitingTimeAvg"] = np.where(
+        summary["waitingTimeCount"].gt(0),
+        summary["waitingTimeSum"] / summary["waitingTimeCount"],
+        np.nan,
+    )
+    return summary.drop(columns=["activeClientsSum", "calculationTimeMillisSum"])
 
 
-def load_request_data(path: Path) -> pd.DataFrame:
+def load_request_summary(path: Path) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
-    df = normalize_aux(pd.read_csv(path), REQUEST_NUMERIC_COLS)
-    missing = [col for col in REQUEST_HEATMAP_REQUIRED_COLS if col not in df.columns]
-    if missing:
-        raise ValueError(f"Request heatmap CSV missing required columns: {missing}")
-    return df
+    required = REQUEST_NUMERIC_COLS + ["algorithm", "spawnScenario", "idleRoamingMode", "p2pStrategy"]
+    parts = []
+    for chunk in pd.read_csv(path, usecols=required, chunksize=AUX_CHUNK_SIZE, low_memory=False):
+        chunk = normalize_aux(chunk, REQUEST_NUMERIC_COLS)
+        missing = [col for col in REQUEST_HEATMAP_REQUIRED_COLS if col not in chunk.columns]
+        if missing:
+            raise ValueError(f"Request heatmap CSV missing required columns: {missing}")
+        chunk["waitingTimeSum"] = pd.to_numeric(chunk["waitingTimeSum"], errors="coerce").fillna(
+            chunk["waitingTimeAvg"] * chunk["requestCount"]
+        )
+        parts.append(
+            chunk.groupby(REQUEST_GROUP_COLS, dropna=False)
+            .agg(
+                requestCount=("requestCount", "sum"),
+                finishedCount=("finishedCount", "sum"),
+                waitingTimeSum=("waitingTimeSum", "sum"),
+                waitingTimeMax=("waitingTimeMax", "max"),
+                travelTimeSum=("travelTimeSum", "sum"),
+            )
+            .reset_index()
+        )
+    if not parts:
+        return pd.DataFrame()
+    return (
+        pd.concat(parts, ignore_index=True)
+        .groupby(REQUEST_GROUP_COLS, dropna=False)
+        .agg(
+            requestCount=("requestCount", "sum"),
+            finishedCount=("finishedCount", "sum"),
+            waitingTimeSum=("waitingTimeSum", "sum"),
+            waitingTimeMax=("waitingTimeMax", "max"),
+            travelTimeSum=("travelTimeSum", "sum"),
+        )
+        .reset_index()
+    )
 
 
 def write_overview(df: pd.DataFrame, path: Path) -> dict:
@@ -296,6 +384,8 @@ def aggregate_exact_configs(df: pd.DataFrame, out: Path) -> pd.DataFrame:
             countMean=("count", "mean"),
             countMin=("count", "min"),
             countMax=("count", "max"),
+            spreadMean=("spread", "mean"),
+            spreadStd=("spread", "std"),
             rawRows=("avg", "size"),
         )
         .reset_index()
@@ -309,8 +399,8 @@ def aggregate_exact_configs(df: pd.DataFrame, out: Path) -> pd.DataFrame:
 
 def compare_p2p_to_single(summary: pd.DataFrame, out: Path) -> pd.DataFrame:
     single = summary[~summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
-    single = single[MATCH_COLS + ["avgMean", "countMean"]].rename(
-        columns={"avgMean": "singleAvg", "countMean": "singleCount"}
+    single = single[MATCH_COLS + ["avgMean", "avgStd", "countMean"]].rename(
+        columns={"avgMean": "singleAvg", "avgStd": "singleStd", "countMean": "singleCount"}
     )
 
     p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
@@ -340,24 +430,7 @@ def write_single_passenger(summary: pd.DataFrame, out: Path) -> None:
 def write_time_window_summary(time_df: pd.DataFrame, out: Path, tick_block_size: int) -> None:
     if time_df.empty:
         return
-    df = time_df.copy()
-    df["tickBlock"] = (df["tick"] // tick_block_size).astype("Int64")
-    df["waitingTimeAvgWeighted"] = np.where(
-        df["waitingTimeCount"].gt(0), df["waitingTimeSum"] / df["waitingTimeCount"], np.nan
-    )
-    (
-        df.groupby(["algorithm", "taxiCount", "clientCount", "spawnScenario", "tickBlock"], dropna=False)
-        .agg(
-            activeClientsMean=("activeClientCount", "mean"),
-            servedRequestsSum=("servedRequestCount", "sum"),
-            finishedRequestsSum=("finishedRequestCount", "sum"),
-            waitingTimeAvg=("waitingTimeAvgWeighted", "mean"),
-            calcTimeMillisMean=("calculationTimeMillis", "mean"),
-            rows=("tick", "size"),
-        )
-        .reset_index()
-        .to_csv(out / "time_window_summary.csv", index=False)
-    )
+    time_df.to_csv(out / "time_window_summary.csv", index=False)
 
 
 def write_request_tail_summary(request_df: pd.DataFrame, out: Path) -> None:
@@ -372,20 +445,22 @@ def write_request_tail_summary(request_df: pd.DataFrame, out: Path) -> None:
         "kHops",
         "p2pRqsRadius",
         "p2pStrategy",
+        "p2pOverlayShortcuts",
         "idleRoamingMode",
     ]
-    df = request_df.copy()
-    df["requestCount"] = pd.to_numeric(df["requestCount"], errors="coerce").fillna(0)
-    df["waitingTimeSum"] = pd.to_numeric(df["waitingTimeSum"], errors="coerce").fillna(
-        df["waitingTimeAvg"] * df["requestCount"]
-    )
-    grouped = df.groupby(group_cols, dropna=False).agg(
+    grouped = request_df.groupby(group_cols, dropna=False).agg(
         requests=("requestCount", "sum"),
+        finished=("finishedCount", "sum"),
         waitingSum=("waitingTimeSum", "sum"),
         waitMax=("waitingTimeMax", "max"),
+        travelSum=("travelTimeSum", "sum"),
     )
+    grouped["completionRatio"] = grouped["finished"] / grouped["requests"].where(grouped["requests"] != 0)
     grouped["waitMean"] = grouped["waitingSum"] / grouped["requests"].where(grouped["requests"] != 0)
-    grouped.drop(columns=["waitingSum"]).reset_index().to_csv(out / "request_tail_summary.csv", index=False)
+    grouped["travelMean"] = grouped["travelSum"] / grouped["finished"].where(grouped["finished"] != 0)
+    grouped.drop(columns=["waitingSum", "travelSum"]).reset_index().to_csv(
+        out / "request_tail_summary.csv", index=False
+    )
 
 
 def pair_effect(df: pd.DataFrame, factor: str, a: object, b: object) -> pd.DataFrame:
@@ -478,6 +553,10 @@ def core_metrics(df: pd.DataFrame) -> list[str]:
     return selected or metrics
 
 
+def analysis_metrics(df: pd.DataFrame) -> list[str]:
+    return sorted(df["metric"].dropna().unique().tolist())
+
+
 def city_label(taxi_count: object, client_count: object) -> str:
     try:
         taxis = int(taxi_count)
@@ -565,7 +644,7 @@ def plot_information_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, 
         return []
     p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
     files = []
-    for metric in core_metrics(p2p):
+    for metric in analysis_metrics(p2p):
         metric_df = p2p[p2p["metric"].eq(metric)]
         for (taxi_count, client_count, scenario), sub in metric_df.groupby(
             ["taxiCount", "clientCount", "spawnScenario"], dropna=False
@@ -614,9 +693,14 @@ def plot_scale_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
         .reset_index(drop=True)
     )
     files = []
-    for metric in core_metrics(best):
+    for metric in analysis_metrics(best):
         metric_df = best[best["metric"].eq(metric)]
         for scenario, sub in metric_df.groupby("spawnScenario", dropna=False):
+            sub = sub.copy()
+            sub["clientCount"] = pd.to_numeric(sub["clientCount"], errors="coerce")
+            sub = sub[sub["clientCount"] > 0]
+            if sub["clientCount"].nunique() < 2:
+                continue
             sub = sub.sort_values("clientCount")
             fig, ax = plt.subplots(figsize=(7, 4.5))
             ax.plot(sub["clientCount"], sub["singleAvg"], marker="o", linewidth=2, label="SinglePassenger")
@@ -640,7 +724,7 @@ def plot_roaming_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, str]
         return []
     p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
     files = []
-    for metric in core_metrics(p2p):
+    for metric in analysis_metrics(p2p):
         metric_df = p2p[p2p["metric"].eq(metric)]
         for (taxi_count, client_count), sub in metric_df.groupby(["taxiCount", "clientCount"], dropna=False):
             agg = (
@@ -689,7 +773,7 @@ def plot_topology_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, str
         return []
     p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
     files = []
-    for metric in core_metrics(p2p):
+    for metric in analysis_metrics(p2p):
         metric_df = p2p[p2p["metric"].eq(metric)]
         for (taxi_count, client_count, scenario), sub in metric_df.groupby(
             ["taxiCount", "clientCount", "spawnScenario"], dropna=False
@@ -731,7 +815,7 @@ def plot_fixed_parameter_trends(
     p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
     fixed_cols = [col for col in EXACT_CONFIG_COLS if col not in varied_cols]
     files = []
-    core = set(core_metrics(p2p))
+    core = set(analysis_metrics(p2p))
     for keys, sub in p2p.groupby(fixed_cols, dropna=False):
         fixed = dict(zip(fixed_cols, keys))
         if fixed["metric"] not in core:
@@ -774,9 +858,13 @@ def plot_best_delta_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]
         .reset_index(drop=True)
     )
     files = []
-    for metric in core_metrics(best):
+    for metric in analysis_metrics(best):
         metric_df = best[best["metric"].eq(metric)]
         for scenario, sub in metric_df.groupby("spawnScenario", dropna=False):
+            sub = sub.copy()
+            sub["clientCount"] = pd.to_numeric(sub["clientCount"], errors="coerce")
+            sub["deltaPct"] = pd.to_numeric(sub["deltaPct"], errors="coerce")
+            sub = sub[(sub["clientCount"] > 0) & np.isfinite(sub["deltaPct"])]
             if sub["clientCount"].nunique() < 2:
                 continue
             sub = sub.sort_values("clientCount")
@@ -795,9 +883,50 @@ def plot_best_delta_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]
     return files
 
 
+def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str, str]]:
+    if plt is None:
+        return []
+    metrics = summary["metric"].unique().tolist()
+    wait = next((m for m in metrics if "Client Waiting Time" in m), None)
+    distance = next((m for m in metrics if "Taxi Travel Distance" in m), None)
+    if not wait or not distance:
+        return []
+    index_cols = [col for col in EXACT_CONFIG_COLS if col != "metric"]
+    wide = summary.pivot_table(index=index_cols, columns="metric", values="avgMean", aggfunc="first").reset_index()
+    p2p = wide[wide["algorithm"].str.contains("P2PCollector", case=False, na=False)].dropna(subset=[wait, distance])
+    single = wide[~wide["algorithm"].str.contains("P2PCollector", case=False, na=False)].dropna(subset=[wait, distance])
+    files = []
+    for (taxi_count, client_count, scenario), sub in p2p.groupby(
+        ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+    ):
+        if sub.empty:
+            continue
+        fig, ax = plt.subplots(figsize=(7.5, 5.3))
+        for mode, mode_df in sub.groupby("idleRoamingMode", dropna=False):
+            ax.scatter(mode_df[distance], mode_df[wait], alpha=0.3, s=18, label=str(mode))
+        frontier = sub.sort_values(distance)
+        frontier = frontier[frontier[wait].cummin().eq(frontier[wait])]
+        ax.plot(frontier[distance], frontier[wait], color="black", linewidth=2, label="P2P Pareto frontier")
+        reference = single[(single["taxiCount"] == taxi_count) & (single["clientCount"] == client_count) & single["spawnScenario"].eq(scenario)]
+        if not reference.empty:
+            ax.scatter(reference[distance].mean(), reference[wait].mean(), marker="x", s=80, color="red", label="SinglePassenger")
+        ax.set_xlabel(distance)
+        ax.set_ylabel(wait)
+        ax.set_title(f"Service–movement trade-off | {city_label(taxi_count, client_count)} | {scenario}")
+        ax.legend(fontsize=8, ncol=2)
+        ax.grid(alpha=0.2)
+        fig.tight_layout()
+        name = f"efficiency_tradeoff_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+        fig.savefig(out / name, dpi=140)
+        plt.close(fig)
+        files.append(plot_entry(name, "Interesting trends", "Each point is an exact P2P configuration; lower-left is better."))
+    return files
+
+
 def plot_interesting_trends(summary: pd.DataFrame, comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     return (
         plot_best_delta_trends(comp, out)
+        + plot_efficiency_tradeoff(summary, out)
         + plot_fixed_parameter_trends(
             summary,
             out,
@@ -825,39 +954,27 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
     if plt is None or time_df.empty:
         return []
     files = []
-    df = time_df.copy()
-    df["tickBlock"] = (df["tick"] // tick_block_size).astype(int)
-    for (taxi_count, client_count, scenario), sub in df.groupby(
+    for (taxi_count, client_count, scenario), sub in time_df.groupby(
         ["taxiCount", "clientCount", "spawnScenario"], dropna=False
     ):
-        block = (
-            sub.groupby(["tickBlock", "algorithm"], dropna=False)
-            .agg(
-                activeClients=("activeClientCount", "mean"),
-                servedRequests=("servedRequestCount", "mean"),
-                waitingTimeSum=("waitingTimeSum", "sum"),
-                waitingTimeCount=("waitingTimeCount", "sum"),
-            )
-            .reset_index()
-        )
+        block = sub.copy()
         if block.empty:
             continue
-        block["waitingTimeAvg"] = np.where(
-            block["waitingTimeCount"].gt(0),
-            block["waitingTimeSum"] / block["waitingTimeCount"],
-            np.nan,
-        )
-        fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+        fig, axes = plt.subplots(5, 1, figsize=(10, 11), sharex=True)
         for algorithm, group in block.groupby("algorithm", dropna=False):
             group = group.sort_values("tickBlock")
             label = str(algorithm).replace("TaxiAlgorithm", "")
-            axes[0].plot(group["tickBlock"], group["activeClients"], linewidth=1.8, label=label)
-            axes[1].plot(group["tickBlock"], group["servedRequests"], linewidth=1.8, label=label)
-            axes[2].plot(group["tickBlock"], group["waitingTimeAvg"], linewidth=1.8, label=label)
+            axes[0].plot(group["tickBlock"], group["activeClientsMean"], linewidth=1.8, label=label)
+            axes[1].plot(group["tickBlock"], group["servedRequestsSum"], linewidth=1.8, label=label)
+            axes[2].plot(group["tickBlock"], group["finishedRequestsSum"], linewidth=1.8, label=label)
+            axes[3].plot(group["tickBlock"], group["waitingTimeAvg"], linewidth=1.8, label=label)
+            axes[4].plot(group["tickBlock"], group["calcTimeMillisMean"], linewidth=1.8, label=label)
         axes[0].set_ylabel("Active clients")
-        axes[1].set_ylabel("Served / tick")
-        axes[2].set_ylabel("Avg wait / tick")
-        axes[2].set_xlabel(f"Tick block ({tick_block_size} ticks)")
+        axes[1].set_ylabel("Served / block")
+        axes[2].set_ylabel("Finished / block")
+        axes[3].set_ylabel("Avg wait / block")
+        axes[4].set_ylabel("Calc. time [ms]")
+        axes[4].set_xlabel(f"Tick block ({tick_block_size} ticks)")
         axes[0].set_title(f"Load windows | {city_label(taxi_count, client_count)} | {scenario}")
         for ax in axes:
             ax.grid(alpha=0.2)
@@ -866,13 +983,13 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
         name = f"time_windows_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
         fig.savefig(out / name, dpi=140)
         plt.close(fig)
-        files.append(plot_entry(name, "Time windows", "Averages all configs/runs by algorithm and tick block. Use time_window_summary.csv for exact values."))
+        files.append(plot_entry(name, "Time windows", "Stream-aggregated config/run windows; includes service, wait, and calculation load."))
         if len(files) >= MAX_TIME_SERIES_PLOTS:
             break
     return files
 
 
-def plot_spatial_waits(request_df: pd.DataFrame, out: Path) -> list[dict[str, str]]:
+def plot_spatial_maps(request_df: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None or request_df.empty:
         return []
     files = []
@@ -882,39 +999,62 @@ def plot_spatial_waits(request_df: pd.DataFrame, out: Path) -> list[dict[str, st
     for (taxi_count, client_count, scenario), sub in spatial.groupby(
         ["taxiCount", "clientCount", "spawnScenario"], dropna=False
     ):
-        plot_df = sub.dropna(subset=["originX", "originY", "waitingTimeAvg"])
-        if plot_df.empty:
-            continue
-        counts = pd.to_numeric(plot_df["requestCount"], errors="coerce").fillna(1)
-        sizes = 12 + 42 * counts / max(1, counts.max())
-        fig, ax = plt.subplots(figsize=(6.5, 6))
-        points = ax.scatter(
-            plot_df["originX"],
-            plot_df["originY"],
-            c=plot_df["waitingTimeAvg"],
-            s=sizes,
-            alpha=0.65,
-            cmap="viridis",
+        grouped = (
+            sub.groupby(["algorithm", "idleRoamingMode", "zoneX", "zoneY"], dropna=False)
+            .agg(
+                requests=("requestCount", "sum"),
+                finished=("finishedCount", "sum"),
+                waiting=("waitingTimeSum", "sum"),
+            )
+            .reset_index()
         )
-        ax.set_title(f"Origin wait map | {city_label(taxi_count, client_count)} | {scenario}")
-        ax.set_xlabel("Origin X")
-        ax.set_ylabel("Origin Y")
-        ax.set_aspect("equal", adjustable="box")
-        fig.colorbar(points, ax=ax, label="Waiting time [ticks]")
-        fig.tight_layout()
-        name = f"spatial_waits_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
-        fig.savefig(out / name, dpi=140)
-        plt.close(fig)
-        files.append(plot_entry(name, "Spatial maps", "Origin-zone wait heatmap. Darker/higher colors expose weak regions."))
-        if len(files) >= MAX_REQUEST_PLOTS:
-            break
+        grouped["waitMean"] = grouped["waiting"] / grouped["requests"].where(grouped["requests"] != 0)
+        grouped["completionRatio"] = grouped["finished"] / grouped["requests"].where(grouped["requests"] != 0)
+        modes = list(dict.fromkeys(zip(grouped["algorithm"], grouped["idleRoamingMode"])))
+        modes = modes[:6]
+        if not modes:
+            continue
+        for value_col, label, filename in [
+            ("waitMean", "Waiting time [ticks]", "spatial_waits"),
+            ("completionRatio", "Completion ratio", "spatial_completion"),
+        ]:
+            fig, axes = plt.subplots(2, 3, figsize=(12, 7), squeeze=False)
+            axes_flat = axes.ravel()
+            plotted = 0
+            for ax, (algorithm, mode) in zip(axes_flat, modes):
+                plot_df = grouped[
+                    grouped["algorithm"].eq(algorithm) & grouped["idleRoamingMode"].eq(mode)
+                ].dropna(subset=["zoneX", "zoneY", value_col])
+                if plot_df.empty:
+                    ax.set_visible(False)
+                    continue
+                grid = plot_df.pivot(index="zoneY", columns="zoneX", values=value_col).sort_index()
+                image = ax.imshow(grid, origin="lower", aspect="auto", cmap="viridis")
+                ax.set_title(f"{str(algorithm).replace('TaxiAlgorithm', '')}\n{mode}", fontsize=9)
+                ax.set_xlabel("Zone X")
+                ax.set_ylabel("Zone Y")
+                fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+                plotted += 1
+            for ax in axes_flat[plotted:]:
+                ax.set_visible(False)
+            if not plotted:
+                plt.close(fig)
+                continue
+            fig.suptitle(f"{label} by origin zone | {city_label(taxi_count, client_count)} | {scenario}")
+            fig.tight_layout()
+            name = f"{filename}_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+            fig.savefig(out / name, dpi=140)
+            plt.close(fig)
+            files.append(plot_entry(name, "Spatial maps", "Heatmap aggregated by algorithm and roaming mode; no raw request rows retained."))
+            if len(files) >= MAX_REQUEST_PLOTS:
+                return files
     return files
 
 
 def plot_new_metrics(time_df: pd.DataFrame, request_df: pd.DataFrame, out: Path, tick_block_size: int) -> list[dict[str, str]]:
     return (
         plot_time_windows(time_df, out, tick_block_size)
-        + plot_spatial_waits(request_df, out)
+        + plot_spatial_maps(request_df, out)
     )
 
 
@@ -954,8 +1094,22 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
         x = np.arange(len(sub))
         width = 0.38
         fig, ax = plt.subplots(figsize=(max(8, len(sub) * 1.25), 5))
-        ax.bar(x - width / 2, sub["singleAvg"], width, label="SinglePassenger")
-        ax.bar(x + width / 2, sub["avgMean"], width, label="Best P2P config")
+        ax.bar(
+            x - width / 2,
+            sub["singleAvg"],
+            width,
+            yerr=sub["singleStd"].fillna(0),
+            capsize=3,
+            label="SinglePassenger",
+        )
+        ax.bar(
+            x + width / 2,
+            sub["avgMean"],
+            width,
+            yerr=sub["avgStd"].fillna(0),
+            capsize=3,
+            label="Best P2P config",
+        )
         ax.set_ylabel(metric)
         set_sensible_y_span(ax, sub["singleAvg"], sub["avgMean"])
         ax.set_xticks(x)
@@ -975,10 +1129,10 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
         for i, (row, cfg) in enumerate(zip(sub.itertuples(index=False), configs)):
             label = cfg if cfg not in seen else None
             if i == 0:
-                ax.bar(i - width / 2, row.singleAvg, width, color="#6b7280", label="SinglePassenger")
+                ax.bar(i - width / 2, row.singleAvg, width, yerr=0 if pd.isna(row.singleStd) else row.singleStd, capsize=3, color="#6b7280", label="SinglePassenger")
             else:
-                ax.bar(i - width / 2, row.singleAvg, width, color="#6b7280")
-            ax.bar(i + width / 2, row.avgMean, width, color=colors[cfg], label=label)
+                ax.bar(i - width / 2, row.singleAvg, width, yerr=0 if pd.isna(row.singleStd) else row.singleStd, capsize=3, color="#6b7280")
+            ax.bar(i + width / 2, row.avgMean, width, yerr=0 if pd.isna(row.avgStd) else row.avgStd, capsize=3, color=colors[cfg], label=label)
             seen.add(cfg)
         ax.set_ylabel(metric)
         set_sensible_y_span(ax, sub["singleAvg"], sub["avgMean"])
@@ -1283,8 +1437,8 @@ def main() -> None:
     config = parse_args()
     dirs = ensure_dirs(config.output_dir)
     df = load_data(config.input_csv, config.metrics)
-    time_df = load_optional_data(config.time_series_csv, TIME_NUMERIC_COLS)
-    request_df = load_request_data(config.requests_csv)
+    time_df = load_time_series_summary(config.time_series_csv, config.tick_block_size)
+    request_df = load_request_summary(config.requests_csv)
     overview = write_overview(df, dirs["base"] / "overview.json")
     summary = aggregate_exact_configs(df, dirs["tables"])
     comp = compare_p2p_to_single(summary, dirs["tables"])

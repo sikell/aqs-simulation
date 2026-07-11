@@ -16,7 +16,7 @@ python mass-run-analysis/analyze_mass_run.py --input-csv mass-run-results/mass-r
 
 If present next to the input CSV, these files are analyzed automatically:
 
-- `mass-run-time-series.csv` (bucketed by 1000 ticks by default)
+- `mass-run-time-series.csv` (stream-read; 1000-tick blocks by default)
 - `mass-run-request-heatmap.csv`
 
 ## Output
@@ -28,10 +28,13 @@ If present next to the input CSV, these files are analyzed automatically:
 - `tables/best_p2p_vs_single.csv`: best P2P config per metric/scale/scenario
 - `tables/single_passenger.csv`
 - `tables/time_window_summary.csv`: tick-block load, served requests, wait, calc time
-- `tables/request_tail_summary.csv`: request heatmap wait mean/max
+- `tables/request_tail_summary.csv`: request count, completion ratio, wait, and travel summaries
 - `stats/factor_screen.csv`
 - `stats/strategy_effect.csv`
 - `stats/roaming_effect.csv`
-- `plots/*.png`: thesis H1-H4, time-window load, request heatmap/spatial wait plots
+- `plots/*.png`: all six metrics, thesis H1-H4, error bars, time-window load, spatial wait/completion maps, and wait-distance trade-offs
+
+The two auxiliary CSVs are aggregated in chunks (`100,000` rows) before plotting, so the
+1.5 GB final export is not loaded into memory.
 
 No city/radius/roaming/topology blending in `summary.csv`.
