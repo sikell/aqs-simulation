@@ -667,7 +667,7 @@ final class MassRunCsvWriter {
         "mapSize",
         config.mapSizes().stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElse(""));
     try (java.io.Writer w = Files.newBufferedWriter(configFile, StandardCharsets.UTF_8)) {
-      props.store(w, "Mass Run Config – generated " + java.time.Instant.now());
+      props.store(w, "Mass Run Config - generated " + java.time.Instant.now());
     }
     return configFile;
   }

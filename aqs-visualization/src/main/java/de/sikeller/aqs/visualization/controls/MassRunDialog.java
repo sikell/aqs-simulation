@@ -253,7 +253,7 @@ final class MassRunDialog extends JDialog {
       List<Integer> kHops = parseCsvInts(kHopsField.getText(), 0, "k-hop");
       List<Integer> rqsRadiusValues = parseCsvInts(rqsRadiusField.getText(), 1, "RQS radius");
       List<Integer> overlayMinNeighborsValues =
-          parseCsvInts(overlayMinNeighborsField.getText(), 1, "overlay min neighbors");
+          parseCsvInts(overlayMinNeighborsField.getText(), 0, "overlay min neighbors");
       List<Integer> overlayMaxNeighborsValues =
           parseCsvInts(overlayMaxNeighborsField.getText(), 1, "overlay max neighbors");
       List<Integer> overlayShortcutsValues =
