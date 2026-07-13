@@ -1093,6 +1093,7 @@ public class TaxiScenarioControl extends AbstractControl {
       Consumer<MassRunProgressUpdate> publishProgress,
       Consumer<Integer> setProgressValue)
       throws Exception {
+    Path configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
     List<MassRunTask> allTasks = buildMassRunTasks(config);
     Set<String> completedKeys = MassRunCsvWriter.completedRunKeys(config.outputDir());
     List<MassRunTask> tasks =
@@ -1107,10 +1108,8 @@ public class TaxiScenarioControl extends AbstractControl {
       if (tasks.isEmpty()) {
         publishProgress.accept(progressUpdate(doneRuns, totalRuns, "Nothing to resume"));
         setProgressValue.accept(progressPercent(doneRuns, totalRuns));
-        Path configFile;
         synchronized (snapshotSaveLock) {
           MassRunCsvWriter.writeAggregateFromFile(config.outputDir());
-          configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
         }
         return massRunOutputFiles(config, configFile);
       }
@@ -1161,10 +1160,8 @@ public class TaxiScenarioControl extends AbstractControl {
       } finally {
         executor.shutdownNow();
       }
-      Path configFile;
       synchronized (snapshotSaveLock) {
         MassRunCsvWriter.writeAggregateFromFile(config.outputDir());
-        configFile = MassRunCsvWriter.writeConfig(config.outputDir(), config);
       }
       return massRunOutputFiles(config, configFile);
     } catch (Exception ex) {
@@ -2012,7 +2009,6 @@ public class TaxiScenarioControl extends AbstractControl {
       throws IOException {
     synchronized (snapshotSaveLock) {
       MassRunCsvWriter.writeAggregateFromFile(config.outputDir());
-      MassRunCsvWriter.writeConfig(config.outputDir(), config);
     }
   }
 
