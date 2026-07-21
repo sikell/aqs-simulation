@@ -1,0 +1,1877 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mass-run analysis</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #20242a;
+      --muted: #657083;
+      --line: #dbe1ea;
+      --accent: #0f766e;
+      --accent-soft: #d9f3ef;
+      --shadow: 0 10px 30px rgba(22, 34, 51, .08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    aside {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 24px 18px;
+      background: #17202b;
+      color: #eef3f8;
+    }
+    .brand { font-size: 19px; font-weight: 750; margin-bottom: 22px; }
+    nav { display: grid; gap: 6px; }
+    nav a {
+      padding: 9px 10px;
+      border-radius: 7px;
+      color: #cbd5e1;
+    }
+    nav a:hover { background: rgba(255,255,255,.08); color: #fff; }
+    main { padding: 30px; max-width: 1320px; width: 100%; }
+    section { margin-bottom: 28px; scroll-margin-top: 24px; }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-end;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 24px;
+    }
+    h1 { font-size: 30px; line-height: 1.15; margin: 0 0 8px; }
+    h2 { font-size: 18px; margin: 0 0 12px; }
+    p { color: var(--muted); margin: 0; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .card, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .card { padding: 16px; }
+    .card small { display: block; color: var(--muted); margin-bottom: 6px; }
+    .card strong { display: block; font-size: 22px; }
+    .panel { padding: 18px; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    ul { margin: 0; padding-left: 20px; }
+    .files { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+    .file {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+    }
+    .file:hover { border-color: var(--accent); background: var(--accent-soft); }
+    .file span { overflow-wrap: anywhere; }
+    .file small { color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; }
+    .plot {
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .plot:hover { border-color: var(--accent); }
+    .plot img { display: block; width: 100%; background: #fff; }
+    .plot span {
+      display: block;
+      padding: 10px 12px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      overflow-wrap: anywhere;
+      font-size: 13px;
+    }
+    .plot span strong { display: block; color: var(--ink); font-weight: 650; margin-bottom: 4px; }
+    .plot span small { display: block; color: var(--muted); line-height: 1.35; }
+    .plot-group { margin-bottom: 18px; }
+    h3 { font-size: 15px; margin: 0 0 10px; color: var(--muted); }
+    code {
+      background: #eef1f5;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 920px; }
+    th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    td:nth-child(4) { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13px; }
+    @media (max-width: 860px) {
+      .layout { display: block; }
+      aside { position: static; height: auto; }
+      nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      main { padding: 18px; }
+      .hero { display: block; }
+      .cards, .split { grid-template-columns: 1fr; }
+      .plots { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <div class="brand">Mass-run analysis</div>
+    <nav>
+      <a href="#overview">Overview</a>
+      <a href="#dimensions">Dimensions</a>
+      <a href="#best">Best P2P</a>
+      <a href="#averaging">Averaging</a>
+      <a href="#tables">Tables</a>
+      <a href="#stats">Stats</a>
+      <a href="#plots">Plots</a>
+    </nav>
+  </aside>
+  <main>
+    <section class="hero" id="overview">
+      <div>
+        <h1>Stratified mass-run report</h1>
+        <p>Exact-config summaries. Matched P2P vs SinglePassenger deltas. No blended city averages.</p>
+      </div>
+      <p><code>2026-07-11 to 2026-07-19</code></p>
+    </section>
+
+    <section>
+      <div class="cards">
+        <div class="card"><small>Rows</small><strong>173280</strong></div>
+        <div class="card"><small>Iterations</small><strong>28880</strong></div>
+        <div class="card"><small>Metrics</small><strong>6</strong></div>
+        <div class="card"><small>Taxi/client pairs</small><strong>39/638, 1685/27762</strong></div>
+      </div>
+    </section>
+
+    <section id="dimensions" class="split">
+      <div class="panel">
+        <h2>Metrics</h2>
+        <ul><li>Calculation Time [millis]</li><li>Client Travel Time [min]</li><li>Client Waiting Time [min]</li><li>Custom Time [micros]</li><li>Simulation Time [millis]</li><li>Taxi Travel Distance [km]</li></ul>
+      </div>
+      <div class="panel">
+        <h2>Scenarios</h2>
+        <ul><li>BASELINE</li><li>RUSH_HOUR</li><li>SPATIAL_IMBALANCE</li><li>SPATIAL_ISLANDS</li></ul>
+      </div>
+    </section>
+
+    <section id="best" class="panel">
+      <h2>Best P2P configs</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Scale</th>
+              <th>Scenario</th>
+              <th>Config</th>
+              <th>P2P avg</th>
+              <th>Single avg</th>
+              <th>Delta</th>
+            </tr>
+          </thead>
+          <tbody><tr><td>Client Travel Time [min]</td><td>Konstanz</td><td>BASELINE</td><td>k=0, r=1000, greedy, shortcuts=0, roam=random</td><td>9.65</td><td>9.46</td><td>2.07%</td></tr><tr><td>Client Travel Time [min]</td><td>Konstanz</td><td>RUSH_HOUR</td><td>k=2, r=1000, greedy, shortcuts=1, roam=random</td><td>9.84</td><td>9.64</td><td>2.10%</td></tr><tr><td>Client Travel Time [min]</td><td>Konstanz</td><td>SPATIAL_IMBALANCE</td><td>k=2, r=1000, greedy, shortcuts=0, roam=past-avg</td><td>8.49</td><td>9.86</td><td>-13.93%</td></tr><tr><td>Client Travel Time [min]</td><td>Konstanz</td><td>SPATIAL_ISLANDS</td><td>k=0, r=1000, greedy, shortcuts=0, roam=past-avg-total</td><td>9.22</td><td>11.11</td><td>-17.01%</td></tr><tr><td>Client Travel Time [min]</td><td>Berlin</td><td>BASELINE</td><td>k=2, r=1000, greedy, shortcuts=0, roam=random</td><td>32.83</td><td>32.72</td><td>0.35%</td></tr><tr><td>Client Travel Time [min]</td><td>Berlin</td><td>RUSH_HOUR</td><td>k=2, r=1000, nearest, shortcuts=0, roam=random</td><td>40.80</td><td>71.93</td><td>-43.28%</td></tr><tr><td>Client Travel Time [min]</td><td>Berlin</td><td>SPATIAL_IMBALANCE</td><td>k=2, r=1000, greedy, shortcuts=1, roam=past-avg-total</td><td>29.07</td><td>38.79</td><td>-25.05%</td></tr><tr><td>Client Travel Time [min]</td><td>Berlin</td><td>SPATIAL_ISLANDS</td><td>k=2, r=3000, greedy, shortcuts=1, roam=past-avg-total</td><td>36.01</td><td>44.70</td><td>-19.45%</td></tr><tr><td>Client Waiting Time [min]</td><td>Konstanz</td><td>BASELINE</td><td>k=0, r=1000, greedy, shortcuts=0, roam=random</td><td>1.98</td><td>1.71</td><td>15.82%</td></tr><tr><td>Client Waiting Time [min]</td><td>Konstanz</td><td>RUSH_HOUR</td><td>k=2, r=1000, greedy, shortcuts=1, roam=random</td><td>2.23</td><td>1.92</td><td>16.07%</td></tr><tr><td>Client Waiting Time [min]</td><td>Konstanz</td><td>SPATIAL_IMBALANCE</td><td>k=0, r=1000, greedy, shortcuts=0, roam=past-avg</td><td>1.96</td><td>3.29</td><td>-40.27%</td></tr><tr><td>Client Waiting Time [min]</td><td>Konstanz</td><td>SPATIAL_ISLANDS</td><td>k=0, r=1000, greedy, shortcuts=0, roam=past-avg-total</td><td>1.81</td><td>3.65</td><td>-50.46%</td></tr><tr><td>Client Waiting Time [min]</td><td>Berlin</td><td>BASELINE</td><td>k=2, r=1000, greedy, shortcuts=0, roam=random</td><td>1.44</td><td>1.32</td><td>9.18%</td></tr><tr><td>Client Waiting Time [min]</td><td>Berlin</td><td>RUSH_HOUR</td><td>k=1, r=1000, nearest, shortcuts=0, roam=random</td><td>10.57</td><td>41.76</td><td>-74.68%</td></tr><tr><td>Client Waiting Time [min]</td><td>Berlin</td><td>SPATIAL_IMBALANCE</td><td>k=2, r=1000, greedy, shortcuts=1, roam=past-avg-total</td><td>2.38</td><td>11.98</td><td>-80.10%</td></tr><tr><td>Client Waiting Time [min]</td><td>Berlin</td><td>SPATIAL_ISLANDS</td><td>k=2, r=3000, greedy, shortcuts=1, roam=past-avg-total</td><td>6.14</td><td>14.70</td><td>-58.21%</td></tr><tr><td>Taxi Travel Distance [km]</td><td>Konstanz</td><td>BASELINE</td><td>k=0, r=1000, greedy, shortcuts=0, roam=none</td><td>67.87</td><td>76.54</td><td>-11.33%</td></tr><tr><td>Taxi Travel Distance [km]</td><td>Konstanz</td><td>RUSH_HOUR</td><td>k=0, r=1000, greedy, shortcuts=0, roam=none</td><td>66.50</td><td>78.08</td><td>-14.83%</td></tr><tr><td>Taxi Travel Distance [km]</td><td>Konstanz</td><td>SPATIAL_IMBALANCE</td><td>k=0, r=1000, greedy, shortcuts=0, roam=none</td><td>35.52</td><td>79.83</td><td>-55.51%</td></tr><tr><td>Taxi Travel Distance [km]</td><td>Konstanz</td><td>SPATIAL_ISLANDS</td><td>k=0, r=1000, greedy, shortcuts=0, roam=none</td><td>30.91</td><td>90.01</td><td>-65.66%</td></tr><tr><td>Taxi Travel Distance [km]</td><td>Berlin</td><td>BASELINE</td><td>k=1, r=1000, greedy, shortcuts=0, roam=none</td><td>265.79</td><td>267.35</td><td>-0.58%</td></tr><tr><td>Taxi Travel Distance [km]</td><td>Berlin</td><td>RUSH_HOUR</td><td>k=0, r=1000, greedy, shortcuts=0, roam=none</td><td>241.69</td><td>349.32</td><td>-30.81%</td></tr><tr><td>Taxi Travel Distance [km]</td><td>Berlin</td><td>SPATIAL_IMBALANCE</td><td>k=0, r=1000, greedy, shortcuts=0, roam=none</td><td>82.60</td><td>317.14</td><td>-73.96%</td></tr><tr><td>Taxi Travel Distance [km]</td><td>Berlin</td><td>SPATIAL_ISLANDS</td><td>k=0, r=1000, greedy, shortcuts=0, roam=none</td><td>53.45</td><td>365.11</td><td>-85.36%</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="averaging" class="panel">
+      <h2>Averaging rules</h2>
+      <ul>
+        <li><code>summary.csv</code>: one row per exact config; averages repeated runs only.</li>
+        <li><code>best_p2p_vs_single.csv</code>: chooses the lowest P2P average per metric, scale, seat count, and scenario.</li>
+        <li>Overview hypothesis plots average over non-plotted P2P parameters; each caption states what varies.</li>
+        <li>Interesting trend plots fix all non-plotted config columns; only repeated runs are averaged.</li>
+      </ul>
+    </section>
+
+    <section id="tables" class="panel">
+      <h2>Tables</h2>
+      <div class="files"><a class="file" href="tables/best_p2p_vs_single.csv"><span>best_p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/p2p_vs_single.csv"><span>p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/request_tail_summary.csv"><span>request_tail_summary.csv</span><small>table</small></a><a class="file" href="tables/single_passenger.csv"><span>single_passenger.csv</span><small>table</small></a><a class="file" href="tables/summary.csv"><span>summary.csv</span><small>table</small></a><a class="file" href="tables/time_window_summary.csv"><span>time_window_summary.csv</span><small>table</small></a></div>
+    </section>
+
+    <section id="stats" class="panel">
+      <h2>Stats</h2>
+      <div class="files"><a class="file" href="stats/factor_screen.csv"><span>factor_screen.csv</span><small>stats</small></a><a class="file" href="stats/roaming_effect.csv"><span>roaming_effect.csv</span><small>stats</small></a><a class="file" href="stats/strategy_effect.csv"><span>strategy_effect.csv</span><small>stats</small></a></div>
+    </section>
+
+    <section id="plots">
+      <h2>Plots</h2>
+      <section class="plot-group"><h3>Best P2P</h3><div class="plots">
+            <a class="plot" href="plots/best_p2p_vs_single_Calculation_Time__millis.png">
+              <img src="plots/best_p2p_vs_single_Calculation_Time__millis.png" alt="best_p2p_vs_single_Calculation_Time__millis.png">
+              <span><strong>best_p2p_vs_single_Calculation_Time__millis.png</strong><small>P2P calculation time uses one color; hatching marks its communication part.</small></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_vs_single_Client_Travel_Time__min.png">
+              <img src="plots/best_p2p_vs_single_Client_Travel_Time__min.png" alt="best_p2p_vs_single_Client_Travel_Time__min.png">
+              <span><strong>best_p2p_vs_single_Client_Travel_Time__min.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_config_colored_Client_Travel_Time__min.png">
+              <img src="plots/best_p2p_config_colored_Client_Travel_Time__min.png" alt="best_p2p_config_colored_Client_Travel_Time__min.png">
+              <span><strong>best_p2p_config_colored_Client_Travel_Time__min.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_vs_single_Client_Waiting_Time__min.png">
+              <img src="plots/best_p2p_vs_single_Client_Waiting_Time__min.png" alt="best_p2p_vs_single_Client_Waiting_Time__min.png">
+              <span><strong>best_p2p_vs_single_Client_Waiting_Time__min.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_config_colored_Client_Waiting_Time__min.png">
+              <img src="plots/best_p2p_config_colored_Client_Waiting_Time__min.png" alt="best_p2p_config_colored_Client_Waiting_Time__min.png">
+              <span><strong>best_p2p_config_colored_Client_Waiting_Time__min.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_vs_single_Custom_Time__micros.png">
+              <img src="plots/best_p2p_vs_single_Custom_Time__micros.png" alt="best_p2p_vs_single_Custom_Time__micros.png">
+              <span><strong>best_p2p_vs_single_Custom_Time__micros.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_config_colored_Custom_Time__micros.png">
+              <img src="plots/best_p2p_config_colored_Custom_Time__micros.png" alt="best_p2p_config_colored_Custom_Time__micros.png">
+              <span><strong>best_p2p_config_colored_Custom_Time__micros.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_vs_single_Simulation_Time__millis.png">
+              <img src="plots/best_p2p_vs_single_Simulation_Time__millis.png" alt="best_p2p_vs_single_Simulation_Time__millis.png">
+              <span><strong>best_p2p_vs_single_Simulation_Time__millis.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_config_colored_Simulation_Time__millis.png">
+              <img src="plots/best_p2p_config_colored_Simulation_Time__millis.png" alt="best_p2p_config_colored_Simulation_Time__millis.png">
+              <span><strong>best_p2p_config_colored_Simulation_Time__millis.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_vs_single_Taxi_Travel_Distance__km.png">
+              <img src="plots/best_p2p_vs_single_Taxi_Travel_Distance__km.png" alt="best_p2p_vs_single_Taxi_Travel_Distance__km.png">
+              <span><strong>best_p2p_vs_single_Taxi_Travel_Distance__km.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_config_colored_Taxi_Travel_Distance__km.png">
+              <img src="plots/best_p2p_config_colored_Taxi_Travel_Distance__km.png" alt="best_p2p_config_colored_Taxi_Travel_Distance__km.png">
+              <span><strong>best_p2p_config_colored_Taxi_Travel_Distance__km.png</strong></span>
+            </a></div></section>
+<section class="plot-group"><h3>Hypothesis plots</h3><div class="plots">
+            <a class="plot" href="plots/h2_scale_trend_Calculation_Time__millis_BASELINE.png">
+              <img src="plots/h2_scale_trend_Calculation_Time__millis_BASELINE.png" alt="h2_scale_trend_Calculation_Time__millis_BASELINE.png">
+              <span><strong>h2_scale_trend_Calculation_Time__millis_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Calculation_Time__millis_RUSH_HOUR.png">
+              <img src="plots/h2_scale_trend_Calculation_Time__millis_RUSH_HOUR.png" alt="h2_scale_trend_Calculation_Time__millis_RUSH_HOUR.png">
+              <span><strong>h2_scale_trend_Calculation_Time__millis_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Calculation_Time__millis_SPATIAL_IMBALANCE.png">
+              <img src="plots/h2_scale_trend_Calculation_Time__millis_SPATIAL_IMBALANCE.png" alt="h2_scale_trend_Calculation_Time__millis_SPATIAL_IMBALANCE.png">
+              <span><strong>h2_scale_trend_Calculation_Time__millis_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Calculation_Time__millis_SPATIAL_ISLANDS.png">
+              <img src="plots/h2_scale_trend_Calculation_Time__millis_SPATIAL_ISLANDS.png" alt="h2_scale_trend_Calculation_Time__millis_SPATIAL_ISLANDS.png">
+              <span><strong>h2_scale_trend_Calculation_Time__millis_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Client_Travel_Time__min_BASELINE.png">
+              <img src="plots/h2_scale_trend_Client_Travel_Time__min_BASELINE.png" alt="h2_scale_trend_Client_Travel_Time__min_BASELINE.png">
+              <span><strong>h2_scale_trend_Client_Travel_Time__min_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Client_Travel_Time__min_RUSH_HOUR.png">
+              <img src="plots/h2_scale_trend_Client_Travel_Time__min_RUSH_HOUR.png" alt="h2_scale_trend_Client_Travel_Time__min_RUSH_HOUR.png">
+              <span><strong>h2_scale_trend_Client_Travel_Time__min_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Client_Travel_Time__min_SPATIAL_IMBALANCE.png">
+              <img src="plots/h2_scale_trend_Client_Travel_Time__min_SPATIAL_IMBALANCE.png" alt="h2_scale_trend_Client_Travel_Time__min_SPATIAL_IMBALANCE.png">
+              <span><strong>h2_scale_trend_Client_Travel_Time__min_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Client_Travel_Time__min_SPATIAL_ISLANDS.png">
+              <img src="plots/h2_scale_trend_Client_Travel_Time__min_SPATIAL_ISLANDS.png" alt="h2_scale_trend_Client_Travel_Time__min_SPATIAL_ISLANDS.png">
+              <span><strong>h2_scale_trend_Client_Travel_Time__min_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Client_Waiting_Time__min_BASELINE.png">
+              <img src="plots/h2_scale_trend_Client_Waiting_Time__min_BASELINE.png" alt="h2_scale_trend_Client_Waiting_Time__min_BASELINE.png">
+              <span><strong>h2_scale_trend_Client_Waiting_Time__min_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Client_Waiting_Time__min_RUSH_HOUR.png">
+              <img src="plots/h2_scale_trend_Client_Waiting_Time__min_RUSH_HOUR.png" alt="h2_scale_trend_Client_Waiting_Time__min_RUSH_HOUR.png">
+              <span><strong>h2_scale_trend_Client_Waiting_Time__min_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Client_Waiting_Time__min_SPATIAL_IMBALANCE.png">
+              <img src="plots/h2_scale_trend_Client_Waiting_Time__min_SPATIAL_IMBALANCE.png" alt="h2_scale_trend_Client_Waiting_Time__min_SPATIAL_IMBALANCE.png">
+              <span><strong>h2_scale_trend_Client_Waiting_Time__min_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Client_Waiting_Time__min_SPATIAL_ISLANDS.png">
+              <img src="plots/h2_scale_trend_Client_Waiting_Time__min_SPATIAL_ISLANDS.png" alt="h2_scale_trend_Client_Waiting_Time__min_SPATIAL_ISLANDS.png">
+              <span><strong>h2_scale_trend_Client_Waiting_Time__min_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Custom_Time__micros_BASELINE.png">
+              <img src="plots/h2_scale_trend_Custom_Time__micros_BASELINE.png" alt="h2_scale_trend_Custom_Time__micros_BASELINE.png">
+              <span><strong>h2_scale_trend_Custom_Time__micros_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Custom_Time__micros_RUSH_HOUR.png">
+              <img src="plots/h2_scale_trend_Custom_Time__micros_RUSH_HOUR.png" alt="h2_scale_trend_Custom_Time__micros_RUSH_HOUR.png">
+              <span><strong>h2_scale_trend_Custom_Time__micros_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Custom_Time__micros_SPATIAL_IMBALANCE.png">
+              <img src="plots/h2_scale_trend_Custom_Time__micros_SPATIAL_IMBALANCE.png" alt="h2_scale_trend_Custom_Time__micros_SPATIAL_IMBALANCE.png">
+              <span><strong>h2_scale_trend_Custom_Time__micros_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Custom_Time__micros_SPATIAL_ISLANDS.png">
+              <img src="plots/h2_scale_trend_Custom_Time__micros_SPATIAL_ISLANDS.png" alt="h2_scale_trend_Custom_Time__micros_SPATIAL_ISLANDS.png">
+              <span><strong>h2_scale_trend_Custom_Time__micros_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Simulation_Time__millis_BASELINE.png">
+              <img src="plots/h2_scale_trend_Simulation_Time__millis_BASELINE.png" alt="h2_scale_trend_Simulation_Time__millis_BASELINE.png">
+              <span><strong>h2_scale_trend_Simulation_Time__millis_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Simulation_Time__millis_RUSH_HOUR.png">
+              <img src="plots/h2_scale_trend_Simulation_Time__millis_RUSH_HOUR.png" alt="h2_scale_trend_Simulation_Time__millis_RUSH_HOUR.png">
+              <span><strong>h2_scale_trend_Simulation_Time__millis_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Simulation_Time__millis_SPATIAL_IMBALANCE.png">
+              <img src="plots/h2_scale_trend_Simulation_Time__millis_SPATIAL_IMBALANCE.png" alt="h2_scale_trend_Simulation_Time__millis_SPATIAL_IMBALANCE.png">
+              <span><strong>h2_scale_trend_Simulation_Time__millis_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Simulation_Time__millis_SPATIAL_ISLANDS.png">
+              <img src="plots/h2_scale_trend_Simulation_Time__millis_SPATIAL_ISLANDS.png" alt="h2_scale_trend_Simulation_Time__millis_SPATIAL_ISLANDS.png">
+              <span><strong>h2_scale_trend_Simulation_Time__millis_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Taxi_Travel_Distance__km_BASELINE.png">
+              <img src="plots/h2_scale_trend_Taxi_Travel_Distance__km_BASELINE.png" alt="h2_scale_trend_Taxi_Travel_Distance__km_BASELINE.png">
+              <span><strong>h2_scale_trend_Taxi_Travel_Distance__km_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Taxi_Travel_Distance__km_RUSH_HOUR.png">
+              <img src="plots/h2_scale_trend_Taxi_Travel_Distance__km_RUSH_HOUR.png" alt="h2_scale_trend_Taxi_Travel_Distance__km_RUSH_HOUR.png">
+              <span><strong>h2_scale_trend_Taxi_Travel_Distance__km_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Taxi_Travel_Distance__km_SPATIAL_IMBALANCE.png">
+              <img src="plots/h2_scale_trend_Taxi_Travel_Distance__km_SPATIAL_IMBALANCE.png" alt="h2_scale_trend_Taxi_Travel_Distance__km_SPATIAL_IMBALANCE.png">
+              <span><strong>h2_scale_trend_Taxi_Travel_Distance__km_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h2_scale_trend_Taxi_Travel_Distance__km_SPATIAL_ISLANDS.png">
+              <img src="plots/h2_scale_trend_Taxi_Travel_Distance__km_SPATIAL_ISLANDS.png" alt="h2_scale_trend_Taxi_Travel_Distance__km_SPATIAL_ISLANDS.png">
+              <span><strong>h2_scale_trend_Taxi_Travel_Distance__km_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Calculation_Time__millis_Konstanz_BASELINE.png">
+              <img src="plots/h1_k_trend_Calculation_Time__millis_Konstanz_BASELINE.png" alt="h1_k_trend_Calculation_Time__millis_Konstanz_BASELINE.png">
+              <span><strong>h1_k_trend_Calculation_Time__millis_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Calculation_Time__millis_Konstanz_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Calculation_Time__millis_Konstanz_BASELINE.png" alt="h1_rqs_trend_Calculation_Time__millis_Konstanz_BASELINE.png">
+              <span><strong>h1_rqs_trend_Calculation_Time__millis_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png" alt="h1_k_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png" alt="h1_rqs_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png" alt="h1_k_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Calculation_Time__millis_Berlin_BASELINE.png">
+              <img src="plots/h1_k_trend_Calculation_Time__millis_Berlin_BASELINE.png" alt="h1_k_trend_Calculation_Time__millis_Berlin_BASELINE.png">
+              <span><strong>h1_k_trend_Calculation_Time__millis_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Calculation_Time__millis_Berlin_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Calculation_Time__millis_Berlin_BASELINE.png" alt="h1_rqs_trend_Calculation_Time__millis_Berlin_BASELINE.png">
+              <span><strong>h1_rqs_trend_Calculation_Time__millis_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png" alt="h1_k_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png" alt="h1_rqs_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png" alt="h1_k_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Travel_Time__min_Konstanz_BASELINE.png">
+              <img src="plots/h1_k_trend_Client_Travel_Time__min_Konstanz_BASELINE.png" alt="h1_k_trend_Client_Travel_Time__min_Konstanz_BASELINE.png">
+              <span><strong>h1_k_trend_Client_Travel_Time__min_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Travel_Time__min_Konstanz_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Client_Travel_Time__min_Konstanz_BASELINE.png" alt="h1_rqs_trend_Client_Travel_Time__min_Konstanz_BASELINE.png">
+              <span><strong>h1_rqs_trend_Client_Travel_Time__min_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png" alt="h1_k_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png" alt="h1_rqs_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png" alt="h1_k_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Travel_Time__min_Berlin_BASELINE.png">
+              <img src="plots/h1_k_trend_Client_Travel_Time__min_Berlin_BASELINE.png" alt="h1_k_trend_Client_Travel_Time__min_Berlin_BASELINE.png">
+              <span><strong>h1_k_trend_Client_Travel_Time__min_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Travel_Time__min_Berlin_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Client_Travel_Time__min_Berlin_BASELINE.png" alt="h1_rqs_trend_Client_Travel_Time__min_Berlin_BASELINE.png">
+              <span><strong>h1_rqs_trend_Client_Travel_Time__min_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png" alt="h1_k_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png" alt="h1_rqs_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png" alt="h1_k_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png">
+              <img src="plots/h1_k_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png" alt="h1_k_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png">
+              <span><strong>h1_k_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png" alt="h1_rqs_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png">
+              <span><strong>h1_rqs_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png" alt="h1_k_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png" alt="h1_rqs_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png" alt="h1_k_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Waiting_Time__min_Berlin_BASELINE.png">
+              <img src="plots/h1_k_trend_Client_Waiting_Time__min_Berlin_BASELINE.png" alt="h1_k_trend_Client_Waiting_Time__min_Berlin_BASELINE.png">
+              <span><strong>h1_k_trend_Client_Waiting_Time__min_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Waiting_Time__min_Berlin_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Client_Waiting_Time__min_Berlin_BASELINE.png" alt="h1_rqs_trend_Client_Waiting_Time__min_Berlin_BASELINE.png">
+              <span><strong>h1_rqs_trend_Client_Waiting_Time__min_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png" alt="h1_k_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png" alt="h1_rqs_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png" alt="h1_k_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Custom_Time__micros_Konstanz_BASELINE.png">
+              <img src="plots/h1_k_trend_Custom_Time__micros_Konstanz_BASELINE.png" alt="h1_k_trend_Custom_Time__micros_Konstanz_BASELINE.png">
+              <span><strong>h1_k_trend_Custom_Time__micros_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Custom_Time__micros_Konstanz_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Custom_Time__micros_Konstanz_BASELINE.png" alt="h1_rqs_trend_Custom_Time__micros_Konstanz_BASELINE.png">
+              <span><strong>h1_rqs_trend_Custom_Time__micros_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png" alt="h1_k_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png" alt="h1_rqs_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png" alt="h1_k_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Custom_Time__micros_Berlin_BASELINE.png">
+              <img src="plots/h1_k_trend_Custom_Time__micros_Berlin_BASELINE.png" alt="h1_k_trend_Custom_Time__micros_Berlin_BASELINE.png">
+              <span><strong>h1_k_trend_Custom_Time__micros_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Custom_Time__micros_Berlin_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Custom_Time__micros_Berlin_BASELINE.png" alt="h1_rqs_trend_Custom_Time__micros_Berlin_BASELINE.png">
+              <span><strong>h1_rqs_trend_Custom_Time__micros_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png" alt="h1_k_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png" alt="h1_rqs_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png" alt="h1_k_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Simulation_Time__millis_Konstanz_BASELINE.png">
+              <img src="plots/h1_k_trend_Simulation_Time__millis_Konstanz_BASELINE.png" alt="h1_k_trend_Simulation_Time__millis_Konstanz_BASELINE.png">
+              <span><strong>h1_k_trend_Simulation_Time__millis_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Simulation_Time__millis_Konstanz_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Simulation_Time__millis_Konstanz_BASELINE.png" alt="h1_rqs_trend_Simulation_Time__millis_Konstanz_BASELINE.png">
+              <span><strong>h1_rqs_trend_Simulation_Time__millis_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png" alt="h1_k_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png" alt="h1_rqs_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png" alt="h1_k_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Simulation_Time__millis_Berlin_BASELINE.png">
+              <img src="plots/h1_k_trend_Simulation_Time__millis_Berlin_BASELINE.png" alt="h1_k_trend_Simulation_Time__millis_Berlin_BASELINE.png">
+              <span><strong>h1_k_trend_Simulation_Time__millis_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Simulation_Time__millis_Berlin_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Simulation_Time__millis_Berlin_BASELINE.png" alt="h1_rqs_trend_Simulation_Time__millis_Berlin_BASELINE.png">
+              <span><strong>h1_rqs_trend_Simulation_Time__millis_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png" alt="h1_k_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png" alt="h1_rqs_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png" alt="h1_k_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png">
+              <img src="plots/h1_k_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png" alt="h1_k_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png">
+              <span><strong>h1_k_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png" alt="h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png">
+              <span><strong>h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png" alt="h1_k_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png" alt="h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png" alt="h1_k_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png">
+              <img src="plots/h1_k_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png" alt="h1_k_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png">
+              <span><strong>h1_k_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png">
+              <img src="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png" alt="h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png">
+              <span><strong>h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_k_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png" alt="h1_k_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_k_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png">
+              <img src="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png" alt="h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png">
+              <span><strong>h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_k_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png" alt="h1_k_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_k_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png" alt="h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_k_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_k_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png" alt="h1_k_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_k_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png" alt="h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h1_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Calculation_Time__millis_Konstanz.png">
+              <img src="plots/h3_roaming_trend_Calculation_Time__millis_Konstanz.png" alt="h3_roaming_trend_Calculation_Time__millis_Konstanz.png">
+              <span><strong>h3_roaming_trend_Calculation_Time__millis_Konstanz.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Calculation_Time__millis_Berlin.png">
+              <img src="plots/h3_roaming_trend_Calculation_Time__millis_Berlin.png" alt="h3_roaming_trend_Calculation_Time__millis_Berlin.png">
+              <span><strong>h3_roaming_trend_Calculation_Time__millis_Berlin.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Client_Travel_Time__min_Konstanz.png">
+              <img src="plots/h3_roaming_trend_Client_Travel_Time__min_Konstanz.png" alt="h3_roaming_trend_Client_Travel_Time__min_Konstanz.png">
+              <span><strong>h3_roaming_trend_Client_Travel_Time__min_Konstanz.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Client_Travel_Time__min_Berlin.png">
+              <img src="plots/h3_roaming_trend_Client_Travel_Time__min_Berlin.png" alt="h3_roaming_trend_Client_Travel_Time__min_Berlin.png">
+              <span><strong>h3_roaming_trend_Client_Travel_Time__min_Berlin.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Client_Waiting_Time__min_Konstanz.png">
+              <img src="plots/h3_roaming_trend_Client_Waiting_Time__min_Konstanz.png" alt="h3_roaming_trend_Client_Waiting_Time__min_Konstanz.png">
+              <span><strong>h3_roaming_trend_Client_Waiting_Time__min_Konstanz.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Client_Waiting_Time__min_Berlin.png">
+              <img src="plots/h3_roaming_trend_Client_Waiting_Time__min_Berlin.png" alt="h3_roaming_trend_Client_Waiting_Time__min_Berlin.png">
+              <span><strong>h3_roaming_trend_Client_Waiting_Time__min_Berlin.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Custom_Time__micros_Konstanz.png">
+              <img src="plots/h3_roaming_trend_Custom_Time__micros_Konstanz.png" alt="h3_roaming_trend_Custom_Time__micros_Konstanz.png">
+              <span><strong>h3_roaming_trend_Custom_Time__micros_Konstanz.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Custom_Time__micros_Berlin.png">
+              <img src="plots/h3_roaming_trend_Custom_Time__micros_Berlin.png" alt="h3_roaming_trend_Custom_Time__micros_Berlin.png">
+              <span><strong>h3_roaming_trend_Custom_Time__micros_Berlin.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Simulation_Time__millis_Konstanz.png">
+              <img src="plots/h3_roaming_trend_Simulation_Time__millis_Konstanz.png" alt="h3_roaming_trend_Simulation_Time__millis_Konstanz.png">
+              <span><strong>h3_roaming_trend_Simulation_Time__millis_Konstanz.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Simulation_Time__millis_Berlin.png">
+              <img src="plots/h3_roaming_trend_Simulation_Time__millis_Berlin.png" alt="h3_roaming_trend_Simulation_Time__millis_Berlin.png">
+              <span><strong>h3_roaming_trend_Simulation_Time__millis_Berlin.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Taxi_Travel_Distance__km_Konstanz.png">
+              <img src="plots/h3_roaming_trend_Taxi_Travel_Distance__km_Konstanz.png" alt="h3_roaming_trend_Taxi_Travel_Distance__km_Konstanz.png">
+              <span><strong>h3_roaming_trend_Taxi_Travel_Distance__km_Konstanz.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h3_roaming_trend_Taxi_Travel_Distance__km_Berlin.png">
+              <img src="plots/h3_roaming_trend_Taxi_Travel_Distance__km_Berlin.png" alt="h3_roaming_trend_Taxi_Travel_Distance__km_Berlin.png">
+              <span><strong>h3_roaming_trend_Taxi_Travel_Distance__km_Berlin.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Calculation_Time__millis_Konstanz_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Calculation_Time__millis_Konstanz_BASELINE.png" alt="h4_shortcut_trend_Calculation_Time__millis_Konstanz_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Calculation_Time__millis_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png" alt="h4_shortcut_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Calculation_Time__millis_Berlin_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Calculation_Time__millis_Berlin_BASELINE.png" alt="h4_shortcut_trend_Calculation_Time__millis_Berlin_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Calculation_Time__millis_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png" alt="h4_shortcut_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Calculation_Time__millis_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Travel_Time__min_Konstanz_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Client_Travel_Time__min_Konstanz_BASELINE.png" alt="h4_shortcut_trend_Client_Travel_Time__min_Konstanz_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Client_Travel_Time__min_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png" alt="h4_shortcut_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Travel_Time__min_Berlin_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Client_Travel_Time__min_Berlin_BASELINE.png" alt="h4_shortcut_trend_Client_Travel_Time__min_Berlin_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Client_Travel_Time__min_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png" alt="h4_shortcut_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png" alt="h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png" alt="h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Waiting_Time__min_Berlin_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Client_Waiting_Time__min_Berlin_BASELINE.png" alt="h4_shortcut_trend_Client_Waiting_Time__min_Berlin_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Client_Waiting_Time__min_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png" alt="h4_shortcut_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Custom_Time__micros_Konstanz_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Custom_Time__micros_Konstanz_BASELINE.png" alt="h4_shortcut_trend_Custom_Time__micros_Konstanz_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Custom_Time__micros_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png" alt="h4_shortcut_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Custom_Time__micros_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Custom_Time__micros_Berlin_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Custom_Time__micros_Berlin_BASELINE.png" alt="h4_shortcut_trend_Custom_Time__micros_Berlin_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Custom_Time__micros_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png" alt="h4_shortcut_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Custom_Time__micros_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Simulation_Time__millis_Konstanz_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Simulation_Time__millis_Konstanz_BASELINE.png" alt="h4_shortcut_trend_Simulation_Time__millis_Konstanz_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Simulation_Time__millis_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png" alt="h4_shortcut_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Simulation_Time__millis_Berlin_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Simulation_Time__millis_Berlin_BASELINE.png" alt="h4_shortcut_trend_Simulation_Time__millis_Berlin_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Simulation_Time__millis_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png" alt="h4_shortcut_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Simulation_Time__millis_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png">
+              <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png">
+              <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_BASELINE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png">
+              <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png">
+              <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a>
+
+            <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a></div></section>
+<section class="plot-group"><h3>Interesting trends</h3><div class="plots">
+            <a class="plot" href="plots/best_p2p_delta_trend_Calculation_Time__millis_BASELINE.png">
+              <img src="plots/best_p2p_delta_trend_Calculation_Time__millis_BASELINE.png" alt="best_p2p_delta_trend_Calculation_Time__millis_BASELINE.png">
+              <span><strong>best_p2p_delta_trend_Calculation_Time__millis_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Calculation_Time__millis_RUSH_HOUR.png">
+              <img src="plots/best_p2p_delta_trend_Calculation_Time__millis_RUSH_HOUR.png" alt="best_p2p_delta_trend_Calculation_Time__millis_RUSH_HOUR.png">
+              <span><strong>best_p2p_delta_trend_Calculation_Time__millis_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Calculation_Time__millis_SPATIAL_IMBALANCE.png">
+              <img src="plots/best_p2p_delta_trend_Calculation_Time__millis_SPATIAL_IMBALANCE.png" alt="best_p2p_delta_trend_Calculation_Time__millis_SPATIAL_IMBALANCE.png">
+              <span><strong>best_p2p_delta_trend_Calculation_Time__millis_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Calculation_Time__millis_SPATIAL_ISLANDS.png">
+              <img src="plots/best_p2p_delta_trend_Calculation_Time__millis_SPATIAL_ISLANDS.png" alt="best_p2p_delta_trend_Calculation_Time__millis_SPATIAL_ISLANDS.png">
+              <span><strong>best_p2p_delta_trend_Calculation_Time__millis_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Client_Travel_Time__min_BASELINE.png">
+              <img src="plots/best_p2p_delta_trend_Client_Travel_Time__min_BASELINE.png" alt="best_p2p_delta_trend_Client_Travel_Time__min_BASELINE.png">
+              <span><strong>best_p2p_delta_trend_Client_Travel_Time__min_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Client_Travel_Time__min_RUSH_HOUR.png">
+              <img src="plots/best_p2p_delta_trend_Client_Travel_Time__min_RUSH_HOUR.png" alt="best_p2p_delta_trend_Client_Travel_Time__min_RUSH_HOUR.png">
+              <span><strong>best_p2p_delta_trend_Client_Travel_Time__min_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Client_Travel_Time__min_SPATIAL_IMBALANCE.png">
+              <img src="plots/best_p2p_delta_trend_Client_Travel_Time__min_SPATIAL_IMBALANCE.png" alt="best_p2p_delta_trend_Client_Travel_Time__min_SPATIAL_IMBALANCE.png">
+              <span><strong>best_p2p_delta_trend_Client_Travel_Time__min_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Client_Travel_Time__min_SPATIAL_ISLANDS.png">
+              <img src="plots/best_p2p_delta_trend_Client_Travel_Time__min_SPATIAL_ISLANDS.png" alt="best_p2p_delta_trend_Client_Travel_Time__min_SPATIAL_ISLANDS.png">
+              <span><strong>best_p2p_delta_trend_Client_Travel_Time__min_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Client_Waiting_Time__min_BASELINE.png">
+              <img src="plots/best_p2p_delta_trend_Client_Waiting_Time__min_BASELINE.png" alt="best_p2p_delta_trend_Client_Waiting_Time__min_BASELINE.png">
+              <span><strong>best_p2p_delta_trend_Client_Waiting_Time__min_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Client_Waiting_Time__min_RUSH_HOUR.png">
+              <img src="plots/best_p2p_delta_trend_Client_Waiting_Time__min_RUSH_HOUR.png" alt="best_p2p_delta_trend_Client_Waiting_Time__min_RUSH_HOUR.png">
+              <span><strong>best_p2p_delta_trend_Client_Waiting_Time__min_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Client_Waiting_Time__min_SPATIAL_IMBALANCE.png">
+              <img src="plots/best_p2p_delta_trend_Client_Waiting_Time__min_SPATIAL_IMBALANCE.png" alt="best_p2p_delta_trend_Client_Waiting_Time__min_SPATIAL_IMBALANCE.png">
+              <span><strong>best_p2p_delta_trend_Client_Waiting_Time__min_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Client_Waiting_Time__min_SPATIAL_ISLANDS.png">
+              <img src="plots/best_p2p_delta_trend_Client_Waiting_Time__min_SPATIAL_ISLANDS.png" alt="best_p2p_delta_trend_Client_Waiting_Time__min_SPATIAL_ISLANDS.png">
+              <span><strong>best_p2p_delta_trend_Client_Waiting_Time__min_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Simulation_Time__millis_BASELINE.png">
+              <img src="plots/best_p2p_delta_trend_Simulation_Time__millis_BASELINE.png" alt="best_p2p_delta_trend_Simulation_Time__millis_BASELINE.png">
+              <span><strong>best_p2p_delta_trend_Simulation_Time__millis_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Simulation_Time__millis_RUSH_HOUR.png">
+              <img src="plots/best_p2p_delta_trend_Simulation_Time__millis_RUSH_HOUR.png" alt="best_p2p_delta_trend_Simulation_Time__millis_RUSH_HOUR.png">
+              <span><strong>best_p2p_delta_trend_Simulation_Time__millis_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Simulation_Time__millis_SPATIAL_IMBALANCE.png">
+              <img src="plots/best_p2p_delta_trend_Simulation_Time__millis_SPATIAL_IMBALANCE.png" alt="best_p2p_delta_trend_Simulation_Time__millis_SPATIAL_IMBALANCE.png">
+              <span><strong>best_p2p_delta_trend_Simulation_Time__millis_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Simulation_Time__millis_SPATIAL_ISLANDS.png">
+              <img src="plots/best_p2p_delta_trend_Simulation_Time__millis_SPATIAL_ISLANDS.png" alt="best_p2p_delta_trend_Simulation_Time__millis_SPATIAL_ISLANDS.png">
+              <span><strong>best_p2p_delta_trend_Simulation_Time__millis_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Taxi_Travel_Distance__km_BASELINE.png">
+              <img src="plots/best_p2p_delta_trend_Taxi_Travel_Distance__km_BASELINE.png" alt="best_p2p_delta_trend_Taxi_Travel_Distance__km_BASELINE.png">
+              <span><strong>best_p2p_delta_trend_Taxi_Travel_Distance__km_BASELINE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Taxi_Travel_Distance__km_RUSH_HOUR.png">
+              <img src="plots/best_p2p_delta_trend_Taxi_Travel_Distance__km_RUSH_HOUR.png" alt="best_p2p_delta_trend_Taxi_Travel_Distance__km_RUSH_HOUR.png">
+              <span><strong>best_p2p_delta_trend_Taxi_Travel_Distance__km_RUSH_HOUR.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Taxi_Travel_Distance__km_SPATIAL_IMBALANCE.png">
+              <img src="plots/best_p2p_delta_trend_Taxi_Travel_Distance__km_SPATIAL_IMBALANCE.png" alt="best_p2p_delta_trend_Taxi_Travel_Distance__km_SPATIAL_IMBALANCE.png">
+              <span><strong>best_p2p_delta_trend_Taxi_Travel_Distance__km_SPATIAL_IMBALANCE.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/best_p2p_delta_trend_Taxi_Travel_Distance__km_SPATIAL_ISLANDS.png">
+              <img src="plots/best_p2p_delta_trend_Taxi_Travel_Distance__km_SPATIAL_ISLANDS.png" alt="best_p2p_delta_trend_Taxi_Travel_Distance__km_SPATIAL_ISLANDS.png">
+              <span><strong>best_p2p_delta_trend_Taxi_Travel_Distance__km_SPATIAL_ISLANDS.png</strong></span>
+            </a>
+
+            <a class="plot" href="plots/efficiency_tradeoff_Konstanz_BASELINE.png">
+              <img src="plots/efficiency_tradeoff_Konstanz_BASELINE.png" alt="efficiency_tradeoff_Konstanz_BASELINE.png">
+              <span><strong>efficiency_tradeoff_Konstanz_BASELINE.png</strong><small>Each point is an exact P2P configuration; lower-left is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/efficiency_tradeoff_Konstanz_RUSH_HOUR.png">
+              <img src="plots/efficiency_tradeoff_Konstanz_RUSH_HOUR.png" alt="efficiency_tradeoff_Konstanz_RUSH_HOUR.png">
+              <span><strong>efficiency_tradeoff_Konstanz_RUSH_HOUR.png</strong><small>Each point is an exact P2P configuration; lower-left is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/efficiency_tradeoff_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/efficiency_tradeoff_Konstanz_SPATIAL_IMBALANCE.png" alt="efficiency_tradeoff_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>efficiency_tradeoff_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Each point is an exact P2P configuration; lower-left is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/efficiency_tradeoff_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/efficiency_tradeoff_Konstanz_SPATIAL_ISLANDS.png" alt="efficiency_tradeoff_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>efficiency_tradeoff_Konstanz_SPATIAL_ISLANDS.png</strong><small>Each point is an exact P2P configuration; lower-left is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/efficiency_tradeoff_Berlin_BASELINE.png">
+              <img src="plots/efficiency_tradeoff_Berlin_BASELINE.png" alt="efficiency_tradeoff_Berlin_BASELINE.png">
+              <span><strong>efficiency_tradeoff_Berlin_BASELINE.png</strong><small>Each point is an exact P2P configuration; lower-left is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/efficiency_tradeoff_Berlin_RUSH_HOUR.png">
+              <img src="plots/efficiency_tradeoff_Berlin_RUSH_HOUR.png" alt="efficiency_tradeoff_Berlin_RUSH_HOUR.png">
+              <span><strong>efficiency_tradeoff_Berlin_RUSH_HOUR.png</strong><small>Each point is an exact P2P configuration; lower-left is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/efficiency_tradeoff_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/efficiency_tradeoff_Berlin_SPATIAL_IMBALANCE.png" alt="efficiency_tradeoff_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>efficiency_tradeoff_Berlin_SPATIAL_IMBALANCE.png</strong><small>Each point is an exact P2P configuration; lower-left is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/efficiency_tradeoff_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/efficiency_tradeoff_Berlin_SPATIAL_ISLANDS.png" alt="efficiency_tradeoff_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>efficiency_tradeoff_Berlin_SPATIAL_ISLANDS.png</strong><small>Each point is an exact P2P configuration; lower-left is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_BASELINE_1.png">
+              <img src="plots/fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_BASELINE_1.png" alt="fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_BASELINE_1.png">
+              <span><strong>fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_BASELINE_1.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR_2.png">
+              <img src="plots/fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR_2.png" alt="fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR_2.png">
+              <span><strong>fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR_2.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE_3.png">
+              <img src="plots/fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE_3.png" alt="fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE_3.png">
+              <span><strong>fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE_3.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS_4.png">
+              <img src="plots/fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS_4.png" alt="fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS_4.png">
+              <span><strong>fixed_k_rqs_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS_4.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Calculation_Time__millis_Berlin_BASELINE_5.png">
+              <img src="plots/fixed_k_rqs_trend_Calculation_Time__millis_Berlin_BASELINE_5.png" alt="fixed_k_rqs_trend_Calculation_Time__millis_Berlin_BASELINE_5.png">
+              <span><strong>fixed_k_rqs_trend_Calculation_Time__millis_Berlin_BASELINE_5.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Calculation_Time__millis_Berlin_RUSH_HOUR_6.png">
+              <img src="plots/fixed_k_rqs_trend_Calculation_Time__millis_Berlin_RUSH_HOUR_6.png" alt="fixed_k_rqs_trend_Calculation_Time__millis_Berlin_RUSH_HOUR_6.png">
+              <span><strong>fixed_k_rqs_trend_Calculation_Time__millis_Berlin_RUSH_HOUR_6.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE_7.png">
+              <img src="plots/fixed_k_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE_7.png" alt="fixed_k_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE_7.png">
+              <span><strong>fixed_k_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE_7.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS_8.png">
+              <img src="plots/fixed_k_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS_8.png" alt="fixed_k_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS_8.png">
+              <span><strong>fixed_k_rqs_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS_8.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_BASELINE_9.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_BASELINE_9.png" alt="fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_BASELINE_9.png">
+              <span><strong>fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_BASELINE_9.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR_10.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR_10.png" alt="fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR_10.png">
+              <span><strong>fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR_10.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE_11.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE_11.png" alt="fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE_11.png">
+              <span><strong>fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE_11.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS_12.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS_12.png" alt="fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS_12.png">
+              <span><strong>fixed_k_rqs_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS_12.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_BASELINE_13.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_BASELINE_13.png" alt="fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_BASELINE_13.png">
+              <span><strong>fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_BASELINE_13.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR_14.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR_14.png" alt="fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR_14.png">
+              <span><strong>fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR_14.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE_15.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE_15.png" alt="fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE_15.png">
+              <span><strong>fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE_15.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS_16.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS_16.png" alt="fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS_16.png">
+              <span><strong>fixed_k_rqs_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS_16.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_BASELINE_17.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_BASELINE_17.png" alt="fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_BASELINE_17.png">
+              <span><strong>fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_BASELINE_17.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR_18.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR_18.png" alt="fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR_18.png">
+              <span><strong>fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR_18.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE_19.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE_19.png" alt="fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE_19.png">
+              <span><strong>fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE_19.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS_20.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS_20.png" alt="fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS_20.png">
+              <span><strong>fixed_k_rqs_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS_20.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_BASELINE_21.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_BASELINE_21.png" alt="fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_BASELINE_21.png">
+              <span><strong>fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_BASELINE_21.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR_22.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR_22.png" alt="fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR_22.png">
+              <span><strong>fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR_22.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE_23.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE_23.png" alt="fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE_23.png">
+              <span><strong>fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE_23.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS_24.png">
+              <img src="plots/fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS_24.png" alt="fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS_24.png">
+              <span><strong>fixed_k_rqs_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS_24.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Custom_Time__micros_Konstanz_BASELINE_25.png">
+              <img src="plots/fixed_k_rqs_trend_Custom_Time__micros_Konstanz_BASELINE_25.png" alt="fixed_k_rqs_trend_Custom_Time__micros_Konstanz_BASELINE_25.png">
+              <span><strong>fixed_k_rqs_trend_Custom_Time__micros_Konstanz_BASELINE_25.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Custom_Time__micros_Konstanz_RUSH_HOUR_26.png">
+              <img src="plots/fixed_k_rqs_trend_Custom_Time__micros_Konstanz_RUSH_HOUR_26.png" alt="fixed_k_rqs_trend_Custom_Time__micros_Konstanz_RUSH_HOUR_26.png">
+              <span><strong>fixed_k_rqs_trend_Custom_Time__micros_Konstanz_RUSH_HOUR_26.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE_27.png">
+              <img src="plots/fixed_k_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE_27.png" alt="fixed_k_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE_27.png">
+              <span><strong>fixed_k_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE_27.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS_28.png">
+              <img src="plots/fixed_k_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS_28.png" alt="fixed_k_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS_28.png">
+              <span><strong>fixed_k_rqs_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS_28.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=1, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Custom_Time__micros_Berlin_BASELINE_29.png">
+              <img src="plots/fixed_k_rqs_trend_Custom_Time__micros_Berlin_BASELINE_29.png" alt="fixed_k_rqs_trend_Custom_Time__micros_Berlin_BASELINE_29.png">
+              <span><strong>fixed_k_rqs_trend_Custom_Time__micros_Berlin_BASELINE_29.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Custom_Time__micros_Berlin_RUSH_HOUR_30.png">
+              <img src="plots/fixed_k_rqs_trend_Custom_Time__micros_Berlin_RUSH_HOUR_30.png" alt="fixed_k_rqs_trend_Custom_Time__micros_Berlin_RUSH_HOUR_30.png">
+              <span><strong>fixed_k_rqs_trend_Custom_Time__micros_Berlin_RUSH_HOUR_30.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE_31.png">
+              <img src="plots/fixed_k_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE_31.png" alt="fixed_k_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE_31.png">
+              <span><strong>fixed_k_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE_31.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS_32.png">
+              <img src="plots/fixed_k_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS_32.png" alt="fixed_k_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS_32.png">
+              <span><strong>fixed_k_rqs_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS_32.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_BASELINE_33.png">
+              <img src="plots/fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_BASELINE_33.png" alt="fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_BASELINE_33.png">
+              <span><strong>fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_BASELINE_33.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR_34.png">
+              <img src="plots/fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR_34.png" alt="fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR_34.png">
+              <span><strong>fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR_34.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=1, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE_35.png">
+              <img src="plots/fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE_35.png" alt="fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE_35.png">
+              <span><strong>fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE_35.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS_36.png">
+              <img src="plots/fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS_36.png" alt="fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS_36.png">
+              <span><strong>fixed_k_rqs_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS_36.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Simulation_Time__millis_Berlin_BASELINE_37.png">
+              <img src="plots/fixed_k_rqs_trend_Simulation_Time__millis_Berlin_BASELINE_37.png" alt="fixed_k_rqs_trend_Simulation_Time__millis_Berlin_BASELINE_37.png">
+              <span><strong>fixed_k_rqs_trend_Simulation_Time__millis_Berlin_BASELINE_37.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Simulation_Time__millis_Berlin_RUSH_HOUR_38.png">
+              <img src="plots/fixed_k_rqs_trend_Simulation_Time__millis_Berlin_RUSH_HOUR_38.png" alt="fixed_k_rqs_trend_Simulation_Time__millis_Berlin_RUSH_HOUR_38.png">
+              <span><strong>fixed_k_rqs_trend_Simulation_Time__millis_Berlin_RUSH_HOUR_38.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE_39.png">
+              <img src="plots/fixed_k_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE_39.png" alt="fixed_k_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE_39.png">
+              <span><strong>fixed_k_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE_39.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS_40.png">
+              <img src="plots/fixed_k_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS_40.png" alt="fixed_k_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS_40.png">
+              <span><strong>fixed_k_rqs_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS_40.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=nearest, shortcuts=1, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE_41.png">
+              <img src="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE_41.png" alt="fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE_41.png">
+              <span><strong>fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE_41.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR_42.png">
+              <img src="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR_42.png" alt="fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR_42.png">
+              <span><strong>fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR_42.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE_43.png">
+              <img src="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE_43.png" alt="fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE_43.png">
+              <span><strong>fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE_43.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS_44.png">
+              <img src="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS_44.png" alt="fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS_44.png">
+              <span><strong>fixed_k_rqs_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS_44.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_BASELINE_45.png">
+              <img src="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_BASELINE_45.png" alt="fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_BASELINE_45.png">
+              <span><strong>fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_BASELINE_45.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR_46.png">
+              <img src="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR_46.png" alt="fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR_46.png">
+              <span><strong>fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR_46.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE_47.png">
+              <img src="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE_47.png" alt="fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE_47.png">
+              <span><strong>fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE_47.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS_48.png">
+              <img src="plots/fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS_48.png" alt="fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS_48.png">
+              <span><strong>fixed_k_rqs_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS_48.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. strategy=greedy, shortcuts=0, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Calculation_Time__millis_Konstanz_BASELINE_1.png">
+              <img src="plots/fixed_shortcut_trend_Calculation_Time__millis_Konstanz_BASELINE_1.png" alt="fixed_shortcut_trend_Calculation_Time__millis_Konstanz_BASELINE_1.png">
+              <span><strong>fixed_shortcut_trend_Calculation_Time__millis_Konstanz_BASELINE_1.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=greedy, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR_2.png">
+              <img src="plots/fixed_shortcut_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR_2.png" alt="fixed_shortcut_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR_2.png">
+              <span><strong>fixed_shortcut_trend_Calculation_Time__millis_Konstanz_RUSH_HOUR_2.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=greedy, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE_3.png">
+              <img src="plots/fixed_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE_3.png" alt="fixed_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE_3.png">
+              <span><strong>fixed_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_IMBALANCE_3.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=nearest, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS_4.png">
+              <img src="plots/fixed_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS_4.png" alt="fixed_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS_4.png">
+              <span><strong>fixed_shortcut_trend_Calculation_Time__millis_Konstanz_SPATIAL_ISLANDS_4.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=greedy, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Calculation_Time__millis_Berlin_BASELINE_5.png">
+              <img src="plots/fixed_shortcut_trend_Calculation_Time__millis_Berlin_BASELINE_5.png" alt="fixed_shortcut_trend_Calculation_Time__millis_Berlin_BASELINE_5.png">
+              <span><strong>fixed_shortcut_trend_Calculation_Time__millis_Berlin_BASELINE_5.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Calculation_Time__millis_Berlin_RUSH_HOUR_6.png">
+              <img src="plots/fixed_shortcut_trend_Calculation_Time__millis_Berlin_RUSH_HOUR_6.png" alt="fixed_shortcut_trend_Calculation_Time__millis_Berlin_RUSH_HOUR_6.png">
+              <span><strong>fixed_shortcut_trend_Calculation_Time__millis_Berlin_RUSH_HOUR_6.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=2000, strategy=greedy, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE_7.png">
+              <img src="plots/fixed_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE_7.png" alt="fixed_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE_7.png">
+              <span><strong>fixed_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_IMBALANCE_7.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=2000, strategy=nearest, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS_8.png">
+              <img src="plots/fixed_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS_8.png" alt="fixed_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS_8.png">
+              <span><strong>fixed_shortcut_trend_Calculation_Time__millis_Berlin_SPATIAL_ISLANDS_8.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=nearest, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_BASELINE_9.png">
+              <img src="plots/fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_BASELINE_9.png" alt="fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_BASELINE_9.png">
+              <span><strong>fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_BASELINE_9.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR_10.png">
+              <img src="plots/fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR_10.png" alt="fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR_10.png">
+              <span><strong>fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_RUSH_HOUR_10.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE_11.png">
+              <img src="plots/fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE_11.png" alt="fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE_11.png">
+              <span><strong>fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_IMBALANCE_11.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS_12.png">
+              <img src="plots/fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS_12.png" alt="fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS_12.png">
+              <span><strong>fixed_shortcut_trend_Client_Travel_Time__min_Konstanz_SPATIAL_ISLANDS_12.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Travel_Time__min_Berlin_BASELINE_13.png">
+              <img src="plots/fixed_shortcut_trend_Client_Travel_Time__min_Berlin_BASELINE_13.png" alt="fixed_shortcut_trend_Client_Travel_Time__min_Berlin_BASELINE_13.png">
+              <span><strong>fixed_shortcut_trend_Client_Travel_Time__min_Berlin_BASELINE_13.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR_14.png">
+              <img src="plots/fixed_shortcut_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR_14.png" alt="fixed_shortcut_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR_14.png">
+              <span><strong>fixed_shortcut_trend_Client_Travel_Time__min_Berlin_RUSH_HOUR_14.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=nearest, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE_15.png">
+              <img src="plots/fixed_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE_15.png" alt="fixed_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE_15.png">
+              <span><strong>fixed_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_IMBALANCE_15.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS_16.png">
+              <img src="plots/fixed_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS_16.png" alt="fixed_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS_16.png">
+              <span><strong>fixed_shortcut_trend_Client_Travel_Time__min_Berlin_SPATIAL_ISLANDS_16.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=greedy, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_BASELINE_17.png">
+              <img src="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_BASELINE_17.png" alt="fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_BASELINE_17.png">
+              <span><strong>fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_BASELINE_17.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR_18.png">
+              <img src="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR_18.png" alt="fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR_18.png">
+              <span><strong>fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_RUSH_HOUR_18.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE_19.png">
+              <img src="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE_19.png" alt="fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE_19.png">
+              <span><strong>fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_IMBALANCE_19.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS_20.png">
+              <img src="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS_20.png" alt="fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS_20.png">
+              <span><strong>fixed_shortcut_trend_Client_Waiting_Time__min_Konstanz_SPATIAL_ISLANDS_20.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_BASELINE_21.png">
+              <img src="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_BASELINE_21.png" alt="fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_BASELINE_21.png">
+              <span><strong>fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_BASELINE_21.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR_22.png">
+              <img src="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR_22.png" alt="fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR_22.png">
+              <span><strong>fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_RUSH_HOUR_22.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=nearest, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE_23.png">
+              <img src="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE_23.png" alt="fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE_23.png">
+              <span><strong>fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_IMBALANCE_23.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS_24.png">
+              <img src="plots/fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS_24.png" alt="fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS_24.png">
+              <span><strong>fixed_shortcut_trend_Client_Waiting_Time__min_Berlin_SPATIAL_ISLANDS_24.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=greedy, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Custom_Time__micros_Konstanz_BASELINE_25.png">
+              <img src="plots/fixed_shortcut_trend_Custom_Time__micros_Konstanz_BASELINE_25.png" alt="fixed_shortcut_trend_Custom_Time__micros_Konstanz_BASELINE_25.png">
+              <span><strong>fixed_shortcut_trend_Custom_Time__micros_Konstanz_BASELINE_25.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Custom_Time__micros_Konstanz_RUSH_HOUR_26.png">
+              <img src="plots/fixed_shortcut_trend_Custom_Time__micros_Konstanz_RUSH_HOUR_26.png" alt="fixed_shortcut_trend_Custom_Time__micros_Konstanz_RUSH_HOUR_26.png">
+              <span><strong>fixed_shortcut_trend_Custom_Time__micros_Konstanz_RUSH_HOUR_26.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=nearest, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE_27.png">
+              <img src="plots/fixed_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE_27.png" alt="fixed_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE_27.png">
+              <span><strong>fixed_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_IMBALANCE_27.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS_28.png">
+              <img src="plots/fixed_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS_28.png" alt="fixed_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS_28.png">
+              <span><strong>fixed_shortcut_trend_Custom_Time__micros_Konstanz_SPATIAL_ISLANDS_28.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Custom_Time__micros_Berlin_BASELINE_29.png">
+              <img src="plots/fixed_shortcut_trend_Custom_Time__micros_Berlin_BASELINE_29.png" alt="fixed_shortcut_trend_Custom_Time__micros_Berlin_BASELINE_29.png">
+              <span><strong>fixed_shortcut_trend_Custom_Time__micros_Berlin_BASELINE_29.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=nearest, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Custom_Time__micros_Berlin_RUSH_HOUR_30.png">
+              <img src="plots/fixed_shortcut_trend_Custom_Time__micros_Berlin_RUSH_HOUR_30.png" alt="fixed_shortcut_trend_Custom_Time__micros_Berlin_RUSH_HOUR_30.png">
+              <span><strong>fixed_shortcut_trend_Custom_Time__micros_Berlin_RUSH_HOUR_30.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=nearest, roam=past-avg-revisit</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE_31.png">
+              <img src="plots/fixed_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE_31.png" alt="fixed_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE_31.png">
+              <span><strong>fixed_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_IMBALANCE_31.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=nearest, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS_32.png">
+              <img src="plots/fixed_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS_32.png" alt="fixed_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS_32.png">
+              <span><strong>fixed_shortcut_trend_Custom_Time__micros_Berlin_SPATIAL_ISLANDS_32.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=nearest, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Simulation_Time__millis_Konstanz_BASELINE_33.png">
+              <img src="plots/fixed_shortcut_trend_Simulation_Time__millis_Konstanz_BASELINE_33.png" alt="fixed_shortcut_trend_Simulation_Time__millis_Konstanz_BASELINE_33.png">
+              <span><strong>fixed_shortcut_trend_Simulation_Time__millis_Konstanz_BASELINE_33.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=nearest, roam=random</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR_34.png">
+              <img src="plots/fixed_shortcut_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR_34.png" alt="fixed_shortcut_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR_34.png">
+              <span><strong>fixed_shortcut_trend_Simulation_Time__millis_Konstanz_RUSH_HOUR_34.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=nearest, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE_35.png">
+              <img src="plots/fixed_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE_35.png" alt="fixed_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE_35.png">
+              <span><strong>fixed_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_IMBALANCE_35.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=nearest, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS_36.png">
+              <img src="plots/fixed_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS_36.png" alt="fixed_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS_36.png">
+              <span><strong>fixed_shortcut_trend_Simulation_Time__millis_Konstanz_SPATIAL_ISLANDS_36.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=nearest, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Simulation_Time__millis_Berlin_BASELINE_37.png">
+              <img src="plots/fixed_shortcut_trend_Simulation_Time__millis_Berlin_BASELINE_37.png" alt="fixed_shortcut_trend_Simulation_Time__millis_Berlin_BASELINE_37.png">
+              <span><strong>fixed_shortcut_trend_Simulation_Time__millis_Berlin_BASELINE_37.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Simulation_Time__millis_Berlin_RUSH_HOUR_38.png">
+              <img src="plots/fixed_shortcut_trend_Simulation_Time__millis_Berlin_RUSH_HOUR_38.png" alt="fixed_shortcut_trend_Simulation_Time__millis_Berlin_RUSH_HOUR_38.png">
+              <span><strong>fixed_shortcut_trend_Simulation_Time__millis_Berlin_RUSH_HOUR_38.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=nearest, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE_39.png">
+              <img src="plots/fixed_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE_39.png" alt="fixed_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE_39.png">
+              <span><strong>fixed_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_IMBALANCE_39.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=greedy, roam=past-avg</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS_40.png">
+              <img src="plots/fixed_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS_40.png" alt="fixed_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS_40.png">
+              <span><strong>fixed_shortcut_trend_Simulation_Time__millis_Berlin_SPATIAL_ISLANDS_40.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=3000, strategy=nearest, roam=past-avg-total</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE_41.png">
+              <img src="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE_41.png" alt="fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE_41.png">
+              <span><strong>fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_BASELINE_41.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR_42.png">
+              <img src="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR_42.png" alt="fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR_42.png">
+              <span><strong>fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_RUSH_HOUR_42.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE_43.png">
+              <img src="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE_43.png" alt="fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE_43.png">
+              <span><strong>fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_IMBALANCE_43.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS_44.png">
+              <img src="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS_44.png" alt="fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS_44.png">
+              <span><strong>fixed_shortcut_trend_Taxi_Travel_Distance__km_Konstanz_SPATIAL_ISLANDS_44.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_BASELINE_45.png">
+              <img src="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_BASELINE_45.png" alt="fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_BASELINE_45.png">
+              <span><strong>fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_BASELINE_45.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR_46.png">
+              <img src="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR_46.png" alt="fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR_46.png">
+              <span><strong>fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_RUSH_HOUR_46.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE_47.png">
+              <img src="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE_47.png" alt="fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE_47.png">
+              <span><strong>fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_IMBALANCE_47.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=none</small></span>
+            </a>
+
+            <a class="plot" href="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS_48.png">
+              <img src="plots/fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS_48.png" alt="fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS_48.png">
+              <span><strong>fixed_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS_48.png</strong><small>Varied plotted parameters around the matched best P2P config; averages only repeated runs. r=1000, strategy=greedy, roam=none</small></span>
+            </a></div></section>
+<section class="plot-group"><h3>Time windows</h3><div class="plots">
+            <a class="plot" href="plots/time_windows_Konstanz_BASELINE.png">
+              <img src="plots/time_windows_Konstanz_BASELINE.png" alt="time_windows_Konstanz_BASELINE.png">
+              <span><strong>time_windows_Konstanz_BASELINE.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+            </a>
+
+            <a class="plot" href="plots/time_windows_Konstanz_RUSH_HOUR.png">
+              <img src="plots/time_windows_Konstanz_RUSH_HOUR.png" alt="time_windows_Konstanz_RUSH_HOUR.png">
+              <span><strong>time_windows_Konstanz_RUSH_HOUR.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+            </a>
+
+            <a class="plot" href="plots/time_windows_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/time_windows_Konstanz_SPATIAL_IMBALANCE.png" alt="time_windows_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>time_windows_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+            </a>
+
+            <a class="plot" href="plots/time_windows_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/time_windows_Konstanz_SPATIAL_ISLANDS.png" alt="time_windows_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>time_windows_Konstanz_SPATIAL_ISLANDS.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+            </a>
+
+            <a class="plot" href="plots/time_windows_Berlin_BASELINE.png">
+              <img src="plots/time_windows_Berlin_BASELINE.png" alt="time_windows_Berlin_BASELINE.png">
+              <span><strong>time_windows_Berlin_BASELINE.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+            </a>
+
+            <a class="plot" href="plots/time_windows_Berlin_RUSH_HOUR.png">
+              <img src="plots/time_windows_Berlin_RUSH_HOUR.png" alt="time_windows_Berlin_RUSH_HOUR.png">
+              <span><strong>time_windows_Berlin_RUSH_HOUR.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+            </a>
+
+            <a class="plot" href="plots/time_windows_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/time_windows_Berlin_SPATIAL_IMBALANCE.png" alt="time_windows_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>time_windows_Berlin_SPATIAL_IMBALANCE.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+            </a>
+
+            <a class="plot" href="plots/time_windows_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/time_windows_Berlin_SPATIAL_ISLANDS.png" alt="time_windows_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>time_windows_Berlin_SPATIAL_ISLANDS.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+            </a></div></section>
+<section class="plot-group"><h3>Spatial maps</h3><div class="plots">
+            <a class="plot" href="plots/spatial_waits_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/spatial_waits_Konstanz_SPATIAL_IMBALANCE.png" alt="spatial_waits_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>spatial_waits_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Heatmap aggregated by algorithm and roaming mode; no raw request rows retained.</small></span>
+            </a>
+
+            <a class="plot" href="plots/spatial_completion_Konstanz_SPATIAL_IMBALANCE.png">
+              <img src="plots/spatial_completion_Konstanz_SPATIAL_IMBALANCE.png" alt="spatial_completion_Konstanz_SPATIAL_IMBALANCE.png">
+              <span><strong>spatial_completion_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Heatmap aggregated by algorithm and roaming mode; no raw request rows retained.</small></span>
+            </a>
+
+            <a class="plot" href="plots/spatial_waits_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/spatial_waits_Konstanz_SPATIAL_ISLANDS.png" alt="spatial_waits_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>spatial_waits_Konstanz_SPATIAL_ISLANDS.png</strong><small>Heatmap aggregated by algorithm and roaming mode; no raw request rows retained.</small></span>
+            </a>
+
+            <a class="plot" href="plots/spatial_completion_Konstanz_SPATIAL_ISLANDS.png">
+              <img src="plots/spatial_completion_Konstanz_SPATIAL_ISLANDS.png" alt="spatial_completion_Konstanz_SPATIAL_ISLANDS.png">
+              <span><strong>spatial_completion_Konstanz_SPATIAL_ISLANDS.png</strong><small>Heatmap aggregated by algorithm and roaming mode; no raw request rows retained.</small></span>
+            </a>
+
+            <a class="plot" href="plots/spatial_waits_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/spatial_waits_Berlin_SPATIAL_IMBALANCE.png" alt="spatial_waits_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>spatial_waits_Berlin_SPATIAL_IMBALANCE.png</strong><small>Heatmap aggregated by algorithm and roaming mode; no raw request rows retained.</small></span>
+            </a>
+
+            <a class="plot" href="plots/spatial_completion_Berlin_SPATIAL_IMBALANCE.png">
+              <img src="plots/spatial_completion_Berlin_SPATIAL_IMBALANCE.png" alt="spatial_completion_Berlin_SPATIAL_IMBALANCE.png">
+              <span><strong>spatial_completion_Berlin_SPATIAL_IMBALANCE.png</strong><small>Heatmap aggregated by algorithm and roaming mode; no raw request rows retained.</small></span>
+            </a>
+
+            <a class="plot" href="plots/spatial_waits_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/spatial_waits_Berlin_SPATIAL_ISLANDS.png" alt="spatial_waits_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>spatial_waits_Berlin_SPATIAL_ISLANDS.png</strong><small>Heatmap aggregated by algorithm and roaming mode; no raw request rows retained.</small></span>
+            </a>
+
+            <a class="plot" href="plots/spatial_completion_Berlin_SPATIAL_ISLANDS.png">
+              <img src="plots/spatial_completion_Berlin_SPATIAL_ISLANDS.png" alt="spatial_completion_Berlin_SPATIAL_ISLANDS.png">
+              <span><strong>spatial_completion_Berlin_SPATIAL_ISLANDS.png</strong><small>Heatmap aggregated by algorithm and roaming mode; no raw request rows retained.</small></span>
+            </a></div></section>
+    </section>
+  </main>
+</div>
+</body>
+</html>

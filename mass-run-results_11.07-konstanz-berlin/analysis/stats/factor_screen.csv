@@ -1,0 +1,241 @@
+metric,taxiCount,clientCount,spawnScenario,factor,F,pValue,note
+Calculation Time [millis],39,638,BASELINE,kHops,4.507643639105626,0.011086753881330007,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,BASELINE,p2pRqsRadius,3902.224075842392,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,BASELINE,p2pStrategy,0.04558501619377475,0.8309440337360806,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,BASELINE,p2pOverlayShortcuts,0.19628020571321872,0.6577668951240062,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,BASELINE,idleRoamingMode,138.8183844370657,1.8145043110468308e-110,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,RUSH_HOUR,kHops,9.06084302928841,0.00011879691299971379,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,RUSH_HOUR,p2pRqsRadius,6535.347008360752,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,RUSH_HOUR,p2pStrategy,0.0020018724050754294,0.9643152087450952,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,RUSH_HOUR,p2pOverlayShortcuts,0.023532355211380307,0.878089403577183,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,RUSH_HOUR,idleRoamingMode,77.32862961484621,5.291227586886311e-63,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_IMBALANCE,kHops,3.381509474960733,0.03410420715398776,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_IMBALANCE,p2pRqsRadius,941.7191841033516,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_IMBALANCE,p2pStrategy,0.05228031931877482,0.8191548089938956,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_IMBALANCE,p2pOverlayShortcuts,0.0442499635113825,0.8334011547885174,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_IMBALANCE,idleRoamingMode,640.3776078395299,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_ISLANDS,kHops,8.865805011112883,0.00014424110422494695,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_ISLANDS,p2pRqsRadius,608.1425583012309,3.073840708809691e-228,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_ISLANDS,p2pStrategy,0.009325400647981843,0.9230747577126276,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_ISLANDS,p2pOverlayShortcuts,0.007919954626967344,0.9290915306705795,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],39,638,SPATIAL_ISLANDS,idleRoamingMode,1190.7016686724673,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,BASELINE,kHops,114.62249010772133,5.521352369930849e-49,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,BASELINE,p2pRqsRadius,2127.431992487118,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,BASELINE,p2pStrategy,0.16461122107673876,0.6849702038970473,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,BASELINE,p2pOverlayShortcuts,0.017393034725752588,0.8950844819826661,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,BASELINE,idleRoamingMode,368.4361734493727,3.3828658831800894e-266,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,RUSH_HOUR,kHops,740.4155717099059,4.972055887705533e-270,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,RUSH_HOUR,p2pRqsRadius,132.18534069546226,4.0206763056338244e-56,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,RUSH_HOUR,p2pStrategy,0.57772692341988,0.4472544769126333,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,RUSH_HOUR,p2pOverlayShortcuts,172.03680966602462,1.9955454732620002e-38,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,RUSH_HOUR,idleRoamingMode,195.12343910293615,1.3488738378915746e-151,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_IMBALANCE,kHops,398.3491063676846,5.3545190905966835e-157,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_IMBALANCE,p2pRqsRadius,79.02314980083392,2.589805699069247e-34,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_IMBALANCE,p2pStrategy,0.01597969507325157,0.8994138020265484,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_IMBALANCE,p2pOverlayShortcuts,13.124175474197987,0.00029553585106171024,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_IMBALANCE,idleRoamingMode,1122.6028333187082,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_ISLANDS,kHops,934.9218456829208,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_ISLANDS,p2pRqsRadius,179.81973524930092,3.6915160105715964e-75,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_ISLANDS,p2pStrategy,0.05677986647280647,0.8116734200059785,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_ISLANDS,p2pOverlayShortcuts,13.514659579248345,0.00024016211049234374,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Calculation Time [millis],1685,27762,SPATIAL_ISLANDS,idleRoamingMode,226.86606753298707,7.114412296983607e-174,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,BASELINE,kHops,0.007747576105602857,0.9922823755626752,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,BASELINE,p2pRqsRadius,308.7681391684552,1.763470957368134e-124,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,BASELINE,p2pStrategy,7.674374972401619e-32,1.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,BASELINE,p2pOverlayShortcuts,0.016259406190287855,0.8985420037588484,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,BASELINE,idleRoamingMode,379.57314126582634,5.099122154002377e-273,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,RUSH_HOUR,kHops,0.13768992476603112,0.8713734322123265,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,RUSH_HOUR,p2pRqsRadius,496.6039159322356,3.575992554802847e-191,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,RUSH_HOUR,p2pStrategy,3.184898387727495e-05,0.9954974829114609,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,RUSH_HOUR,p2pOverlayShortcuts,0.07251655494574619,0.7877227525971812,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,RUSH_HOUR,idleRoamingMode,271.81097223825856,2.2347180199448868e-204,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_IMBALANCE,kHops,0.12184627080629949,0.8852881059358904,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_IMBALANCE,p2pRqsRadius,340.1454142144502,5.032985410825201e-136,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_IMBALANCE,p2pStrategy,8.664745731531966e-32,1.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_IMBALANCE,p2pOverlayShortcuts,0.001684676685572979,0.9672624475617523,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_IMBALANCE,idleRoamingMode,662.478237982064,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_ISLANDS,kHops,0.20145291851164607,0.8175512910616913,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_ISLANDS,p2pRqsRadius,373.7411765688881,3.367572632136595e-148,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_ISLANDS,p2pStrategy,1.1861460637803129e-06,0.9991310817969208,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_ISLANDS,p2pOverlayShortcuts,0.14867966398240956,0.6998231202525464,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],39,638,SPATIAL_ISLANDS,idleRoamingMode,756.8144057626754,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,BASELINE,kHops,0.04685680268158581,0.9542246125652274,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,BASELINE,p2pRqsRadius,362.4466521976053,3.9729619948449285e-144,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,BASELINE,p2pStrategy,1.377244649921384e-05,0.9970391634581056,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,BASELINE,p2pOverlayShortcuts,0.07645497958404585,0.7821761508642012,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,BASELINE,idleRoamingMode,518.2182458197722,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,RUSH_HOUR,kHops,13.061994821753027,2.2271441157916026e-06,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,RUSH_HOUR,p2pRqsRadius,270.1111221323249,5.105153397679113e-110,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,RUSH_HOUR,p2pStrategy,0.013455281917898758,0.9076614682742735,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,RUSH_HOUR,p2pOverlayShortcuts,14.068348643122794,0.00017906139612881234,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,RUSH_HOUR,idleRoamingMode,1927.7173788793639,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_IMBALANCE,kHops,9.372677472767824,8.710993010651775e-05,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_IMBALANCE,p2pRqsRadius,42.041012351768956,8.952615849103174e-19,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_IMBALANCE,p2pStrategy,5.008189164641867e-06,0.9982145410219859,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_IMBALANCE,p2pOverlayShortcuts,13.687951092949648,0.00021906188304541448,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_IMBALANCE,idleRoamingMode,11244.3970901713,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_ISLANDS,kHops,23.499933980919845,7.247868900721052e-11,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_ISLANDS,p2pRqsRadius,96.48438895523692,1.52297528481604e-41,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_ISLANDS,p2pStrategy,2.081500877045415e-05,0.9963600394541592,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_ISLANDS,p2pOverlayShortcuts,43.03115171152065,6.157149050016943e-11,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Travel Time [min],1685,27762,SPATIAL_ISLANDS,idleRoamingMode,6291.2202586288895,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,BASELINE,kHops,0.0018217342785360408,0.9981799249931803,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,BASELINE,p2pRqsRadius,348.4327624098012,4.7968895132717295e-139,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,BASELINE,p2pStrategy,3.796814848535864e-32,1.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,BASELINE,p2pOverlayShortcuts,0.011825660197211822,0.9134101372468443,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,BASELINE,idleRoamingMode,389.8250357861649,3.0195765334184105e-279,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,RUSH_HOUR,kHops,0.07213420497469064,0.930407368185936,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,RUSH_HOUR,p2pRqsRadius,599.259935070793,2.3761851629996255e-225,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,RUSH_HOUR,p2pStrategy,1.1095212573252453e-06,0.9991596163101716,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,RUSH_HOUR,p2pOverlayShortcuts,0.048875285168174215,0.8250445913236735,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,RUSH_HOUR,idleRoamingMode,275.00093707132095,1.6928257816917134e-206,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_IMBALANCE,kHops,0.1355443140006379,0.8732449252973931,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_IMBALANCE,p2pRqsRadius,331.8019933891564,5.6882571734960085e-133,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_IMBALANCE,p2pStrategy,0.0,1.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_IMBALANCE,p2pOverlayShortcuts,0.0024677313721220774,0.9603831276654013,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_IMBALANCE,idleRoamingMode,698.7827774658662,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_ISLANDS,kHops,0.21777527440935687,0.804316773444786,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_ISLANDS,p2pRqsRadius,342.1177828207735,9.58973989410607e-137,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_ISLANDS,p2pStrategy,2.769549593837518e-06,0.9986722563041037,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_ISLANDS,p2pOverlayShortcuts,0.13915850034336982,0.7091409886478972,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],39,638,SPATIAL_ISLANDS,idleRoamingMode,846.3837548973652,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,BASELINE,kHops,0.06686077178368958,0.9353265783583813,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,BASELINE,p2pRqsRadius,381.6121867289871,5.0376940400811545e-151,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,BASELINE,p2pStrategy,1.8694033855952812e-05,0.9965504690529428,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,BASELINE,p2pOverlayShortcuts,0.1234701608630801,0.7253214508876453,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,BASELINE,idleRoamingMode,515.6669355009783,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,RUSH_HOUR,kHops,9.739232505107031,6.049454357459447e-05,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,RUSH_HOUR,p2pRqsRadius,232.93190839360753,7.482522194388338e-96,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,RUSH_HOUR,p2pStrategy,0.011012382776714296,0.9164293468737224,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,RUSH_HOUR,p2pOverlayShortcuts,11.28499643961083,0.0007894939932273897,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,RUSH_HOUR,idleRoamingMode,2506.591454773547,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_IMBALANCE,kHops,7.585841708336338,0.0005157499518989051,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_IMBALANCE,p2pRqsRadius,28.006513092801267,8.524260441348406e-13,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_IMBALANCE,p2pStrategy,8.04716223368657e-05,0.9928430919439414,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_IMBALANCE,p2pOverlayShortcuts,11.293945771656707,0.0007857094423366713,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_IMBALANCE,idleRoamingMode,16226.183325472555,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_ISLANDS,kHops,22.5177441030355,1.9115329564456183e-10,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_ISLANDS,p2pRqsRadius,124.79455185216746,3.981589177264005e-53,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_ISLANDS,p2pStrategy,0.00016253825110746386,0.9898287130059324,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_ISLANDS,p2pOverlayShortcuts,39.30019293268197,4.0643945088159847e-10,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Client Waiting Time [min],1685,27762,SPATIAL_ISLANDS,idleRoamingMode,6029.32296630714,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,BASELINE,kHops,54.11183304928838,7.01659283609494e-24,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,BASELINE,p2pRqsRadius,802.0072242032752,9.429769235723735e-289,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,BASELINE,p2pStrategy,0.14976261750145786,0.6987851999021122,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,BASELINE,p2pOverlayShortcuts,0.02482825955283783,0.8748045998468366,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,BASELINE,idleRoamingMode,3.175691578637478,0.012928170737092164,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,RUSH_HOUR,kHops,54.66442608711275,4.1037658888954744e-24,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,RUSH_HOUR,p2pRqsRadius,534.4099510540576,6.193285290638006e-204,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,RUSH_HOUR,p2pStrategy,0.10072922917025477,0.7509746950387448,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,RUSH_HOUR,p2pOverlayShortcuts,6.94135747074208,0.008458619518576955,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,RUSH_HOUR,idleRoamingMode,3.182311648621797,0.012781610425848655,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_IMBALANCE,kHops,26.502898752904308,3.749039880937644e-12,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_IMBALANCE,p2pRqsRadius,288.01963354936566,9.442951364723242e-117,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_IMBALANCE,p2pStrategy,0.02518640642263647,0.873912366546758,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_IMBALANCE,p2pOverlayShortcuts,1.1502870815802664,0.28356099068340485,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_IMBALANCE,idleRoamingMode,21.63721037514046,1.161120721184886e-17,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_ISLANDS,kHops,44.29696214165614,9.889371355813824e-20,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_ISLANDS,p2pRqsRadius,297.5414922257845,2.6227334957797043e-120,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_ISLANDS,p2pStrategy,0.5745376820988634,0.4485110174035951,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_ISLANDS,p2pOverlayShortcuts,7.483601101578659,0.006256884389662383,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],39,638,SPATIAL_ISLANDS,idleRoamingMode,91.91138382499274,1.6407005248685146e-74,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,BASELINE,kHops,732.5432929057209,1.324789464404016e-267,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,BASELINE,p2pRqsRadius,1785.3371990632932,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,BASELINE,p2pStrategy,0.8052183190204181,0.3695977812920368,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,BASELINE,p2pOverlayShortcuts,21.95076470371969,2.900863397523922e-06,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,BASELINE,idleRoamingMode,61.555389461278146,2.240637887283437e-50,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,RUSH_HOUR,kHops,743.5307668485447,5.479698835240521e-271,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,RUSH_HOUR,p2pRqsRadius,554.2177424067066,1.5420386182061628e-210,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,RUSH_HOUR,p2pStrategy,0.3505822911048427,0.5538208978982928,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,RUSH_HOUR,p2pOverlayShortcuts,208.6207138401924,5.196214985876902e-46,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,RUSH_HOUR,idleRoamingMode,13.868689837259689,3.146564359880989e-11,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_IMBALANCE,kHops,538.1378569793944,3.505756934762898e-205,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_IMBALANCE,p2pRqsRadius,934.924123333705,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_IMBALANCE,p2pStrategy,0.05383970154856,0.8165249285745776,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_IMBALANCE,p2pOverlayShortcuts,63.99332468695441,1.668360468725012e-15,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_IMBALANCE,idleRoamingMode,35.40971388502592,4.7166976688844654e-29,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_ISLANDS,kHops,549.5381449484491,5.536325767367713e-209,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_ISLANDS,p2pRqsRadius,560.185501190885,1.619451178090338e-212,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_ISLANDS,p2pStrategy,0.01793324328955211,0.8934772310034313,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_ISLANDS,p2pOverlayShortcuts,75.05655403918665,6.798950624264145e-18,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Custom Time [micros],1685,27762,SPATIAL_ISLANDS,idleRoamingMode,30.19941277835499,9.424045213814152e-25,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,BASELINE,kHops,74.39288783946607,2.197388288400282e-32,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,BASELINE,p2pRqsRadius,3294.5677759498217,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,BASELINE,p2pStrategy,0.010008973475270442,0.9203142868615368,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,BASELINE,p2pOverlayShortcuts,0.07788292760618416,0.7802032086022439,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,BASELINE,idleRoamingMode,139.94202276741186,2.611154099763835e-111,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,RUSH_HOUR,kHops,141.22333598989474,9.04517028411949e-60,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,RUSH_HOUR,p2pRqsRadius,4373.184872236674,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,RUSH_HOUR,p2pStrategy,0.12211607416142595,0.7267711237242676,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,RUSH_HOUR,p2pOverlayShortcuts,8.919790555979632e-05,0.992465043386064,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,RUSH_HOUR,idleRoamingMode,74.8175114836384,5.264434296940027e-61,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_IMBALANCE,kHops,45.47144314671258,3.144254267686476e-20,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_IMBALANCE,p2pRqsRadius,822.8614141710545,5.442471963137575e-295,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_IMBALANCE,p2pStrategy,0.5491151785658219,0.4587278155699255,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_IMBALANCE,p2pOverlayShortcuts,0.17248830741022494,0.6779345373106844,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_IMBALANCE,idleRoamingMode,612.1892310562588,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_ISLANDS,kHops,85.79414894304048,3.994790826446774e-37,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_ISLANDS,p2pRqsRadius,483.2344012179222,1.3081738532162032e-186,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_ISLANDS,p2pStrategy,0.10214558284485081,0.7492884421533309,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_ISLANDS,p2pOverlayShortcuts,0.17247041344713357,0.6779503045236135,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],39,638,SPATIAL_ISLANDS,idleRoamingMode,964.3830052258347,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,BASELINE,kHops,273.59997920206496,2.4647610047353247e-111,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,BASELINE,p2pRqsRadius,1970.3718179607672,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,BASELINE,p2pStrategy,0.16883255619121168,0.6811759120086481,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,BASELINE,p2pOverlayShortcuts,0.005586200007046271,0.9404250314563003,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,BASELINE,idleRoamingMode,268.4663404374693,3.791559847570266e-202,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,RUSH_HOUR,kHops,851.8551135252187,1.3933634997004285e-303,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,RUSH_HOUR,p2pRqsRadius,100.89943739554361,2.31742463710489e-43,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,RUSH_HOUR,p2pStrategy,0.6168120949020656,0.43228611613214574,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,RUSH_HOUR,p2pOverlayShortcuts,160.33007901877866,5.550949991658223e-36,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,RUSH_HOUR,idleRoamingMode,210.39505747898176,2.1545707897609128e-162,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_IMBALANCE,kHops,545.1213327552548,1.6363072846482562e-207,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_IMBALANCE,p2pRqsRadius,64.93324190190496,1.9814879781155982e-28,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_IMBALANCE,p2pStrategy,0.03301411743505178,0.8558300695283958,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_IMBALANCE,p2pOverlayShortcuts,12.115465399648475,0.0005059972841398022,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_IMBALANCE,idleRoamingMode,994.1467286986256,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_ISLANDS,kHops,1391.9227963567735,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_ISLANDS,p2pRqsRadius,151.29487144242788,8.153627927068059e-64,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_ISLANDS,p2pStrategy,0.06276361328761834,0.8021943853133278,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_ISLANDS,p2pOverlayShortcuts,12.855760406642691,0.0003409116048948139,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Simulation Time [millis],1685,27762,SPATIAL_ISLANDS,idleRoamingMode,159.11495519697243,1.5351232029405746e-125,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,BASELINE,kHops,0.022737507254664297,0.9775191822532091,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,BASELINE,p2pRqsRadius,254.08825185439414,6.047460334230566e-104,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,BASELINE,p2pStrategy,1.1401397129854193e-31,1.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,BASELINE,p2pOverlayShortcuts,0.0003881075674468113,0.984283427460856,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,BASELINE,idleRoamingMode,565.4480712001634,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,RUSH_HOUR,kHops,0.004115982919980923,0.9958924808185509,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,RUSH_HOUR,p2pRqsRadius,167.24915580160354,3.516788653782286e-70,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,RUSH_HOUR,p2pStrategy,1.600242366759426e-07,0.9996808442546713,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,RUSH_HOUR,p2pOverlayShortcuts,0.009302172614661498,0.9231703243372249,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,RUSH_HOUR,idleRoamingMode,644.5448846192867,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_IMBALANCE,kHops,0.004077024589328264,0.9959312797944345,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_IMBALANCE,p2pRqsRadius,93.5029252020921,2.5856311890740136e-40,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_IMBALANCE,p2pStrategy,1.7184008454571633e-32,1.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_IMBALANCE,p2pOverlayShortcuts,4.3864215382942776e-05,0.9947160111447059,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_IMBALANCE,idleRoamingMode,745.4594462817975,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_ISLANDS,kHops,0.06330448480898125,0.938658668930724,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_ISLANDS,p2pRqsRadius,86.15864630910035,2.8210904518530933e-37,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_ISLANDS,p2pStrategy,1.913872395454522e-08,0.9998896269112765,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_ISLANDS,p2pOverlayShortcuts,0.044516986395689344,0.8329066416226037,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],39,638,SPATIAL_ISLANDS,idleRoamingMode,804.329709835435,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,BASELINE,kHops,0.00047233481429605017,0.9995277767801598,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,BASELINE,p2pRqsRadius,6.576235970046036,0.001409892023119953,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,BASELINE,p2pStrategy,7.217660360038685e-07,0.9993221899252541,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,BASELINE,p2pOverlayShortcuts,0.007608727223956751,0.9304951226286765,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,BASELINE,idleRoamingMode,75897.8250667062,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,RUSH_HOUR,kHops,0.5386314889977734,0.5835933554116254,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,RUSH_HOUR,p2pRqsRadius,6.464684250001572,0.001575640525555484,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,RUSH_HOUR,p2pStrategy,0.0019076915717617445,0.9651641941220568,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,RUSH_HOUR,p2pOverlayShortcuts,0.6296792593477621,0.4275253146561143,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,RUSH_HOUR,idleRoamingMode,26914.64127517408,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_IMBALANCE,kHops,1.3570211483596848,0.25755822973399256,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_IMBALANCE,p2pRqsRadius,4.710393671222782,0.009056830994662613,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_IMBALANCE,p2pStrategy,2.79842252865493e-06,0.998665353321746,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_IMBALANCE,p2pOverlayShortcuts,2.2478086960500763,0.13389149293007538,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_IMBALANCE,idleRoamingMode,63019.93172328804,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_ISLANDS,kHops,4.109244326742503,0.016497325066536037,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_ISLANDS,p2pRqsRadius,9.889774868341236,5.20824410109737e-05,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_ISLANDS,p2pStrategy,3.271889714852605e-05,0.9954364076279599,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_ISLANDS,p2pOverlayShortcuts,7.876185153548992,0.005035947891915513,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality
+Taxi Travel Distance [km],1685,27762,SPATIAL_ISLANDS,idleRoamingMode,33668.16877081013,0.0,one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality

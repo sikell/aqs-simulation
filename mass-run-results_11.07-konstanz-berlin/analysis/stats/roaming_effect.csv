@@ -1,0 +1,97 @@
+metric,taxiCount,clientCount,spawnScenario,pairs,changed,maxAbsDiff,factor,valueA,valueB
+Calculation Time [millis],39,638,BASELINE,720,606,0.020999999999999998,idleRoamingMode,random,past-avg-revisit
+Calculation Time [millis],39,638,RUSH_HOUR,720,597,0.02,idleRoamingMode,random,past-avg-revisit
+Calculation Time [millis],39,638,SPATIAL_IMBALANCE,720,630,0.027,idleRoamingMode,random,past-avg-revisit
+Calculation Time [millis],39,638,SPATIAL_ISLANDS,720,699,0.026000000000000002,idleRoamingMode,random,past-avg-revisit
+Calculation Time [millis],1685,27762,BASELINE,720,720,3.41,idleRoamingMode,random,past-avg-revisit
+Calculation Time [millis],1685,27762,RUSH_HOUR,720,720,4.394,idleRoamingMode,random,past-avg-revisit
+Calculation Time [millis],1685,27762,SPATIAL_IMBALANCE,720,720,2.9110000000000014,idleRoamingMode,random,past-avg-revisit
+Calculation Time [millis],1685,27762,SPATIAL_ISLANDS,720,720,7.815999999999999,idleRoamingMode,random,past-avg-revisit
+Client Travel Time [min],39,638,BASELINE,720,720,5.766716666666667,idleRoamingMode,random,past-avg-revisit
+Client Travel Time [min],39,638,RUSH_HOUR,720,720,6.475233333333334,idleRoamingMode,random,past-avg-revisit
+Client Travel Time [min],39,638,SPATIAL_IMBALANCE,720,720,21.043366666666667,idleRoamingMode,random,past-avg-revisit
+Client Travel Time [min],39,638,SPATIAL_ISLANDS,720,720,31.074166666666667,idleRoamingMode,random,past-avg-revisit
+Client Travel Time [min],1685,27762,BASELINE,720,720,2.2974999999999994,idleRoamingMode,random,past-avg-revisit
+Client Travel Time [min],1685,27762,RUSH_HOUR,720,720,12.949833333333338,idleRoamingMode,random,past-avg-revisit
+Client Travel Time [min],1685,27762,SPATIAL_IMBALANCE,720,720,57.01589999999999,idleRoamingMode,random,past-avg-revisit
+Client Travel Time [min],1685,27762,SPATIAL_ISLANDS,720,720,90.95481666666664,idleRoamingMode,random,past-avg-revisit
+Client Waiting Time [min],39,638,BASELINE,720,720,5.257216666666666,idleRoamingMode,random,past-avg-revisit
+Client Waiting Time [min],39,638,RUSH_HOUR,720,720,6.113816666666666,idleRoamingMode,random,past-avg-revisit
+Client Waiting Time [min],39,638,SPATIAL_IMBALANCE,720,720,21.18378333333333,idleRoamingMode,random,past-avg-revisit
+Client Waiting Time [min],39,638,SPATIAL_ISLANDS,720,720,29.203883333333334,idleRoamingMode,random,past-avg-revisit
+Client Waiting Time [min],1685,27762,BASELINE,720,720,2.6500000000000004,idleRoamingMode,random,past-avg-revisit
+Client Waiting Time [min],1685,27762,RUSH_HOUR,720,720,11.908433333333337,idleRoamingMode,random,past-avg-revisit
+Client Waiting Time [min],1685,27762,SPATIAL_IMBALANCE,720,720,48.12891666666666,idleRoamingMode,random,past-avg-revisit
+Client Waiting Time [min],1685,27762,SPATIAL_ISLANDS,720,720,81.40990000000001,idleRoamingMode,random,past-avg-revisit
+Custom Time [micros],39,638,BASELINE,720,713,0.853,idleRoamingMode,random,past-avg-revisit
+Custom Time [micros],39,638,RUSH_HOUR,720,710,1.221,idleRoamingMode,random,past-avg-revisit
+Custom Time [micros],39,638,SPATIAL_IMBALANCE,720,717,5.623,idleRoamingMode,random,past-avg-revisit
+Custom Time [micros],39,638,SPATIAL_ISLANDS,720,719,1.081,idleRoamingMode,random,past-avg-revisit
+Custom Time [micros],1685,27762,BASELINE,720,720,148.24099999999999,idleRoamingMode,random,past-avg-revisit
+Custom Time [micros],1685,27762,RUSH_HOUR,720,720,2042.17,idleRoamingMode,random,past-avg-revisit
+Custom Time [micros],1685,27762,SPATIAL_IMBALANCE,720,720,1834.8720000000003,idleRoamingMode,random,past-avg-revisit
+Custom Time [micros],1685,27762,SPATIAL_ISLANDS,720,720,6433.810000000001,idleRoamingMode,random,past-avg-revisit
+Simulation Time [millis],39,638,BASELINE,720,665,0.022,idleRoamingMode,random,past-avg-revisit
+Simulation Time [millis],39,638,RUSH_HOUR,720,622,0.022,idleRoamingMode,random,past-avg-revisit
+Simulation Time [millis],39,638,SPATIAL_IMBALANCE,720,666,0.028,idleRoamingMode,random,past-avg-revisit
+Simulation Time [millis],39,638,SPATIAL_ISLANDS,720,699,0.027000000000000003,idleRoamingMode,random,past-avg-revisit
+Simulation Time [millis],1685,27762,BASELINE,720,720,3.9669999999999996,idleRoamingMode,random,past-avg-revisit
+Simulation Time [millis],1685,27762,RUSH_HOUR,720,720,4.867,idleRoamingMode,random,past-avg-revisit
+Simulation Time [millis],1685,27762,SPATIAL_IMBALANCE,720,720,2.4819999999999993,idleRoamingMode,random,past-avg-revisit
+Simulation Time [millis],1685,27762,SPATIAL_ISLANDS,720,720,7.7219999999999995,idleRoamingMode,random,past-avg-revisit
+Taxi Travel Distance [km],39,638,BASELINE,720,720,218.96649200000002,idleRoamingMode,random,past-avg-revisit
+Taxi Travel Distance [km],39,638,RUSH_HOUR,720,720,181.053782,idleRoamingMode,random,past-avg-revisit
+Taxi Travel Distance [km],39,638,SPATIAL_IMBALANCE,720,720,293.988882,idleRoamingMode,random,past-avg-revisit
+Taxi Travel Distance [km],39,638,SPATIAL_ISLANDS,720,720,322.995204,idleRoamingMode,random,past-avg-revisit
+Taxi Travel Distance [km],1685,27762,BASELINE,720,720,416.9323370000001,idleRoamingMode,random,past-avg-revisit
+Taxi Travel Distance [km],1685,27762,RUSH_HOUR,720,720,261.71819300000004,idleRoamingMode,random,past-avg-revisit
+Taxi Travel Distance [km],1685,27762,SPATIAL_IMBALANCE,720,720,672.364711,idleRoamingMode,random,past-avg-revisit
+Taxi Travel Distance [km],1685,27762,SPATIAL_ISLANDS,720,720,723.508746,idleRoamingMode,random,past-avg-revisit
+Calculation Time [millis],39,638,BASELINE,720,423,0.012,idleRoamingMode,past-avg,past-avg-total
+Calculation Time [millis],39,638,RUSH_HOUR,720,449,0.005000000000000001,idleRoamingMode,past-avg,past-avg-total
+Calculation Time [millis],39,638,SPATIAL_IMBALANCE,720,488,0.01,idleRoamingMode,past-avg,past-avg-total
+Calculation Time [millis],39,638,SPATIAL_ISLANDS,720,490,0.008,idleRoamingMode,past-avg,past-avg-total
+Calculation Time [millis],1685,27762,BASELINE,720,720,2.791,idleRoamingMode,past-avg,past-avg-total
+Calculation Time [millis],1685,27762,RUSH_HOUR,720,720,2.7959999999999994,idleRoamingMode,past-avg,past-avg-total
+Calculation Time [millis],1685,27762,SPATIAL_IMBALANCE,720,720,2.8590000000000004,idleRoamingMode,past-avg,past-avg-total
+Calculation Time [millis],1685,27762,SPATIAL_ISLANDS,720,720,5.833000000000001,idleRoamingMode,past-avg,past-avg-total
+Client Travel Time [min],39,638,BASELINE,720,720,0.35474999999999923,idleRoamingMode,past-avg,past-avg-total
+Client Travel Time [min],39,638,RUSH_HOUR,720,720,1.0500666666666678,idleRoamingMode,past-avg,past-avg-total
+Client Travel Time [min],39,638,SPATIAL_IMBALANCE,720,720,0.36948333333333316,idleRoamingMode,past-avg,past-avg-total
+Client Travel Time [min],39,638,SPATIAL_ISLANDS,720,720,0.8736166666666669,idleRoamingMode,past-avg,past-avg-total
+Client Travel Time [min],1685,27762,BASELINE,720,720,2.6670833333333377,idleRoamingMode,past-avg,past-avg-total
+Client Travel Time [min],1685,27762,RUSH_HOUR,720,720,1.4879000000000033,idleRoamingMode,past-avg,past-avg-total
+Client Travel Time [min],1685,27762,SPATIAL_IMBALANCE,720,720,4.871700000000001,idleRoamingMode,past-avg,past-avg-total
+Client Travel Time [min],1685,27762,SPATIAL_ISLANDS,720,720,35.31013333333333,idleRoamingMode,past-avg,past-avg-total
+Client Waiting Time [min],39,638,BASELINE,720,720,0.39156666666666684,idleRoamingMode,past-avg,past-avg-total
+Client Waiting Time [min],39,638,RUSH_HOUR,720,720,1.0111666666666665,idleRoamingMode,past-avg,past-avg-total
+Client Waiting Time [min],39,638,SPATIAL_IMBALANCE,720,720,0.4319000000000004,idleRoamingMode,past-avg,past-avg-total
+Client Waiting Time [min],39,638,SPATIAL_ISLANDS,720,720,0.9251333333333331,idleRoamingMode,past-avg,past-avg-total
+Client Waiting Time [min],1685,27762,BASELINE,720,720,3.055666666666668,idleRoamingMode,past-avg,past-avg-total
+Client Waiting Time [min],1685,27762,RUSH_HOUR,720,720,1.7390833333333333,idleRoamingMode,past-avg,past-avg-total
+Client Waiting Time [min],1685,27762,SPATIAL_IMBALANCE,720,720,5.370950000000001,idleRoamingMode,past-avg,past-avg-total
+Client Waiting Time [min],1685,27762,SPATIAL_ISLANDS,720,720,40.690666666666665,idleRoamingMode,past-avg,past-avg-total
+Custom Time [micros],39,638,BASELINE,720,699,0.74,idleRoamingMode,past-avg,past-avg-total
+Custom Time [micros],39,638,RUSH_HOUR,720,701,1.5939999999999999,idleRoamingMode,past-avg,past-avg-total
+Custom Time [micros],39,638,SPATIAL_IMBALANCE,720,709,1.8890000000000002,idleRoamingMode,past-avg,past-avg-total
+Custom Time [micros],39,638,SPATIAL_ISLANDS,720,711,1.1440000000000001,idleRoamingMode,past-avg,past-avg-total
+Custom Time [micros],1685,27762,BASELINE,720,720,124.56399999999996,idleRoamingMode,past-avg,past-avg-total
+Custom Time [micros],1685,27762,RUSH_HOUR,720,720,2799.568000000001,idleRoamingMode,past-avg,past-avg-total
+Custom Time [micros],1685,27762,SPATIAL_IMBALANCE,720,720,2420.779,idleRoamingMode,past-avg,past-avg-total
+Custom Time [micros],1685,27762,SPATIAL_ISLANDS,720,720,4900.956999999999,idleRoamingMode,past-avg,past-avg-total
+Simulation Time [millis],39,638,BASELINE,720,474,0.015,idleRoamingMode,past-avg,past-avg-total
+Simulation Time [millis],39,638,RUSH_HOUR,720,498,0.007000000000000001,idleRoamingMode,past-avg,past-avg-total
+Simulation Time [millis],39,638,SPATIAL_IMBALANCE,720,553,0.011,idleRoamingMode,past-avg,past-avg-total
+Simulation Time [millis],39,638,SPATIAL_ISLANDS,720,561,0.022000000000000006,idleRoamingMode,past-avg,past-avg-total
+Simulation Time [millis],1685,27762,BASELINE,720,719,3.154,idleRoamingMode,past-avg,past-avg-total
+Simulation Time [millis],1685,27762,RUSH_HOUR,720,720,2.987000000000002,idleRoamingMode,past-avg,past-avg-total
+Simulation Time [millis],1685,27762,SPATIAL_IMBALANCE,720,720,3.5900000000000007,idleRoamingMode,past-avg,past-avg-total
+Simulation Time [millis],1685,27762,SPATIAL_ISLANDS,720,720,5.577,idleRoamingMode,past-avg,past-avg-total
+Taxi Travel Distance [km],39,638,BASELINE,720,720,19.810640000000006,idleRoamingMode,past-avg,past-avg-total
+Taxi Travel Distance [km],39,638,RUSH_HOUR,720,720,31.76012800000001,idleRoamingMode,past-avg,past-avg-total
+Taxi Travel Distance [km],39,638,SPATIAL_IMBALANCE,720,720,20.601460000000003,idleRoamingMode,past-avg,past-avg-total
+Taxi Travel Distance [km],39,638,SPATIAL_ISLANDS,720,720,26.094222999999985,idleRoamingMode,past-avg,past-avg-total
+Taxi Travel Distance [km],1685,27762,BASELINE,720,720,128.01501299999995,idleRoamingMode,past-avg,past-avg-total
+Taxi Travel Distance [km],1685,27762,RUSH_HOUR,720,720,57.87908900000002,idleRoamingMode,past-avg,past-avg-total
+Taxi Travel Distance [km],1685,27762,SPATIAL_IMBALANCE,720,720,148.68453899999997,idleRoamingMode,past-avg,past-avg-total
+Taxi Travel Distance [km],1685,27762,SPATIAL_ISLANDS,720,720,180.82916700000004,idleRoamingMode,past-avg,past-avg-total
