@@ -205,7 +205,7 @@
 
     <section id="tables" class="panel">
       <h2>Tables</h2>
-      <div class="files"><a class="file" href="tables/best_p2p_vs_single.csv"><span>best_p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/p2p_vs_single.csv"><span>p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/request_tail_summary.csv"><span>request_tail_summary.csv</span><small>table</small></a><a class="file" href="tables/single_passenger.csv"><span>single_passenger.csv</span><small>table</small></a><a class="file" href="tables/summary.csv"><span>summary.csv</span><small>table</small></a><a class="file" href="tables/time_window_summary.csv"><span>time_window_summary.csv</span><small>table</small></a></div>
+      <div class="files"><a class="file" href="tables/architecture_roaming_control.csv"><span>architecture_roaming_control.csv</span><small>table</small></a><a class="file" href="tables/best_p2p_vs_single.csv"><span>best_p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/best_waiting_operational_cost.csv"><span>best_waiting_operational_cost.csv</span><small>table</small></a><a class="file" href="tables/crossover_seed_pass_rates.csv"><span>crossover_seed_pass_rates.csv</span><small>table</small></a><a class="file" href="tables/crossover_seed_robustness.csv"><span>crossover_seed_robustness.csv</span><small>table</small></a><a class="file" href="tables/crossover_travel_validation.csv"><span>crossover_travel_validation.csv</span><small>table</small></a><a class="file" href="tables/interaction_radius_k.csv"><span>interaction_radius_k.csv</span><small>table</small></a><a class="file" href="tables/interaction_radius_roaming.csv"><span>interaction_radius_roaming.csv</span><small>table</small></a><a class="file" href="tables/p2p_vs_single.csv"><span>p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/paired_seed_deltas.csv"><span>paired_seed_deltas.csv</span><small>table</small></a><a class="file" href="tables/request_tail_summary.csv"><span>request_tail_summary.csv</span><small>table</small></a><a class="file" href="tables/robust_config_ranking.csv"><span>robust_config_ranking.csv</span><small>table</small></a><a class="file" href="tables/robust_config_scenario_details.csv"><span>robust_config_scenario_details.csv</span><small>table</small></a><a class="file" href="tables/same_config_metrics.csv"><span>same_config_metrics.csv</span><small>table</small></a><a class="file" href="tables/single_passenger.csv"><span>single_passenger.csv</span><small>table</small></a><a class="file" href="tables/summary.csv"><span>summary.csv</span><small>table</small></a><a class="file" href="tables/time_window_summary.csv"><span>time_window_summary.csv</span><small>table</small></a></div>
     </section>
 
     <section id="stats" class="panel">
@@ -1169,6 +1169,46 @@
             <a class="plot" href="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png">
               <img src="plots/h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png" alt="h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png">
               <span><strong>h4_shortcut_trend_Taxi_Travel_Distance__km_Berlin_SPATIAL_ISLANDS.png</strong><small>Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary.</small></span>
+            </a></div></section>
+<section class="plot-group"><h3>Extended analysis</h3><div class="plots">
+            <a class="plot" href="plots/architecture_roaming_control.png">
+              <img src="plots/architecture_roaming_control.png" alt="architecture_roaming_control.png">
+              <span><strong>architecture_roaming_control.png</strong><small>Central reference and P2P roaming modes; P2P bars average only remaining P2P parameters.</small></span>
+            </a>
+
+            <a class="plot" href="plots/interaction_radius_roaming_waiting.png">
+              <img src="plots/interaction_radius_roaming_waiting.png" alt="interaction_radius_roaming_waiting.png">
+              <span><strong>interaction_radius_roaming_waiting.png</strong><small>Cells average only parameters not shown; values are relative to the matched central reference.</small></span>
+            </a>
+
+            <a class="plot" href="plots/interaction_radius_k_waiting.png">
+              <img src="plots/interaction_radius_k_waiting.png" alt="interaction_radius_k_waiting.png">
+              <span><strong>interaction_radius_k_waiting.png</strong><small>Cells average only parameters not shown; values are relative to the matched central reference.</small></span>
+            </a>
+
+            <a class="plot" href="plots/robust_config_scenario_regret.png">
+              <img src="plots/robust_config_scenario_regret.png" alt="robust_config_scenario_regret.png">
+              <span><strong>robust_config_scenario_regret.png</strong><small>One fixed parameter configuration across all city-scenario groups; lower is better.</small></span>
+            </a>
+
+            <a class="plot" href="plots/best_waiting_service_normalized_cost.png">
+              <img src="plots/best_waiting_service_normalized_cost.png" alt="best_waiting_service_normalized_cost.png">
+              <span><strong>best_waiting_service_normalized_cost.png</strong><small>Operational effort normalized by actually picked-up clients.</small></span>
+            </a>
+
+            <a class="plot" href="plots/best_waiting_paired_seed_uncertainty.png">
+              <img src="plots/best_waiting_paired_seed_uncertainty.png" alt="best_waiting_paired_seed_uncertainty.png">
+              <span><strong>best_waiting_paired_seed_uncertainty.png</strong><small>95% t intervals from paired world seeds for the mean-selected best waiting configuration.</small></span>
+            </a>
+
+            <a class="plot" href="plots/crossover_seed_robustness_5pct.png">
+              <img src="plots/crossover_seed_robustness_5pct.png" alt="crossover_seed_robustness_5pct.png">
+              <span><strong>crossover_seed_robustness_5pct.png</strong><small>Mean-based membership compared with paired-seed stability.</small></span>
+            </a>
+
+            <a class="plot" href="plots/crossover_client_travel_validation_5pct.png">
+              <img src="plots/crossover_client_travel_validation_5pct.png" alt="crossover_client_travel_validation_5pct.png">
+              <span><strong>crossover_client_travel_validation_5pct.png</strong><small>Existing crossover criteria compared with an added client-travel-time condition.</small></span>
             </a></div></section>
 <section class="plot-group"><h3>Interesting trends</h3><div class="plots">
             <a class="plot" href="plots/best_p2p_delta_trend_Calculation_Time__millis_BASELINE.png">
