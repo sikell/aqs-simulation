@@ -1367,72 +1367,154 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
     return files
 
 
-def plot_spatial_maps(request_df: pd.DataFrame, out: Path) -> list[dict[str, str]]:
+def plot_spatial_maps(
+    request_df: pd.DataFrame, summary: pd.DataFrame, out: Path
+) -> list[dict[str, str]]:
     if plt is None or request_df.empty:
         return []
     files = []
     spatial = request_df[request_df["spawnScenario"].str.contains("SPATIAL", case=False, na=False)].copy()
     if spatial.empty:
         spatial = request_df.copy()
-    for (taxi_count, client_count, scenario), sub in spatial.groupby(
+    spatial_cols = [
+        "taxiCount",
+        "clientCount",
+        "spawnScenario",
+        "algorithm",
+        "idleRoamingMode",
+        "zoneX",
+        "zoneY",
+    ]
+    grouped = (
+        spatial.groupby(spatial_cols, dropna=False)
+        .agg(requests=("requestCount", "sum"), waiting=("waitingTimeSum", "sum"))
+        .reset_index()
+    )
+    grouped["waitMean"] = grouped["waiting"] / grouped["requests"].where(grouped["requests"] != 0)
+    panel_cols = ["taxiCount", "clientCount", "spawnScenario", "algorithm", "idleRoamingMode"]
+    grouped["pickupShare"] = (
+        grouped["requests"] / grouped.groupby(panel_cols, dropna=False)["requests"].transform("sum") * 100.0
+    )
+    metric_norm = {
+        col: matplotlib.colors.PowerNorm(gamma=0.5, vmin=0, vmax=max(float(grouped[col].max()), 1.0))
+        for col in ["waitMean", "pickupShare"]
+        if grouped[col].notna().any()
+    }
+
+    pickup_rows = summary[summary["metric"].eq(WAITING_METRIC)].copy()
+    pickup_rows["unpickedCount"] = (pickup_rows["clientCount"] - pickup_rows["countMean"]).clip(lower=0)
+    pickup_rows["unpickedRatio"] = pickup_rows["unpickedCount"] / pickup_rows["clientCount"] * 100.0
+    unpicked = {
+        tuple(getattr(row, col) for col in panel_cols): (row.unpickedCount, row.unpickedRatio)
+        for row in pickup_rows.groupby(panel_cols, dropna=False)[["unpickedCount", "unpickedRatio"]]
+        .mean()
+        .reset_index()
+        .itertuples(index=False)
+    }
+
+    for (taxi_count, client_count, scenario), sub in grouped.groupby(
         ["taxiCount", "clientCount", "spawnScenario"], dropna=False
     ):
-        grouped = (
-            sub.groupby(["algorithm", "idleRoamingMode", "zoneX", "zoneY"], dropna=False)
-            .agg(
-                requests=("requestCount", "sum"),
-                finished=("finishedCount", "sum"),
-                waiting=("waitingTimeSum", "sum"),
-            )
-            .reset_index()
-        )
-        grouped["waitMean"] = grouped["waiting"] / grouped["requests"].where(grouped["requests"] != 0)
-        grouped["completionRatio"] = grouped["finished"] / grouped["requests"].where(grouped["requests"] != 0)
-        modes = list(dict.fromkeys(zip(grouped["algorithm"], grouped["idleRoamingMode"])))
+        modes = list(dict.fromkeys(zip(sub["algorithm"], sub["idleRoamingMode"])))
         modes = modes[:6]
         if not modes:
             continue
-        for value_col, label, filename in [
-            ("waitMean", "Waiting time [min]", "spatial_waits"),
-            ("completionRatio", "Completion ratio", "spatial_completion"),
+        for value_col, label, filename, normalized, note in [
+            (
+                "waitMean",
+                "Waiting time [min]",
+                "spatial_waits",
+                False,
+                "Each panel uses its own color scale. Titles show mean clients not picked up per run.",
+            ),
+            (
+                "waitMean",
+                "Waiting time [min]",
+                "spatial_waits_normalized",
+                True,
+                "Equal values use equal colors across every plot; square-root normalization preserves contrast in lower ranges. Titles show mean clients not picked up per run.",
+            ),
+            (
+                "pickupShare",
+                "Share of picked-up clients [%]",
+                "spatial_pickup_share",
+                False,
+                "Each panel uses its own color scale. Spatial share covers picked-up clients only; titles show the true mean unpicked total per run.",
+            ),
+            (
+                "pickupShare",
+                "Share of picked-up clients [%]",
+                "spatial_pickup_share_normalized",
+                True,
+                "Equal values use equal colors across every plot; square-root normalization preserves contrast in lower ranges. Spatial share covers picked-up clients only; titles show the true mean unpicked total per run.",
+            ),
         ]:
             fig, axes = plt.subplots(2, 3, figsize=(12, 7), squeeze=False)
             axes_flat = axes.ravel()
-            plotted = 0
+            used_axes = []
+            image = None
             for ax, (algorithm, mode) in zip(axes_flat, modes):
-                plot_df = grouped[
-                    grouped["algorithm"].eq(algorithm) & grouped["idleRoamingMode"].eq(mode)
+                plot_df = sub[
+                    sub["algorithm"].eq(algorithm) & sub["idleRoamingMode"].eq(mode)
                 ].dropna(subset=["zoneX", "zoneY", value_col])
                 if plot_df.empty:
                     ax.set_visible(False)
                     continue
                 grid = plot_df.pivot(index="zoneY", columns="zoneX", values=value_col).sort_index()
-                image = ax.imshow(grid, origin="lower", aspect="auto", cmap="viridis")
-                ax.set_title(f"{str(algorithm).replace('TaxiAlgorithm', '')}\n{mode}", fontsize=9)
+                image = ax.imshow(
+                    grid,
+                    origin="lower",
+                    aspect="auto",
+                    cmap="viridis",
+                    norm=metric_norm[value_col] if normalized else None,
+                )
+                missing = unpicked.get((taxi_count, client_count, scenario, algorithm, mode))
+                pickup_note = (
+                    f"\nNot picked up/run: {missing[0]:.1f} ({missing[1]:.1f}%)" if missing else ""
+                )
+                ax.set_title(
+                    f"{str(algorithm).replace('TaxiAlgorithm', '')}\n{mode}{pickup_note}",
+                    fontsize=9,
+                )
                 ax.set_xlabel("Zone X")
                 ax.set_ylabel("Zone Y")
-                fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
-                plotted += 1
-            for ax in axes_flat[plotted:]:
-                ax.set_visible(False)
-            if not plotted:
+                colorbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+                local_min = float(plot_df[value_col].min())
+                local_max = float(plot_df[value_col].max())
+                if normalized and local_min < local_max:
+                    colorbar.ax.set_ylim(local_min, local_max)
+                used_axes.append(ax)
+            for ax in axes_flat:
+                if ax not in used_axes:
+                    ax.set_visible(False)
+            if image is None:
                 plt.close(fig)
                 continue
-            fig.suptitle(f"{label} by origin zone | {city_label(taxi_count, client_count)} | {scenario}")
+            scale_label = "shared colors" if normalized else "local colors"
+            fig.suptitle(
+                f"{label} by origin zone | {city_label(taxi_count, client_count)} | "
+                f"{scenario} | {scale_label}"
+            )
             fig.tight_layout()
             name = f"{filename}_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
             fig.savefig(out / name, dpi=140)
             plt.close(fig)
-            files.append(plot_entry(name, "Spatial maps", "Heatmap aggregated by algorithm and roaming mode; no raw request rows retained."))
+            files.append(plot_entry(name, "Spatial maps", note))
             if len(files) >= MAX_REQUEST_PLOTS:
                 return files
     return files
 
 
-def plot_new_metrics(time_df: pd.DataFrame, request_df: pd.DataFrame, out: Path, tick_block_size: int) -> list[dict[str, str]]:
+def plot_new_metrics(
+    time_df: pd.DataFrame,
+    request_df: pd.DataFrame,
+    summary: pd.DataFrame,
+    out: Path,
+    tick_block_size: int,
+) -> list[dict[str, str]]:
     return (
         plot_time_windows(time_df, out, tick_block_size)
-        + plot_spatial_maps(request_df, out)
+        + plot_spatial_maps(request_df, summary, out)
     )
 
 
@@ -1698,7 +1780,7 @@ def plot_thesis_focus(
         + plot_roaming_trends(summary, out)
         + plot_topology_trends(summary, out)
         + plot_interesting_trends(summary, comp, out)
-        + plot_new_metrics(time_df, request_df, out, tick_block_size)
+        + plot_new_metrics(time_df, request_df, summary, out, tick_block_size)
     )
 
 
