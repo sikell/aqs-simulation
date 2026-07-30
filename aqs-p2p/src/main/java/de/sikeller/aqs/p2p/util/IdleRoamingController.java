@@ -81,7 +81,9 @@ public class IdleRoamingController {
   public synchronized void registerSeenClientPosition(int x, int y, long currentSimulationTick) {
     long ttlTicks =
         Math.max(
-            1L, P2PRunContext.getLong(P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS, 1000L));
+            1L,
+            P2PRunContext.getLong(P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS, 1000L));
+    seenClientPositions.removeIf(position -> position.isExpired(currentSimulationTick));
     seenClientPositions.add(new SeenClientPositionWithTtl(x, y, currentSimulationTick, ttlTicks));
     // Update cached revisit target to the newly seen client so the HQ visualization
     // immediately reflects seen-but-unserved clients (not just when idle roaming kicks in)
@@ -242,6 +244,10 @@ public class IdleRoamingController {
       target =
           generateIdleTarget(
               simulationX, simulationY, mapMaxX, mapMaxY, currentSimulationTick, nodeId);
+      // Do not persist a no-op: data-driven strategies must be able to react to later observations.
+      if (target.getX() == simulationX && target.getY() == simulationY) {
+        return;
+      }
       currentIdleTarget.set(target);
       if (lastIdleTravelPublishTick == 0L) {
         log.info(
@@ -288,7 +294,7 @@ public class IdleRoamingController {
     }
     if (IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(strategy)) {
       return generatePastAvgTotalTarget(
-          currentX, currentY, mapMaxX, mapMaxY, currentSimulationTick, taxi);
+          currentX, currentY, mapMaxX, mapMaxY, currentSimulationTick);
     }
     if (IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(strategy)) {
       return generatePastAvgRevisitTarget(
@@ -321,8 +327,8 @@ public class IdleRoamingController {
   }
 
   /**
-   * past-avg: navigates to the average of all past pickup positions. Falls back to random if no
-   * pickups recorded yet.
+   * past-avg: navigates to the average of all past pickup positions. Stays at the current position
+   * if no pickups have been recorded.
    */
   private Position generatePastAvgTarget(int currentX, int currentY, int mapMaxX, int mapMaxY) {
     int[] hqPos = getHqPosition();
@@ -336,27 +342,22 @@ public class IdleRoamingController {
           pickupPositions.size());
       return new Position(hqX, hqY);
     }
-    log.info("No past-avg HQ recorded yet (0 pickups), falling back to not moving");
+    log.info("No past-avg HQ recorded yet (0 pickups), staying at current position");
     return new Position(currentX, currentY);
   }
 
   /**
    * past-avg-total: navigates to the combined average of all past pickup positions AND all
-   * positions where waiting clients were seen but not served (within TTL). Falls back to random if
-   * neither list has data.
+   * positions where waiting clients were seen but not served (within TTL). Stays at the current
+   * position if neither list has data.
    */
   private synchronized Position generatePastAvgTotalTarget(
-      int currentX,
-      int currentY,
-      int mapMaxX,
-      int mapMaxY,
-      long currentSimulationTick,
-      String taxi) {
+      int currentX, int currentY, int mapMaxX, int mapMaxY, long currentSimulationTick) {
     countValidSeenPositions(currentSimulationTick); // Clean up expired entries
     int totalCount = pickupPositions.size() + seenClientPositions.size();
     if (totalCount == 0) {
-      log.info("No past-avg-total data recorded yet, falling back to random roaming");
-      return generateRandomTargetWithinRadius(currentX, currentY, mapMaxX, mapMaxY, taxi);
+      log.info("No past-avg-total data recorded yet, staying at current position");
+      return new Position(currentX, currentY);
     }
     int sumX = 0;
     int sumY = 0;

@@ -90,7 +90,6 @@ public class TaxiScenarioControl extends AbstractControl {
   private JPanel batchProcessing;
   private JPanel p2pStatusPanel;
   private JButton p2pScanNowButton;
-  private JButton p2pToggleTopologyButton;
   private JButton p2pToggleCollectorButton;
   private JComboBox<String> p2pVehicleStrategyBox;
   private P2PTopologyPanel p2pTopologyPanel;
@@ -207,7 +206,6 @@ public class TaxiScenarioControl extends AbstractControl {
     p2pTopologyPanel.setPreferredSize(new Dimension(460, 230));
     p2pToggleCollectorButton = createP2PToggleCollectorButton();
     p2pTopologyPanel.setLegendToggleButton(p2pToggleCollectorButton);
-    p2pToggleTopologyButton = createP2PToggleTopologyButton();
     batchProcessing = new BatchProcessingControl(batchProperties);
     controls.add(selection);
     controls.add(buttons);
@@ -215,7 +213,6 @@ public class TaxiScenarioControl extends AbstractControl {
     controls.add(algorithmInputs);
     controls.add(p2pStatusPanel);
     controls.add(p2pScanNowButton);
-    controls.add(p2pToggleTopologyButton);
     controls.add(batchProcessing);
 
     createComponentMap();
@@ -368,28 +365,6 @@ public class TaxiScenarioControl extends AbstractControl {
     button.setText(collectorVisible ? "Hide collector" : "Show collector");
   }
 
-  private JButton createP2PToggleTopologyButton() {
-    JButton button = new JButton("Hide topology");
-    button.setName("p2pToggleTopologyButton");
-    button.setToolTipText("Toggle visibility of the P2P topology view.");
-    button.addActionListener(
-        e -> {
-          if (p2pTopologyPanel == null) {
-            return;
-          }
-          boolean nowVisible = !p2pTopologyPanel.isVisible();
-          p2pTopologyPanel.setVisible(nowVisible);
-          button.setText(nowVisible ? "Hide topology" : "Show topology");
-          // trigger layout update in parent container
-          Container parent = p2pTopologyPanel.getParent();
-          if (parent != null) {
-            parent.revalidate();
-            parent.repaint();
-          }
-        });
-    return button;
-  }
-
   private void applyModeToUi() {
     if (modeSwitchInProgress) {
       return;
@@ -454,17 +429,6 @@ public class TaxiScenarioControl extends AbstractControl {
       }
       if (p2pTopologyPanel != null) {
         p2pTopologyPanel.setVisible(p2pMode);
-      }
-      if (p2pToggleTopologyButton != null) {
-        p2pToggleTopologyButton.setVisible(p2pMode);
-        if (p2pMode && !p2pTopologyPanel.isVisible()) {
-          // restore topology panel visibility when re-entering p2p mode
-          p2pTopologyPanel.setVisible(true);
-        }
-        p2pToggleTopologyButton.setText(
-            (p2pTopologyPanel != null && p2pTopologyPanel.isVisible())
-                ? "Hide topology"
-                : "Show topology");
       }
       if (p2pScanNowButton != null) {
         p2pScanNowButton.setVisible(p2pMode);

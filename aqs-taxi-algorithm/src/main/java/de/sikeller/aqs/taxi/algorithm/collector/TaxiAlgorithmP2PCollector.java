@@ -743,13 +743,11 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
           IdleRoamingController ctrl = vehicleNode.getIdleRoamingController();
           int[] pos = null;
           if (IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(strategy)) {
-            // Show last seen-but-unserved client; fall back to pickup avg if none yet
+            // Show last seen-but-unserved client, if available.
             pos = ctrl.getRevisitTargetSnapshot();
-            if (pos == null) pos = ctrl.getHqPositionSnapshot();
           } else if (IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(strategy)) {
             // Show combined average of pickups + seen clients
             pos = ctrl.getAvgTotalPositionSnapshot();
-            if (pos == null) pos = ctrl.getHqPositionSnapshot();
           } else {
             // past-avg: show pickup average only
             pos = ctrl.getHqPositionSnapshot();
@@ -1057,10 +1055,10 @@ public class TaxiAlgorithmP2PCollector extends AbstractTaxiAlgorithm implements 
 
     private int[] positionFor(String strategy) {
       if (IDLE_ROAMING_STRATEGY_PAST_AVG_REVISIT.equals(strategy)) {
-        return revisit != null ? revisit : hq;
+        return revisit;
       }
       if (IDLE_ROAMING_STRATEGY_PAST_AVG_TOTAL.equals(strategy)) {
-        return avgTotal != null ? avgTotal : hq;
+        return avgTotal;
       }
       return hq;
     }

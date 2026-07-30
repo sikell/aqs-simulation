@@ -11,13 +11,15 @@ import lombok.extern.slf4j.Slf4j;
 public class VisualizationControl extends AbstractControl {
   private final VisualizationProperties properties;
   private JCheckBox showP2PRqsRangeCheckBox;
+  private JCheckBox showP2PTopologyCheckBox;
 
-  public VisualizationControl(VisualizationProperties properties) {
+  public VisualizationControl(
+      VisualizationProperties properties, JComponent p2pTopologyComponent) {
     this.properties = properties;
-    add(setup());
+    add(setup(p2pTopologyComponent));
   }
 
-  private JPanel setup() {
+  private JPanel setup(JComponent p2pTopologyComponent) {
     var controls = new JPanel();
     controls.setBorder(new TitledBorder("Visualization Control"));
     controls.setLayout(new GridLayout(0, 2, GAP, GAP));
@@ -131,6 +133,22 @@ public class VisualizationControl extends AbstractControl {
             properties.isShowTaxiTopologyLinks(),
             properties::setShowTaxiTopologyLinks));
 
+    showP2PTopologyCheckBox =
+        checkBox(
+            "Show P2P topology",
+            "showP2PTopology",
+            "Display the P2P network topology below the simulation map.",
+            p2pTopologyComponent.isVisible(),
+            visible -> {
+              p2pTopologyComponent.setVisible(visible);
+              Container parent = p2pTopologyComponent.getParent();
+              if (parent != null) {
+                parent.revalidate();
+                parent.repaint();
+              }
+            });
+    controls.add(showP2PTopologyCheckBox);
+
     controls.add(
         checkBox(
             "Color clients by taxi knowledge",
@@ -151,11 +169,14 @@ public class VisualizationControl extends AbstractControl {
   }
 
   public void setP2PModeUiState(boolean p2pMode) {
-    if (showP2PRqsRangeCheckBox == null) {
+    if (showP2PRqsRangeCheckBox == null || showP2PTopologyCheckBox == null) {
       return;
     }
     showP2PRqsRangeCheckBox.setVisible(p2pMode);
     showP2PRqsRangeCheckBox.setEnabled(p2pMode);
+    showP2PTopologyCheckBox.setVisible(p2pMode);
+    showP2PTopologyCheckBox.setEnabled(p2pMode);
+    showP2PTopologyCheckBox.setSelected(p2pMode);
     if (!p2pMode) {
       showP2PRqsRangeCheckBox.setSelected(false);
       properties.setShowRqsRecognitionRange(false);

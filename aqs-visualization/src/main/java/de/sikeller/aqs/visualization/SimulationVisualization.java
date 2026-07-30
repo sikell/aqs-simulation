@@ -35,7 +35,9 @@ public class SimulationVisualization extends AbstractVisualization
     controls.setBorder(new EmptyBorder(8, 8, 8, 8));
     controls.add(taxiScenarioControl, BorderLayout.NORTH);
     taxiScenarioControl.setVisualizationProperties(visualizationProperties);
-    VisualizationControl visualizationControl = new VisualizationControl(visualizationProperties);
+    VisualizationControl visualizationControl =
+        new VisualizationControl(
+            visualizationProperties, taxiScenarioControl.getP2PTopologyComponent());
     taxiScenarioControl.setP2PModeUiListener(visualizationControl::setP2PModeUiState);
     controls.add(visualizationControl, BorderLayout.SOUTH);
     canvas = new TaxiScenarioCanvas(world, visualizationProperties);

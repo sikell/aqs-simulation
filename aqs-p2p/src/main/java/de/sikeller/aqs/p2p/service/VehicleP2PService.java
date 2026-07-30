@@ -95,6 +95,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   // Track first-seen tick per requestId for deduplication and eviction
   private final ConcurrentMap<String, Long> seenRideRequests = new ConcurrentHashMap<>();
   private final ConcurrentMap<String, OpenRideRequest> openRideRequests = new ConcurrentHashMap<>();
+  // Prevent one still-valid client observation from being weighted repeatedly.
   private final ConcurrentMap<String, Long> roamingRegisteredRideRequests =
       new ConcurrentHashMap<>();
   private final ConcurrentMap<String, String> forwardedPayloadCache = new ConcurrentHashMap<>();
@@ -653,6 +654,11 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
   private void cleanupStaleOpenRequests() {
     long nowTick = currentSimulationTick;
+    long seenClientTtlTicks =
+        Math.max(
+            1L,
+            P2PRunContext.getLong(
+                P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS, 1000L));
     openRideRequests
         .entrySet()
         .removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > cachedRequestCacheTtlTicks);
@@ -661,7 +667,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         .removeIf(entry -> nowTick - entry.getValue() > cachedRequestCacheTtlTicks);
     roamingRegisteredRideRequests
         .entrySet()
-        .removeIf(entry -> nowTick - entry.getValue() > cachedRequestCacheTtlTicks);
+        .removeIf(entry -> nowTick - entry.getValue() >= seenClientTtlTicks);
     if (forwardedPayloadCache.size() > MAX_FORWARDED_PAYLOAD_CACHE_SIZE) {
       forwardedPayloadCache.clear();
     }
