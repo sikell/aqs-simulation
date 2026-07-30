@@ -683,8 +683,12 @@ def write_extended_analysis(
     crossover_counts = pd.concat(crossover_counts, ignore_index=True)
     crossover_counts.to_csv(out / "crossover_travel_validation.csv", index=False)
 
-    matched["referenceWorstDeltaPct"] = matched[
-        ["waitingDeltaPct", "travelDeltaPct", "distanceDeltaPct", "pickupGapPoints"]
+    matched["waitingRegret"] = matched["waitingDeltaPct"] / 5.0
+    matched["travelRegret"] = matched["travelDeltaPct"] / 5.0
+    matched["distanceRegret"] = matched["distanceDeltaPct"] / 5.0
+    matched["pickupRegret"] = matched["pickupGapPoints"] / 1.0
+    matched["referenceWorstNormalizedRegret"] = matched[
+        ["waitingRegret", "travelRegret", "distanceRegret", "pickupRegret"]
     ].max(axis=1)
     robust = (
         matched.groupby(CONFIG_COLS, dropna=False)
@@ -699,11 +703,11 @@ def write_extended_analysis(
             meanTravelDeltaPct=("travelDeltaPct", "mean"),
             worstTravelDeltaPct=("travelDeltaPct", "max"),
             worstPickupGapPoints=("pickupGapPoints", "max"),
-            worstReferenceDeltaPct=("referenceWorstDeltaPct", "max"),
+            worstReferenceNormalizedRegret=("referenceWorstNormalizedRegret", "max"),
         )
         .reset_index()
         .sort_values(
-            ["worstReferenceDeltaPct", "groupsWithin5WithTravel", "groupsWithin5"],
+            ["worstReferenceNormalizedRegret", "groupsWithin5WithTravel", "groupsWithin5"],
             ascending=[True, False, False],
         )
         .reset_index(drop=True)
@@ -1243,30 +1247,21 @@ def plot_best_delta_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]
 def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None:
         return []
-    metrics = summary["metric"].unique().tolist()
-    wait = next((m for m in metrics if "Client Waiting Time" in m), None)
-    distance = next((m for m in metrics if "Taxi Travel Distance" in m), None)
-    if not wait or not distance:
-        return []
-    index_cols = [col for col in EXACT_CONFIG_COLS if col != "metric"]
-    p2p_rows = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)]
-    p2p = p2p_rows.pivot_table(
-        index=index_cols, columns="metric", values="avgMean", aggfunc="first"
-    ).reset_index().dropna(subset=[wait, distance])
-    single_rows = summary[~summary["algorithm"].str.contains("P2PCollector", case=False, na=False)]
-    single = single_rows.pivot_table(
-        index=[col for col in BASE_COLS if col != "metric"],
-        columns="metric",
-        values="avgMean",
-        aggfunc="first",
-    ).reset_index().dropna(subset=[wait, distance])
+    matrix = add_operational_metrics(metric_matrix(summary))
+    p2p = matrix[
+        matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)
+    ].dropna(subset=["waitingAvgMean", "distanceAvgMean", "servedRatio"])
+    single = matrix[
+        ~matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)
+    ].dropna(subset=["waitingAvgMean", "distanceAvgMean", "servedRatio"])
     files = []
     for (taxi_count, client_count, scenario), sub in p2p.groupby(
         ["taxiCount", "clientCount", "spawnScenario"], dropna=False
     ):
         if sub.empty:
             continue
-        fig, ax = plt.subplots(figsize=(7.5, 5.3))
+        fig, axes = plt.subplots(1, 2, figsize=(13, 5.3), sharex=True, sharey=True)
+        ax, pickup_ax = axes
         mode_labels = {
             "none": "None",
             "past-avg": "Past avg",
@@ -1276,33 +1271,127 @@ def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str,
         }
         for mode, mode_df in sub.groupby("idleRoamingMode", dropna=False):
             ax.scatter(
-                mode_df[distance],
-                mode_df[wait],
+                mode_df["distanceAvgMean"],
+                mode_df["waitingAvgMean"],
                 alpha=0.3,
                 s=18,
                 label=mode_labels.get(str(mode), str(mode)),
             )
-        frontier = sub.sort_values(distance)
-        frontier = frontier[frontier[wait].cummin().eq(frontier[wait])]
-        ax.plot(frontier[distance], frontier[wait], color="black", linewidth=2, label="Pareto frontier")
+        frontier = sub.sort_values("distanceAvgMean")
+        frontier = frontier[
+            frontier["waitingAvgMean"].cummin().eq(frontier["waitingAvgMean"])
+        ]
+        ax.plot(
+            frontier["distanceAvgMean"],
+            frontier["waitingAvgMean"],
+            color="black",
+            linewidth=2,
+            label="Pareto frontier",
+        )
+        pickup_points = pickup_ax.scatter(
+            sub["distanceAvgMean"],
+            sub["waitingAvgMean"],
+            c=sub["servedRatio"] * 100.0,
+            cmap="viridis",
+            norm=matplotlib.colors.Normalize(vmin=0, vmax=100),
+            alpha=0.65,
+            s=22,
+        )
+        pickup_ax.plot(
+            frontier["distanceAvgMean"],
+            frontier["waitingAvgMean"],
+            color="black",
+            linewidth=2,
+        )
         reference = single[(single["taxiCount"] == taxi_count) & (single["clientCount"] == client_count) & single["spawnScenario"].eq(scenario)]
         if not reference.empty:
-            ax.scatter(reference[distance].mean(), reference[wait].mean(), marker="x", s=80, color="red", label="Central reference")
-        ax.set_xlabel(distance)
-        ax.set_ylabel(wait)
-        ax.set_title(f"Service–movement trade-off | {city_label(taxi_count, client_count)} | {scenario}")
+            reference_distance = reference["distanceAvgMean"].mean()
+            reference_waiting = reference["waitingAvgMean"].mean()
+            for target in axes:
+                target.scatter(
+                    reference_distance,
+                    reference_waiting,
+                    marker="x",
+                    s=80,
+                    color="red",
+                    label="Central reference" if target is ax else None,
+                )
+        ax.set_title("Roaming modes")
+        pickup_ax.set_title("Pickup rate")
+        for target in axes:
+            target.set_xlabel(DISTANCE_METRIC)
+            target.grid(alpha=0.2)
+        ax.set_ylabel(WAITING_METRIC)
         ax.legend(fontsize=7, ncol=4, loc="upper center", bbox_to_anchor=(0.5, -0.14))
-        ax.grid(alpha=0.2)
+        fig.colorbar(pickup_points, ax=pickup_ax, label="Pickup rate [%]")
+        fig.suptitle(
+            f"Service–movement trade-off | {city_label(taxi_count, client_count)} | {scenario}"
+        )
         fig.tight_layout()
         name = f"efficiency_tradeoff_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
         fig.savefig(out / name, dpi=140)
         plt.close(fig)
-        files.append(plot_entry(name, "Interesting trends", "Each point is an exact P2P configuration; lower-left is better."))
+        files.append(
+            plot_entry(
+                name,
+                "Interesting trends",
+                "Each point is an exact P2P configuration; the second panel adds pickup rate to the same waiting-time–distance projection.",
+            )
+        )
     return files
 
 
+def plot_k_hop_cost(summary: pd.DataFrame, out: Path) -> dict[str, str] | None:
+    if plt is None:
+        return None
+    matrix = metric_matrix(summary)
+    p2p = matrix[
+        matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)
+    ].dropna(subset=["kHops", "calculationAvgMean", "communicationAvgMean"])
+    if p2p.empty:
+        return None
+    data = (
+        p2p.groupby("kHops", dropna=False)
+        .agg(
+            calculationMs=("calculationAvgMean", "mean"),
+            communicationMicros=("communicationAvgMean", "mean"),
+        )
+        .reset_index()
+        .sort_values("kHops")
+    )
+    data["communicationMs"] = data["communicationMicros"] / 1000.0
+    data["remainingMs"] = (data["calculationMs"] - data["communicationMs"]).clip(lower=0)
+    x = np.arange(len(data))
+    fig, ax = plt.subplots(figsize=(7.5, 4.8))
+    ax.bar(x, data["remainingMs"], color=CALCULATION_COLOR, label="Other calculation")
+    ax.bar(
+        x,
+        data["communicationMs"],
+        bottom=data["remainingMs"],
+        color=CALCULATION_COLOR,
+        hatch="///",
+        edgecolor="#374151",
+        label="Communication path",
+    )
+    ax.set_xticks(x, [str(int(value)) for value in data["kHops"]])
+    ax.set_xlabel("Maximum hop depth")
+    ax.set_ylabel("Mean calculation time per tick [ms]")
+    ax.set_title("Calculation and communication cost by hop depth")
+    ax.grid(axis="y", alpha=0.2)
+    ax.legend()
+    fig.tight_layout()
+    name = "k_hop_calculation_communication.png"
+    fig.savefig(out / name, dpi=150)
+    plt.close(fig)
+    return plot_entry(
+        name,
+        "Interesting trends",
+        "Means across city-scenario groups and remaining P2P parameters; hatching marks the in-process communication path.",
+    )
+
+
 def plot_interesting_trends(summary: pd.DataFrame, comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
-    return (
+    records = (
         plot_best_delta_trends(comp, out)
         + plot_efficiency_tradeoff(summary, out)
         + plot_fixed_parameter_trends(
@@ -1326,6 +1415,8 @@ def plot_interesting_trends(summary: pd.DataFrame, comp: pd.DataFrame, out: Path
             "fixed_shortcut_trend",
         )
     )
+    k_hop_cost = plot_k_hop_cost(summary, out)
+    return records + ([k_hop_cost] if k_hop_cost is not None else [])
 
 
 def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) -> list[dict[str, str]]:
@@ -1449,7 +1540,9 @@ def plot_spatial_maps(
                 "Equal values use equal colors across every plot; square-root normalization preserves contrast in lower ranges. Spatial share covers picked-up clients only; titles show the true mean unpicked total per run.",
             ),
         ]:
-            fig, axes = plt.subplots(2, 3, figsize=(12, 7), squeeze=False)
+            fig, axes = plt.subplots(
+                2, 3, figsize=(12, 7), squeeze=False, constrained_layout=True
+            )
             axes_flat = axes.ravel()
             used_axes = []
             image = None
@@ -1478,11 +1571,8 @@ def plot_spatial_maps(
                 )
                 ax.set_xlabel("Zone X")
                 ax.set_ylabel("Zone Y")
-                colorbar = fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
-                local_min = float(plot_df[value_col].min())
-                local_max = float(plot_df[value_col].max())
-                if normalized and local_min < local_max:
-                    colorbar.ax.set_ylim(local_min, local_max)
+                if not normalized:
+                    fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
                 used_axes.append(ax)
             for ax in axes_flat:
                 if ax not in used_axes:
@@ -1491,11 +1581,18 @@ def plot_spatial_maps(
                 plt.close(fig)
                 continue
             scale_label = "shared colors" if normalized else "local colors"
+            if normalized and image is not None and used_axes:
+                fig.colorbar(
+                    image,
+                    ax=used_axes,
+                    label=label,
+                    shrink=0.82,
+                    pad=0.02,
+                )
             fig.suptitle(
                 f"{label} by origin zone | {city_label(taxi_count, client_count)} | "
                 f"{scenario} | {scale_label}"
             )
-            fig.tight_layout()
             name = f"{filename}_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
             fig.savefig(out / name, dpi=140)
             plt.close(fig)
