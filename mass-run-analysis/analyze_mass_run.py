@@ -32,7 +32,6 @@ try:
 except Exception:  # pragma: no cover - factor screen becomes unavailable
     stats = None
 
-
 NUMERIC_COLS = [
     "kHops",
     "p2pRequestRepublishTicks",
@@ -137,7 +136,7 @@ P2P_COLS = [
 BASE_COLS = ["metric", "algorithm", "taxiCount", "clientCount", "taxiSeatCount", "spawnScenario"]
 EXACT_CONFIG_COLS = BASE_COLS + P2P_COLS
 MATCH_COLS = ["metric", "taxiCount", "clientCount", "taxiSeatCount", "spawnScenario"]
-CORE_METRIC_PATTERNS = ["Taxi Travel Distance", "Client Waiting Time", "Client Travel Time"]
+P2P_ALGORITHM = "P2PCollector"
 CALCULATION_METRIC = "Calculation Time [millis]"
 COMMUNICATION_METRIC = "Custom Time [micros]"
 WAITING_METRIC = "Client Waiting Time [min]"
@@ -210,6 +209,23 @@ RESULT_FACTOR_CONTRASTS = {
         ("random", "past-avg-total"),
     ],
 }
+DEFAULT_COLUMNS = {
+    "p2pStrategy": "n/a",
+    "idleRoamingStrategy": "n/a",
+    "idleRoamingMode": "n/a",
+    "spawnScenario": "BASELINE",
+    "idleRoamingEnabled": False,
+}
+TEXT_COLUMNS = [
+    "algorithm",
+    "p2pStrategy",
+    "idleRoamingStrategy",
+    "idleRoamingMode",
+    "spawnScenario",
+]
+
+
+# Configuration and input
 
 
 @dataclass
@@ -254,6 +270,10 @@ def ensure_dirs(base: Path) -> dict[str, Path]:
     return dirs
 
 
+def is_p2p(rows: pd.DataFrame) -> pd.Series:
+    return rows["algorithm"].str.contains(P2P_ALGORITHM, case=False, na=False)
+
+
 def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"CSV not found: {path}")
@@ -269,19 +289,12 @@ def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
     distance_rows = df["metric"].isin(LEGACY_METER_METRICS)
     df.loc[distance_rows, ["min", "max", "avg", "sum", "spread"]] /= 1000.0
 
-    defaults = {
-        "p2pStrategy": "n/a",
-        "idleRoamingStrategy": "n/a",
-        "idleRoamingMode": "n/a",
-        "spawnScenario": "BASELINE",
-        "idleRoamingEnabled": False,
-    }
-    for col, default in defaults.items():
+    for col, default in DEFAULT_COLUMNS.items():
         if col not in df.columns:
             df[col] = default
         df[col] = df[col].fillna(default)
 
-    for col in ["algorithm", "metric", "p2pStrategy", "idleRoamingStrategy", "idleRoamingMode", "spawnScenario"]:
+    for col in ["metric", *TEXT_COLUMNS]:
         df[col] = df[col].astype(str).str.strip().replace({"": "n/a", "nan": "n/a"})
 
     for col in P2P_COLS:
@@ -306,9 +319,7 @@ def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
         .reset_index()
     )
     df = df.merge(communication, on=run_config_cols, how="left")
-    calculation_rows = df["metric"].eq(CALCULATION_METRIC) & df["algorithm"].str.contains(
-        "P2PCollector", case=False, na=False
-    )
+    calculation_rows = df["metric"].eq(CALCULATION_METRIC) & is_p2p(df)
     df.loc[calculation_rows, COMMUNICATION_COL] = np.minimum(
         df.loc[calculation_rows, COMMUNICATION_COL].fillna(0).clip(lower=0),
         df.loc[calculation_rows, "avg"],
@@ -319,7 +330,7 @@ def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
         if df.empty:
             raise ValueError("No rows left after --metrics filter.")
 
-    df["is_p2p"] = df["algorithm"].str.contains("P2PCollector", case=False, na=False)
+    df["is_p2p"] = is_p2p(df)
     df.loc[~df["is_p2p"], P2P_COLS] = df.loc[~df["is_p2p"], P2P_COLS].where(
         df.loc[~df["is_p2p"], P2P_COLS].notna(), "n/a"
     )
@@ -330,21 +341,17 @@ def normalize_aux(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFrame:
     for col in numeric_cols:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
-    defaults = {
-        "p2pStrategy": "n/a",
-        "idleRoamingStrategy": "n/a",
-        "idleRoamingMode": "n/a",
-        "spawnScenario": "BASELINE",
-        "idleRoamingEnabled": False,
-    }
-    for col, default in defaults.items():
+    for col, default in DEFAULT_COLUMNS.items():
         if col not in df.columns:
             df[col] = default
         df[col] = df[col].fillna(default)
-    for col in ["algorithm", "p2pStrategy", "idleRoamingStrategy", "idleRoamingMode", "spawnScenario"]:
+    for col in TEXT_COLUMNS:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip().replace({"": "n/a", "nan": "n/a"})
     return df
+
+
+# Result tables
 
 
 def load_time_series_summary(path: Path, tick_block_size: int) -> pd.DataFrame:
@@ -479,8 +486,17 @@ def aggregate_exact_configs(df: pd.DataFrame, out: Path) -> pd.DataFrame:
     return summary
 
 
+def best_p2p_configs(rows: pd.DataFrame) -> pd.DataFrame:
+    return (
+        rows.sort_values(["metric", "taxiCount", "clientCount", "spawnScenario", "avgMean"])
+        .groupby(MATCH_COLS, dropna=False)
+        .head(1)
+        .reset_index(drop=True)
+    )
+
+
 def compare_p2p_to_single(summary: pd.DataFrame, out: Path) -> pd.DataFrame:
-    single = summary[~summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+    single = summary[~is_p2p(summary)].copy()
     single = single[MATCH_COLS + ["avgMean", "avgStd", "countMean"]].rename(
         columns={
             "avgMean": "singleAvg",
@@ -489,25 +505,20 @@ def compare_p2p_to_single(summary: pd.DataFrame, out: Path) -> pd.DataFrame:
         }
     )
 
-    p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+    p2p = summary[is_p2p(summary)].copy()
     cols = MATCH_COLS + P2P_COLS + ["avgMean", "avgStd", "countMean", "servedRatioMean", "runs", COMMUNICATION_COL]
     comp = p2p[cols].merge(single, on=MATCH_COLS, how="left")
     comp["delta"] = comp["avgMean"] - comp["singleAvg"]
     comp["deltaPct"] = np.where(comp["singleAvg"].ne(0), comp["delta"] / comp["singleAvg"] * 100.0, np.nan)
     comp.to_csv(out / "p2p_vs_single.csv", index=False)
 
-    best = (
-        comp.sort_values(["metric", "taxiCount", "clientCount", "spawnScenario", "avgMean"])
-        .groupby(MATCH_COLS, dropna=False)
-        .head(1)
-        .reset_index(drop=True)
-    )
+    best = best_p2p_configs(comp)
     best.to_csv(out / "best_p2p_vs_single.csv", index=False)
     return comp
 
 
 def write_single_passenger(summary: pd.DataFrame, out: Path) -> None:
-    single = summary[~summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+    single = summary[~is_p2p(summary)].copy()
     single[BASE_COLS + ["runs", "avgMean", "avgStd", "avgMin", "avgMax", "servedRatioMean"]].to_csv(
         out / "single_passenger.csv", index=False
     )
@@ -549,7 +560,7 @@ def summarize_result_values(rows: pd.DataFrame, group_cols: list[str]) -> pd.Dat
     result = rows.groupby(group_cols, dropna=False)[RESULT_VALUE_COLS].mean().reset_index()
     result["pickupPct"] = result["servedRatio"] * 100.0
     result["communicationSharePct"] = (
-        result["communicationAvgMean"] / 1000.0 / result["calculationAvgMean"] * 100.0
+            result["communicationAvgMean"] / 1000.0 / result["calculationAvgMean"] * 100.0
     )
     return result
 
@@ -568,10 +579,10 @@ def match_central(matrix: pd.DataFrame, extra_match: list[str] | None = None) ->
         "kmPerServedClient",
         "calculationMsPerServedClient",
     ]
-    central = matrix[~matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)][
-        match + value_cols
-    ].rename(columns={col: f"central{col[0].upper()}{col[1:]}" for col in value_cols})
-    p2p = matrix[matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+    central = matrix[~is_p2p(matrix)][match + value_cols].rename(
+        columns={col: f"central{col[0].upper()}{col[1:]}" for col in value_cols}
+    )
+    p2p = matrix[is_p2p(matrix)].copy()
     result = p2p.merge(central, on=match, how="left")
     for name in ["waiting", "travel", "distance", "kmPerServedClient", "calculationMsPerServedClient"]:
         value = f"{name}AvgMean" if name in {"waiting", "travel", "distance"} else name
@@ -589,9 +600,9 @@ def add_crossover_flags(rows: pd.DataFrame, prefix: str = "") -> pd.DataFrame:
         suffix = str(threshold)
         limit = float(threshold)
         current = (
-            result["waitingDeltaPct"].le(limit)
-            & result["distanceDeltaPct"].le(limit)
-            & result["pickupGapPoints"].le(1.0)
+                result["waitingDeltaPct"].le(limit)
+                & result["distanceDeltaPct"].le(limit)
+                & result["pickupGapPoints"].le(1.0)
         )
         result[f"{current_name}{suffix}"] = current
         result[f"{extended_name}{suffix}"] = current & result["travelDeltaPct"].le(limit)
@@ -618,15 +629,19 @@ def paired_seed_tables(df: pd.DataFrame, out: Path) -> tuple[pd.DataFrame, pd.Da
         column = f"{metric}DeltaPct"
         part = (
             paired.groupby(group_cols, dropna=False)[column]
-            .agg(["count", "mean", "std"])
+            .agg(["count", "mean", "std", "min", "max"])
             .reset_index()
-            .rename(columns={"count": "seeds", "mean": "deltaPctMean", "std": "deltaPctStd"})
+            .rename(
+                columns={
+                    "count": "seeds",
+                    "mean": "deltaPctMean",
+                    "std": "deltaPctStd",
+                    "min": "deltaPctMin",
+                    "max": "deltaPctMax",
+                }
+            )
         )
         part["metric"] = metric
-        critical = part["seeds"].apply(
-            lambda n: stats.t.ppf(0.975, n - 1) if stats is not None and n > 1 else 1.96
-        )
-        part["deltaPctCi95Half"] = critical * part["deltaPctStd"] / np.sqrt(part["seeds"])
         deltas.append(part)
     paired_deltas = pd.concat(deltas, ignore_index=True)
     paired_deltas.to_csv(out / "paired_seed_deltas.csv", index=False)
@@ -640,37 +655,7 @@ def paired_seed_tables(df: pd.DataFrame, out: Path) -> tuple[pd.DataFrame, pd.Da
     return paired_deltas, seed_pass
 
 
-def write_extended_analysis(
-    df: pd.DataFrame, summary: pd.DataFrame, out: Path
-) -> dict[str, pd.DataFrame]:
-    matrix = add_operational_metrics(metric_matrix(summary))
-    matched = add_crossover_flags(match_central(matrix))
-    matched["pickupPct"] = matched["servedRatio"] * 100.0
-
-    metric_cols = [
-        "waitingAvgMean",
-        "travelAvgMean",
-        "distanceAvgMean",
-        "servedRatio",
-        "kmPerServedClient",
-        "calculationAvgMean",
-        "calculationSumMean",
-        "calculationMsPerServedClient",
-        "communicationTotalMs",
-        "communicationMsPerServedClient",
-    ]
-    p2p = matrix[matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
-    central = matrix[~matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
-
-    system = matrix.copy()
-    system["architecture"] = np.where(
-        system["algorithm"].str.contains("P2PCollector", case=False, na=False),
-        "P2P mean",
-        "Central",
-    )
-    system = summarize_result_values(system, SCENARIO_COLS + ["architecture"])
-    system.to_csv(out / "system_comparison_summary.csv", index=False)
-
+def write_parameter_effects(p2p: pd.DataFrame, out: Path) -> None:
     factor_levels = []
     factor_effects = []
     effect_metrics = {
@@ -702,11 +687,11 @@ def write_extended_analysis(
                 effect[f"{label}From"] = effect[f"{source}From"]
                 effect[f"{label}To"] = effect[f"{source}To"]
                 effect[f"{label}DeltaPct"] = (
-                    effect[f"{source}To"] / effect[f"{source}From"] - 1.0
-                ) * 100.0
+                                                     effect[f"{source}To"] / effect[f"{source}From"] - 1.0
+                                             ) * 100.0
             effect["pickupDeltaPoints"] = effect["pickupPctTo"] - effect["pickupPctFrom"]
             effect["communicationShareDeltaPoints"] = (
-                effect["communicationSharePctTo"] - effect["communicationSharePctFrom"]
+                    effect["communicationSharePctTo"] - effect["communicationSharePctFrom"]
             )
             factor_effects.append(effect)
             if before in normalized.index and after in normalized.index:
@@ -722,17 +707,53 @@ def write_extended_analysis(
                                 "waitingMinFrom": normalized.loc[before],
                                 "waitingMinTo": normalized.loc[after],
                                 "waitingMinDeltaPct": (
-                                    normalized.loc[after] / normalized.loc[before] - 1.0
-                                )
-                                * 100.0,
+                                                              normalized.loc[after] / normalized.loc[before] - 1.0
+                                                      )
+                                                      * 100.0,
                             }
                         ]
                     )
                 )
-    factor_levels = pd.concat(factor_levels, ignore_index=True)
-    factor_levels.to_csv(out / "parameter_level_summary.csv", index=False)
-    factor_effects = pd.concat(factor_effects, ignore_index=True)
-    factor_effects.to_csv(out / "parameter_effect_summary.csv", index=False)
+    pd.concat(factor_levels, ignore_index=True).to_csv(
+        out / "parameter_level_summary.csv", index=False
+    )
+    pd.concat(factor_effects, ignore_index=True).to_csv(
+        out / "parameter_effect_summary.csv", index=False
+    )
+
+
+def write_extended_analysis(
+        df: pd.DataFrame, summary: pd.DataFrame, out: Path
+) -> dict[str, pd.DataFrame]:
+    matrix = add_operational_metrics(metric_matrix(summary))
+    matched = add_crossover_flags(match_central(matrix))
+    matched["pickupPct"] = matched["servedRatio"] * 100.0
+
+    metric_cols = [
+        "waitingAvgMean",
+        "travelAvgMean",
+        "distanceAvgMean",
+        "servedRatio",
+        "kmPerServedClient",
+        "calculationAvgMean",
+        "calculationSumMean",
+        "calculationMsPerServedClient",
+        "communicationTotalMs",
+        "communicationMsPerServedClient",
+    ]
+    p2p = matrix[is_p2p(matrix)].copy()
+    central = matrix[~is_p2p(matrix)].copy()
+
+    system = matrix.copy()
+    system["architecture"] = np.where(
+        is_p2p(system),
+        "P2P mean",
+        "Central",
+    )
+    system = summarize_result_values(system, SCENARIO_COLS + ["architecture"])
+    system.to_csv(out / "system_comparison_summary.csv", index=False)
+
+    write_parameter_effects(p2p, out)
 
     interaction = summarize_result_values(
         p2p, SCENARIO_COLS + ["kHops", "p2pRqsRadius", "idleRoamingMode"]
@@ -765,10 +786,10 @@ def write_extended_analysis(
         .merge(central_wait, on=SCENARIO_COLS, how="left")
     )
     interaction_radius_roaming["waitingDeltaPct"] = (
-        interaction_radius_roaming["waitingAvgMean"]
-        / interaction_radius_roaming["centralWaitingAvgMean"]
-        - 1.0
-    ) * 100.0
+                                                            interaction_radius_roaming["waitingAvgMean"]
+                                                            / interaction_radius_roaming["centralWaitingAvgMean"]
+                                                            - 1.0
+                                                    ) * 100.0
     interaction_radius_roaming.to_csv(out / "interaction_radius_roaming.csv", index=False)
 
     interaction_radius_k = (
@@ -778,9 +799,10 @@ def write_extended_analysis(
         .merge(central_wait, on=SCENARIO_COLS, how="left")
     )
     interaction_radius_k["waitingDeltaPct"] = (
-        interaction_radius_k["waitingAvgMean"] / interaction_radius_k["centralWaitingAvgMean"]
-        - 1.0
-    ) * 100.0
+                                                      interaction_radius_k["waitingAvgMean"] / interaction_radius_k[
+                                                  "centralWaitingAvgMean"]
+                                                      - 1.0
+                                              ) * 100.0
     interaction_radius_k.to_csv(out / "interaction_radius_k.csv", index=False)
 
     matched.to_csv(out / "same_config_metrics.csv", index=False)
@@ -943,7 +965,7 @@ def write_request_tail_summary(request_df: pd.DataFrame, out: Path) -> None:
 
 
 def write_spatial_result_summary(
-    request_df: pd.DataFrame, summary: pd.DataFrame, out: Path
+        request_df: pd.DataFrame, summary: pd.DataFrame, out: Path
 ) -> None:
     if request_df.empty:
         return
@@ -987,7 +1009,7 @@ def write_spatial_result_summary(
         lower=0
     )
     spatial["notPickedUpPct"] = (
-        spatial["notPickedUpPerRun"] / spatial["clientCount"] * 100.0
+            spatial["notPickedUpPerRun"] / spatial["clientCount"] * 100.0
     )
     spatial.drop(columns="waitingSum").to_csv(out / "spatial_result_summary.csv", index=False)
 
@@ -1007,7 +1029,11 @@ def pair_effect(df: pd.DataFrame, factor: str, a: object, b: object) -> pd.DataF
     frame = diff.reset_index(name="absDiff")
     return (
         frame.groupby(["metric", "taxiCount", "clientCount", "spawnScenario"], dropna=False)
-        .agg(pairs=("absDiff", "size"), changed=("absDiff", lambda s: int((s > 1e-9).sum())), maxAbsDiff=("absDiff", "max"))
+        .agg(
+            pairs=("absDiff", "size"),
+            changed=("absDiff", lambda s: int((s > 1e-9).sum())),
+            maxAbsDiff=("absDiff", "max"),
+        )
         .reset_index()
         .assign(factor=factor, valueA=str(a), valueB=str(b))
     )
@@ -1066,20 +1092,20 @@ def write_effect_screens(df: pd.DataFrame, out: Path) -> None:
                     "factor": factor,
                     "F": f_value,
                     "pValue": p_value,
-                    "note": "one-factor screen within metric/city/scenario; inspect matched deltas before claiming causality",
+                    "note": (
+                        "one-factor screen within metric/city/scenario; inspect matched "
+                        "deltas before claiming causality"
+                    ),
                 }
             )
     pd.DataFrame(records).to_csv(out / "factor_screen.csv", index=False)
 
 
+# Plot helpers
+
+
 def safe_name(text: object) -> str:
     return "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in str(text)).strip("_")
-
-
-def core_metrics(df: pd.DataFrame) -> list[str]:
-    metrics = sorted(df["metric"].dropna().unique().tolist())
-    selected = [metric for metric in metrics if any(pattern in metric for pattern in CORE_METRIC_PATTERNS)]
-    return selected or metrics
 
 
 def analysis_metrics(df: pd.DataFrame) -> list[str]:
@@ -1146,14 +1172,14 @@ def set_sensible_y_span(ax, *values: object) -> None:
 
 
 def add_calculation_bars(
-    ax,
-    x: object,
-    total: object,
-    communication: object,
-    width: float,
-    yerr: object,
-    edgecolor: object = "#374151",
-    labels: tuple[str | None, str | None] = (None, None),
+        ax,
+        x: object,
+        total: object,
+        communication: object,
+        width: float,
+        yerr: object,
+        edgecolor: object = "#374151",
+        labels: tuple[str | None, str | None] = (None, None),
 ) -> None:
     remainder = np.asarray(total) - np.asarray(communication)
     style = {"edgecolor": edgecolor, "linewidth": 0.8}
@@ -1198,12 +1224,12 @@ def compact_fixed_config(values: dict[str, object]) -> str:
 def plot_information_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None:
         return []
-    p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+    p2p = summary[is_p2p(summary)].copy()
     files = []
     for metric in analysis_metrics(p2p):
         metric_df = p2p[p2p["metric"].eq(metric)]
         for (taxi_count, client_count, scenario), sub in metric_df.groupby(
-            ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+                ["taxiCount", "clientCount", "spawnScenario"], dropna=False
         ):
             agg = (
                 sub.groupby(["kHops", "p2pRqsRadius"], dropna=False)["avgMean"]
@@ -1219,10 +1245,20 @@ def plot_information_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, 
                 set_sensible_y_span(ax, agg["avgMean"])
                 ax.legend(title="RQS radius", fontsize=8)
                 fig.tight_layout()
-                name = f"h1_k_trend_{safe_name(metric)}_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+                name = (
+                    f"h1_k_trend_{safe_name(metric)}_"
+                    f"{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+                )
                 fig.savefig(out / name, dpi=140)
                 plt.close(fig)
-                files.append(plot_entry(name, "Hypothesis plots", "Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary."))
+                files.append(
+                    plot_entry(
+                        name,
+                        "Hypothesis plots",
+                        "Overview: averages all P2P configs with the same metric, scale, "
+                        "scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.",
+                    )
+                )
             if agg["p2pRqsRadius"].nunique() > 1:
                 fig, ax = plt.subplots(figsize=(7.5, 4.5))
                 add_line(ax, agg, "p2pRqsRadius", "avgMean", "kHops")
@@ -1232,22 +1268,27 @@ def plot_information_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, 
                 set_sensible_y_span(ax, agg["avgMean"])
                 ax.legend(title="k-Hops", fontsize=8)
                 fig.tight_layout()
-                name = f"h1_rqs_trend_{safe_name(metric)}_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+                name = (
+                    f"h1_rqs_trend_{safe_name(metric)}_"
+                    f"{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+                )
                 fig.savefig(out / name, dpi=140)
                 plt.close(fig)
-                files.append(plot_entry(name, "Hypothesis plots", "Overview: averages all P2P configs with the same metric, scale, scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary."))
+                files.append(
+                    plot_entry(
+                        name,
+                        "Hypothesis plots",
+                        "Overview: averages all P2P configs with the same metric, scale, "
+                        "scenario, k, and RQS radius. Strategy, shortcuts, and roaming vary.",
+                    )
+                )
     return files
 
 
 def plot_scale_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None or comp.empty:
         return []
-    best = (
-        comp.sort_values(["metric", "taxiCount", "clientCount", "spawnScenario", "avgMean"])
-        .groupby(MATCH_COLS, dropna=False)
-        .head(1)
-        .reset_index(drop=True)
-    )
+    best = best_p2p_configs(comp)
     files = []
     for metric in analysis_metrics(best):
         metric_df = best[best["metric"].eq(metric)]
@@ -1278,7 +1319,7 @@ def plot_scale_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
 def plot_roaming_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None:
         return []
-    p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+    p2p = summary[is_p2p(summary)].copy()
     files = []
     for metric in analysis_metrics(p2p):
         metric_df = p2p[p2p["metric"].eq(metric)]
@@ -1320,19 +1361,27 @@ def plot_roaming_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, str]
             name = f"h3_roaming_trend_{safe_name(metric)}_{safe_name(city_label(taxi_count, client_count))}.png"
             fig.savefig(out / name, dpi=140)
             plt.close(fig)
-            files.append(plot_entry(name, "Hypothesis plots", "Overview: averages all P2P configs with the same metric, scale, scenario, and roaming mode. k, radius, strategy, and shortcuts vary. Empty roaming modes are skipped from the legend."))
+            files.append(
+                plot_entry(
+                    name,
+                    "Hypothesis plots",
+                    "Overview: averages all P2P configs with the same metric, scale, "
+                    "scenario, and roaming mode. k, radius, strategy, and shortcuts vary. "
+                    "Empty roaming modes are skipped from the legend.",
+                )
+            )
     return files
 
 
 def plot_topology_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None:
         return []
-    p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+    p2p = summary[is_p2p(summary)].copy()
     files = []
     for metric in analysis_metrics(p2p):
         metric_df = p2p[p2p["metric"].eq(metric)]
         for (taxi_count, client_count, scenario), sub in metric_df.groupby(
-            ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+                ["taxiCount", "clientCount", "spawnScenario"], dropna=False
         ):
             agg = (
                 sub.groupby(["kHops", "p2pOverlayShortcuts"], dropna=False)["avgMean"]
@@ -1349,32 +1398,38 @@ def plot_topology_trends(summary: pd.DataFrame, out: Path) -> list[dict[str, str
             set_sensible_y_span(ax, agg["avgMean"])
             ax.legend(title="Shortcuts", fontsize=8)
             fig.tight_layout()
-            name = f"h4_shortcut_trend_{safe_name(metric)}_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+            name = (
+                f"h4_shortcut_trend_{safe_name(metric)}_"
+                f"{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
+            )
             fig.savefig(out / name, dpi=140)
             plt.close(fig)
-            files.append(plot_entry(name, "Hypothesis plots", "Overview: averages all P2P configs with the same metric, scale, scenario, k, and shortcut count. Radius, strategy, and roaming vary."))
+            files.append(
+                plot_entry(
+                    name,
+                    "Hypothesis plots",
+                    "Overview: averages all P2P configs with the same metric, scale, "
+                    "scenario, k, and shortcut count. Radius, strategy, and roaming vary.",
+                )
+            )
     return files
 
 
 def plot_fixed_parameter_trends(
-    summary: pd.DataFrame,
-    comp: pd.DataFrame,
-    out: Path,
-    varied_cols: list[str],
-    x_col: str,
-    label_col: str,
-    title_prefix: str,
-    filename_prefix: str,
+        summary: pd.DataFrame,
+        comp: pd.DataFrame,
+        out: Path,
+        varied_cols: list[str],
+        x_col: str,
+        label_col: str,
+        title_prefix: str,
+        filename_prefix: str,
 ) -> list[dict[str, str]]:
     if plt is None:
         return []
-    p2p = summary[summary["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+    p2p = summary[is_p2p(summary)].copy()
     fixed_cols = [col for col in EXACT_CONFIG_COLS if col not in varied_cols]
-    best = (
-        comp.sort_values(["metric", "taxiCount", "clientCount", "spawnScenario", "avgMean"])
-        .groupby(MATCH_COLS, dropna=False)
-        .head(1)
-    )
+    best = best_p2p_configs(comp)
     reference_cols = [col for col in fixed_cols if col in best.columns]
     p2p = p2p.merge(best[reference_cols].drop_duplicates(), on=reference_cols, how="inner")
     files = []
@@ -1401,7 +1456,11 @@ def plot_fixed_parameter_trends(
         )
         fig.savefig(out / name, dpi=140)
         plt.close(fig)
-        note = "Varied plotted parameters around the matched best P2P config; averages only repeated runs. " + compact_fixed_config(fixed)
+        note = (
+                "Varied plotted parameters around the matched best P2P config; averages only "
+                "repeated runs. "
+                + compact_fixed_config(fixed)
+        )
         files.append(plot_entry(name, "Interesting trends", note))
     return files
 
@@ -1409,12 +1468,7 @@ def plot_fixed_parameter_trends(
 def plot_best_delta_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None or comp.empty:
         return []
-    best = (
-        comp.sort_values(["metric", "taxiCount", "clientCount", "spawnScenario", "avgMean"])
-        .groupby(MATCH_COLS, dropna=False)
-        .head(1)
-        .reset_index(drop=True)
-    )
+    best = best_p2p_configs(comp)
     files = []
     for metric in analysis_metrics(best):
         metric_df = best[best["metric"].eq(metric)]
@@ -1445,15 +1499,15 @@ def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str,
     if plt is None:
         return []
     matrix = add_operational_metrics(metric_matrix(summary))
-    p2p = matrix[
-        matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)
-    ].dropna(subset=["waitingAvgMean", "distanceAvgMean", "servedRatio"])
-    single = matrix[
-        ~matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)
-    ].dropna(subset=["waitingAvgMean", "distanceAvgMean", "servedRatio"])
+    p2p = matrix[is_p2p(matrix)].dropna(
+        subset=["waitingAvgMean", "distanceAvgMean", "servedRatio"]
+    )
+    single = matrix[~is_p2p(matrix)].dropna(
+        subset=["waitingAvgMean", "distanceAvgMean", "servedRatio"]
+    )
     files = []
     for (taxi_count, client_count, scenario), sub in p2p.groupby(
-        ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+            ["taxiCount", "clientCount", "spawnScenario"], dropna=False
     ):
         if sub.empty:
             continue
@@ -1500,7 +1554,11 @@ def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str,
             color="black",
             linewidth=2,
         )
-        reference = single[(single["taxiCount"] == taxi_count) & (single["clientCount"] == client_count) & single["spawnScenario"].eq(scenario)]
+        reference = single[
+            (single["taxiCount"] == taxi_count)
+            & (single["clientCount"] == client_count)
+            & single["spawnScenario"].eq(scenario)
+            ]
         if not reference.empty:
             reference_distance = reference["distanceAvgMean"].mean()
             reference_waiting = reference["waitingAvgMean"].mean()
@@ -1532,7 +1590,8 @@ def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str,
             plot_entry(
                 name,
                 "Interesting trends",
-                "Each point is an exact P2P configuration; the second panel adds pickup rate to the same waiting-time–distance projection.",
+                "Each point is an exact P2P configuration; the second panel adds pickup rate "
+                "to the same waiting-time–distance projection.",
             )
         )
     return files
@@ -1542,9 +1601,9 @@ def plot_k_hop_cost(summary: pd.DataFrame, out: Path) -> dict[str, str] | None:
     if plt is None:
         return None
     matrix = metric_matrix(summary)
-    p2p = matrix[
-        matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)
-    ].dropna(subset=["kHops", "calculationAvgMean", "communicationAvgMean"])
+    p2p = matrix[is_p2p(matrix)].dropna(
+        subset=["kHops", "calculationAvgMean", "communicationAvgMean"]
+    )
     if p2p.empty:
         return None
     data = (
@@ -1583,34 +1642,35 @@ def plot_k_hop_cost(summary: pd.DataFrame, out: Path) -> dict[str, str] | None:
     return plot_entry(
         name,
         "Interesting trends",
-        "Means across city-scenario groups and remaining P2P parameters; hatching marks the in-process communication path.",
+        "Means across city-scenario groups and remaining P2P parameters; hatching marks the "
+        "in-process communication path.",
     )
 
 
 def plot_interesting_trends(summary: pd.DataFrame, comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     records = (
-        plot_best_delta_trends(comp, out)
-        + plot_efficiency_tradeoff(summary, out)
-        + plot_fixed_parameter_trends(
-            summary,
-            comp,
-            out,
-            ["kHops", "p2pRqsRadius"],
-            "kHops",
-            "p2pRqsRadius",
-            "Fixed-config k/RQS trend",
-            "fixed_k_rqs_trend",
-        )
-        + plot_fixed_parameter_trends(
-            summary,
-            comp,
-            out,
-            ["kHops", "p2pOverlayShortcuts"],
-            "kHops",
-            "p2pOverlayShortcuts",
-            "Fixed-config shortcut trend",
-            "fixed_shortcut_trend",
-        )
+            plot_best_delta_trends(comp, out)
+            + plot_efficiency_tradeoff(summary, out)
+            + plot_fixed_parameter_trends(
+        summary,
+        comp,
+        out,
+        ["kHops", "p2pRqsRadius"],
+        "kHops",
+        "p2pRqsRadius",
+        "Fixed-config k/RQS trend",
+        "fixed_k_rqs_trend",
+    )
+            + plot_fixed_parameter_trends(
+        summary,
+        comp,
+        out,
+        ["kHops", "p2pOverlayShortcuts"],
+        "kHops",
+        "p2pOverlayShortcuts",
+        "Fixed-config shortcut trend",
+        "fixed_shortcut_trend",
+    )
     )
     k_hop_cost = plot_k_hop_cost(summary, out)
     return records + ([k_hop_cost] if k_hop_cost is not None else [])
@@ -1621,7 +1681,7 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
         return []
     files = []
     for (taxi_count, client_count, scenario), sub in time_df.groupby(
-        ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+            ["taxiCount", "clientCount", "spawnScenario"], dropna=False
     ):
         block = sub.copy()
         if block.empty:
@@ -1649,14 +1709,21 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
         name = f"time_windows_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
         fig.savefig(out / name, dpi=140)
         plt.close(fig)
-        files.append(plot_entry(name, "Time windows", "Stream-aggregated windows; service counts are normalized per input block before comparing algorithms."))
+        files.append(
+            plot_entry(
+                name,
+                "Time windows",
+                "Stream-aggregated windows; service counts are normalized per input block "
+                "before comparing algorithms.",
+            )
+        )
         if len(files) >= MAX_TIME_SERIES_PLOTS:
             break
     return files
 
 
 def plot_spatial_maps(
-    request_df: pd.DataFrame, summary: pd.DataFrame, out: Path
+        request_df: pd.DataFrame, summary: pd.DataFrame, out: Path
 ) -> list[dict[str, str]]:
     if plt is None or request_df.empty:
         return []
@@ -1681,7 +1748,7 @@ def plot_spatial_maps(
     grouped["waitMean"] = grouped["waiting"] / grouped["requests"].where(grouped["requests"] != 0)
     panel_cols = ["taxiCount", "clientCount", "spawnScenario", "algorithm", "idleRoamingMode"]
     grouped["pickupShare"] = (
-        grouped["requests"] / grouped.groupby(panel_cols, dropna=False)["requests"].transform("sum") * 100.0
+            grouped["requests"] / grouped.groupby(panel_cols, dropna=False)["requests"].transform("sum") * 100.0
     )
     metric_norm = {
         col: matplotlib.colors.PowerNorm(gamma=0.5, vmin=0, vmax=max(float(grouped[col].max()), 1.0))
@@ -1701,7 +1768,7 @@ def plot_spatial_maps(
     }
 
     for (taxi_count, client_count, scenario), sub in grouped.groupby(
-        ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+            ["taxiCount", "clientCount", "spawnScenario"], dropna=False
     ):
         modes = list(dict.fromkeys(zip(sub["algorithm"], sub["idleRoamingMode"])))
         modes = modes[:6]
@@ -1709,32 +1776,37 @@ def plot_spatial_maps(
             continue
         for value_col, label, filename, normalized, note in [
             (
-                "waitMean",
-                "Waiting time [min]",
-                "spatial_waits",
-                False,
-                "Each panel uses its own color scale. Titles show mean clients not picked up per run.",
+                    "waitMean",
+                    "Waiting time [min]",
+                    "spatial_waits",
+                    False,
+                    "Each panel uses its own color scale. Titles show mean clients not picked up per run.",
             ),
             (
-                "waitMean",
-                "Waiting time [min]",
-                "spatial_waits_normalized",
-                True,
-                "Equal values use equal colors across every plot; square-root normalization preserves contrast in lower ranges. Titles show mean clients not picked up per run.",
+                    "waitMean",
+                    "Waiting time [min]",
+                    "spatial_waits_normalized",
+                    True,
+                    "Equal values use equal colors across every plot; square-root normalization "
+                    "preserves contrast in lower ranges. Titles show mean clients not picked up "
+                    "per run.",
             ),
             (
-                "pickupShare",
-                "Share of picked-up clients [%]",
-                "spatial_pickup_share",
-                False,
-                "Each panel uses its own color scale. Spatial share covers picked-up clients only; titles show the true mean unpicked total per run.",
+                    "pickupShare",
+                    "Share of picked-up clients [%]",
+                    "spatial_pickup_share",
+                    False,
+                    "Each panel uses its own color scale. Spatial share covers picked-up clients "
+                    "only; titles show the true mean unpicked total per run.",
             ),
             (
-                "pickupShare",
-                "Share of picked-up clients [%]",
-                "spatial_pickup_share_normalized",
-                True,
-                "Equal values use equal colors across every plot; square-root normalization preserves contrast in lower ranges. Spatial share covers picked-up clients only; titles show the true mean unpicked total per run.",
+                    "pickupShare",
+                    "Share of picked-up clients [%]",
+                    "spatial_pickup_share_normalized",
+                    True,
+                    "Equal values use equal colors across every plot; square-root normalization "
+                    "preserves contrast in lower ranges. Spatial share covers picked-up clients "
+                    "only; titles show the true mean unpicked total per run.",
             ),
         ]:
             fig, axes = plt.subplots(
@@ -1746,7 +1818,7 @@ def plot_spatial_maps(
             for ax, (algorithm, mode) in zip(axes_flat, modes):
                 plot_df = sub[
                     sub["algorithm"].eq(algorithm) & sub["idleRoamingMode"].eq(mode)
-                ].dropna(subset=["zoneX", "zoneY", value_col])
+                    ].dropna(subset=["zoneX", "zoneY", value_col])
                 if plot_df.empty:
                     ax.set_visible(False)
                     continue
@@ -1799,17 +1871,7 @@ def plot_spatial_maps(
     return files
 
 
-def plot_new_metrics(
-    time_df: pd.DataFrame,
-    request_df: pd.DataFrame,
-    summary: pd.DataFrame,
-    out: Path,
-    tick_block_size: int,
-) -> list[dict[str, str]]:
-    return (
-        plot_time_windows(time_df, out, tick_block_size)
-        + plot_spatial_maps(request_df, summary, out)
-    )
+# Extended analysis plots
 
 
 def scenario_labels(rows: pd.DataFrame) -> list[str]:
@@ -1852,16 +1914,21 @@ def plot_architecture_roaming_control(data: pd.DataFrame, out: Path) -> dict[str
     name = "architecture_roaming_control.png"
     fig.savefig(out / name, dpi=150)
     plt.close(fig)
-    return plot_entry(name, "Extended analysis", "Central reference and P2P roaming modes; P2P bars average only remaining P2P parameters.")
+    return plot_entry(
+        name,
+        "Extended analysis",
+        "Central reference and P2P roaming modes; P2P bars average only remaining P2P "
+        "parameters.",
+    )
 
 
 def plot_interaction_grid(
-    data: pd.DataFrame,
-    out: Path,
-    row: str,
-    column: str,
-    filename: str,
-    title: str,
+        data: pd.DataFrame,
+        out: Path,
+        row: str,
+        column: str,
+        filename: str,
+        title: str,
 ) -> dict[str, str] | None:
     if plt is None or data.empty:
         return None
@@ -1899,7 +1966,12 @@ def plot_interaction_grid(
     fig.suptitle(title)
     fig.savefig(out / filename, dpi=150)
     plt.close(fig)
-    return plot_entry(filename, "Extended analysis", "Cells average only parameters not shown; values are relative to the matched central reference.")
+    return plot_entry(
+        filename,
+        "Extended analysis",
+        "Cells average only parameters not shown; values are relative to the matched central "
+        "reference.",
+    )
 
 
 def plot_robust_config(data: pd.DataFrame, out: Path) -> dict[str, str] | None:
@@ -1911,7 +1983,7 @@ def plot_robust_config(data: pd.DataFrame, out: Path) -> dict[str, str] | None:
     width = 0.24
     fig, axes = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
     for i, (column, label) in enumerate(
-        [("waitingDeltaPct", "Waiting"), ("travelDeltaPct", "Client travel"), ("distanceDeltaPct", "Taxi distance")]
+            [("waitingDeltaPct", "Waiting"), ("travelDeltaPct", "Client travel"), ("distanceDeltaPct", "Taxi distance")]
     ):
         axes[0].bar(x + (i - 1) * width, data[column], width, label=label)
     axes[0].axhline(0, color="#111827", linewidth=1)
@@ -1929,11 +2001,15 @@ def plot_robust_config(data: pd.DataFrame, out: Path) -> dict[str, str] | None:
     name = "robust_config_scenario_regret.png"
     fig.savefig(out / name, dpi=150)
     plt.close(fig)
-    return plot_entry(name, "Extended analysis", "One fixed parameter configuration across all city-scenario groups; lower is better.")
+    return plot_entry(
+        name,
+        "Extended analysis",
+        "One fixed parameter configuration across all city-scenario groups; lower is better.",
+    )
 
 
 def plot_crossover_robustness(
-    crossover: pd.DataFrame, seed_counts: pd.DataFrame, out: Path
+        crossover: pd.DataFrame, seed_counts: pd.DataFrame, out: Path
 ) -> list[dict[str, str]]:
     if plt is None or crossover.empty or seed_counts.empty:
         return []
@@ -1970,7 +2046,11 @@ def plot_crossover_robustness(
     plt.close(fig)
     return [
         plot_entry(name, "Extended analysis", "Mean-based membership compared with paired-seed stability."),
-        plot_entry(travel_name, "Extended analysis", "Existing crossover criteria compared with an added client-travel-time condition."),
+        plot_entry(
+            travel_name,
+            "Extended analysis",
+            "Existing crossover criteria compared with an added client-travel-time condition.",
+        ),
     ]
 
 
@@ -2001,7 +2081,7 @@ def plot_best_waiting_cost(data: pd.DataFrame, out: Path) -> dict[str, str] | No
 
 
 def plot_best_waiting_uncertainty(
-    best: pd.DataFrame, paired: pd.DataFrame, out: Path
+        best: pd.DataFrame, paired: pd.DataFrame, out: Path
 ) -> dict[str, str] | None:
     if plt is None or best.empty or paired.empty:
         return None
@@ -2014,7 +2094,7 @@ def plot_best_waiting_uncertainty(
     ax.errorbar(
         x,
         data["deltaPctMean"],
-        yerr=data["deltaPctCi95Half"],
+        yerr=data["deltaPctStd"],
         fmt="o",
         capsize=4,
         color="#0f766e",
@@ -2028,7 +2108,12 @@ def plot_best_waiting_uncertainty(
     name = "best_waiting_paired_seed_uncertainty.png"
     fig.savefig(out / name, dpi=150)
     plt.close(fig)
-    return plot_entry(name, "Extended analysis", "95% t intervals from paired world seeds for the mean-selected best waiting configuration.")
+    return plot_entry(
+        name,
+        "Extended analysis",
+        "Mean and standard deviation across paired world seeds for the mean-selected best "
+        "waiting configuration.",
+    )
 
 
 def plot_extended_analysis(tables: dict[str, pd.DataFrame], out: Path) -> list[dict[str, str]]:
@@ -2059,34 +2144,10 @@ def plot_extended_analysis(tables: dict[str, pd.DataFrame], out: Path) -> list[d
     )
 
 
-def plot_thesis_focus(
-    summary: pd.DataFrame,
-    comp: pd.DataFrame,
-    out: Path,
-    time_df: pd.DataFrame,
-    request_df: pd.DataFrame,
-    tick_block_size: int,
-) -> list[dict[str, str]]:
-    return (
-        plot_best_vs_single(comp, out)
-        + plot_scale_trends(comp, out)
-        + plot_information_trends(summary, out)
-        + plot_roaming_trends(summary, out)
-        + plot_topology_trends(summary, out)
-        + plot_interesting_trends(summary, comp, out)
-        + plot_new_metrics(time_df, request_df, summary, out, tick_block_size)
-    )
-
-
 def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     if plt is None or comp.empty:
         return []
-    best = (
-        comp.sort_values(["metric", "taxiCount", "clientCount", "spawnScenario", "avgMean"])
-        .groupby(MATCH_COLS, dropna=False)
-        .head(1)
-        .reset_index(drop=True)
-    )
+    best = best_p2p_configs(comp)
     files = []
     for metric, sub in best.groupby("metric", dropna=False):
         labels = [
@@ -2140,7 +2201,11 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
         name = f"best_p2p_vs_single_{safe_name(metric)}.png"
         fig.savefig(out / name, dpi=140)
         plt.close(fig)
-        note = "P2P calculation time uses one color; hatching marks its communication part." if metric == CALCULATION_METRIC else ""
+        note = (
+            "P2P calculation time uses one color; hatching marks its communication part."
+            if metric == CALCULATION_METRIC
+            else ""
+        )
         files.append(plot_entry(name, "Best P2P", note))
         if metric == CALCULATION_METRIC:
             continue
@@ -2153,10 +2218,33 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
         for i, (row, cfg) in enumerate(zip(sub.itertuples(index=False), configs)):
             label = cfg if cfg not in seen else None
             if i == 0:
-                ax.bar(i - width / 2, row.singleAvg, width, yerr=0 if pd.isna(row.singleStd) else row.singleStd, capsize=3, color="#6b7280", label="SinglePassenger")
+                ax.bar(
+                    i - width / 2,
+                    row.singleAvg,
+                    width,
+                    yerr=0 if pd.isna(row.singleStd) else row.singleStd,
+                    capsize=3,
+                    color="#6b7280",
+                    label="SinglePassenger",
+                )
             else:
-                ax.bar(i - width / 2, row.singleAvg, width, yerr=0 if pd.isna(row.singleStd) else row.singleStd, capsize=3, color="#6b7280")
-            ax.bar(i + width / 2, row.avgMean, width, yerr=0 if pd.isna(row.avgStd) else row.avgStd, capsize=3, color=colors[cfg], label=label)
+                ax.bar(
+                    i - width / 2,
+                    row.singleAvg,
+                    width,
+                    yerr=0 if pd.isna(row.singleStd) else row.singleStd,
+                    capsize=3,
+                    color="#6b7280",
+                )
+            ax.bar(
+                i + width / 2,
+                row.avgMean,
+                width,
+                yerr=0 if pd.isna(row.avgStd) else row.avgStd,
+                capsize=3,
+                color=colors[cfg],
+                label=label,
+            )
             seen.add(cfg)
         ax.set_ylabel(metric)
         set_sensible_y_span(ax, sub["singleAvg"], sub["avgMean"])
@@ -2171,8 +2259,31 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     return files
 
 
+def plot_thesis_focus(
+        summary: pd.DataFrame,
+        comp: pd.DataFrame,
+        out: Path,
+        time_df: pd.DataFrame,
+        request_df: pd.DataFrame,
+        tick_block_size: int,
+) -> list[dict[str, str]]:
+    return (
+            plot_best_vs_single(comp, out)
+            + plot_scale_trends(comp, out)
+            + plot_information_trends(summary, out)
+            + plot_roaming_trends(summary, out)
+            + plot_topology_trends(summary, out)
+            + plot_interesting_trends(summary, comp, out)
+            + plot_time_windows(time_df, out, tick_block_size)
+            + plot_spatial_maps(request_df, summary, out)
+    )
+
+
+# HTML report
+
+
 def report_csv_table(
-    base: Path, title: str, filename: str, columns: list[str], opened: bool = False
+        base: Path, title: str, filename: str, columns: list[str], opened: bool = False
 ) -> str:
     path = base / "tables" / filename
     if not path.exists():
@@ -2338,7 +2449,17 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
         for item in plot_files
     ]
     plot_sections = []
-    for section in ["Best P2P", "Hypothesis plots", "Extended analysis", "Interesting trends", "Time windows", "Request tails", "Spatial maps", "Plots"]:
+    sections = [
+        "Best P2P",
+        "Hypothesis plots",
+        "Extended analysis",
+        "Interesting trends",
+        "Time windows",
+        "Request tails",
+        "Spatial maps",
+        "Plots",
+    ]
+    for section in sections:
         records = [record for record in plot_records if record["section"] == section]
         if not records:
             continue
@@ -2350,7 +2471,10 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
             </a>"""
             for record in records
         )
-        plot_sections.append(f'<section class="plot-group"><h3>{html.escape(section)}</h3><div class="plots">{cards}</div></section>')
+        plot_sections.append(
+            f'<section class="plot-group"><h3>{html.escape(section)}</h3>'
+            f'<div class="plots">{cards}</div></section>'
+        )
     plots = "\n".join(plot_sections)
     days = overview.get("days") or []
     day_text = f"{days[0]} to {days[-1]}" if days else "n/a"
@@ -2514,7 +2638,7 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
     <section class="hero" id="overview">
       <div>
         <h1>Stratified mass-run report</h1>
-        <p>Exact-config summaries. Matched P2P vs SinglePassenger deltas. No blended city averages.</p>
+        <p>Summaries, Matched P2P vs SinglePassenger deltas, Plots</p>
       </div>
       <p><code>{day_text}</code></p>
     </section>
