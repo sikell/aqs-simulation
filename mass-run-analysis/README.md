@@ -26,6 +26,12 @@ If present next to the input CSV, these files are analyzed automatically:
 - `tables/summary.csv`: exact config aggregates across runs
 - `tables/p2p_vs_single.csv`: matched P2P vs SinglePassenger deltas
 - `tables/best_p2p_vs_single.csv`: best P2P config per metric/scale/scenario
+- `tables/system_comparison_summary.csv`: central and all-P2P means per city/scenario
+- `tables/parameter_level_summary.csv` and `parameter_effect_summary.csv`: values and thesis contrasts for radius, hops, strategy, topology, and roaming
+- `tables/interaction_k_radius_roaming.csv` and `interaction_k_shortcuts.csv`
+- `tables/crossover_summary.csv`: corridor counts, travel-time control, and seed stability
+- `tables/time_window_result_summary.csv`: whole-run and blocks 10--85 result values
+- `tables/spatial_result_summary.csv`: pickup gaps and spatial waiting-time range per roaming mode
 - `tables/single_passenger.csv`
 - `tables/time_window_summary.csv`: tick-block load, served requests, wait, calc time
 - `tables/request_tail_summary.csv`: request count, completion ratio, wait, and travel summaries

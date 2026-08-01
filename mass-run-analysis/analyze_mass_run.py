@@ -151,6 +151,7 @@ MAX_TIME_SERIES_PLOTS = 24
 MAX_REQUEST_PLOTS = 24
 DEFAULT_TICK_BLOCK_SIZE = 1000
 AUX_CHUNK_SIZE = 100_000
+RESULT_CORE_BLOCKS = (10, 85)
 
 TIME_SERIES_GROUP_COLS = [
     "algorithm",
@@ -188,6 +189,27 @@ CONFIG_COLS = [
     "p2pTopologyScanTicks",
     "idleRoamingMode",
 ]
+RESULT_VALUE_COLS = [
+    "waitingAvgMean",
+    "travelAvgMean",
+    "distanceAvgMean",
+    "servedRatio",
+    "calculationAvgMean",
+    "communicationAvgMean",
+    "kmPerServedClient",
+    "calculationMsPerServedClient",
+]
+RESULT_FACTOR_CONTRASTS = {
+    "p2pRqsRadius": [(1000, 2000), (2000, 3000)],
+    "kHops": [(0, 2)],
+    "p2pStrategy": [("nearest", "greedy")],
+    "p2pOverlayMinNeighbors": [(0, 1)],
+    "p2pOverlayShortcuts": [(0, 1)],
+    "idleRoamingMode": [
+        ("past-avg", "past-avg-total"),
+        ("random", "past-avg-total"),
+    ],
+}
 
 
 @dataclass
@@ -523,6 +545,15 @@ def add_operational_metrics(matrix: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
+def summarize_result_values(rows: pd.DataFrame, group_cols: list[str]) -> pd.DataFrame:
+    result = rows.groupby(group_cols, dropna=False)[RESULT_VALUE_COLS].mean().reset_index()
+    result["pickupPct"] = result["servedRatio"] * 100.0
+    result["communicationSharePct"] = (
+        result["communicationAvgMean"] / 1000.0 / result["calculationAvgMean"] * 100.0
+    )
+    return result
+
+
 def match_central(matrix: pd.DataFrame, extra_match: list[str] | None = None) -> pd.DataFrame:
     match = SCENARIO_COLS + (extra_match or [])
     value_cols = [
@@ -614,6 +645,7 @@ def write_extended_analysis(
 ) -> dict[str, pd.DataFrame]:
     matrix = add_operational_metrics(metric_matrix(summary))
     matched = add_crossover_flags(match_central(matrix))
+    matched["pickupPct"] = matched["servedRatio"] * 100.0
 
     metric_cols = [
         "waitingAvgMean",
@@ -629,6 +661,87 @@ def write_extended_analysis(
     ]
     p2p = matrix[matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
     central = matrix[~matrix["algorithm"].str.contains("P2PCollector", case=False, na=False)].copy()
+
+    system = matrix.copy()
+    system["architecture"] = np.where(
+        system["algorithm"].str.contains("P2PCollector", case=False, na=False),
+        "P2P mean",
+        "Central",
+    )
+    system = summarize_result_values(system, SCENARIO_COLS + ["architecture"])
+    system.to_csv(out / "system_comparison_summary.csv", index=False)
+
+    factor_levels = []
+    factor_effects = []
+    effect_metrics = {
+        "waitingAvgMean": "waitingMin",
+        "travelAvgMean": "travelMin",
+        "distanceAvgMean": "distanceKm",
+        "calculationAvgMean": "calculationMs",
+        "communicationAvgMean": "communicationMicros",
+        "kmPerServedClient": "kmPerServedClient",
+        "calculationMsPerServedClient": "calculationMsPerServedClient",
+        "communicationSharePct": "communicationSharePct",
+    }
+    for factor, contrasts in RESULT_FACTOR_CONTRASTS.items():
+        levels = summarize_result_values(p2p, SCENARIO_COLS + [factor])
+        levels["normalizedWaitingIndex"] = levels["waitingAvgMean"] / levels.groupby(
+            SCENARIO_COLS, dropna=False
+        )["waitingAvgMean"].transform("mean")
+        factor_levels.append(levels.rename(columns={factor: "level"}).assign(factor=factor))
+        normalized = levels.groupby(factor, dropna=False)["normalizedWaitingIndex"].mean()
+        for before, after in contrasts:
+            left = levels[levels[factor].eq(before)].drop(columns=[factor])
+            right = levels[levels[factor].eq(after)].drop(columns=[factor])
+            effect = left.merge(right, on=SCENARIO_COLS, suffixes=("From", "To"))
+            effect.insert(0, "factor", factor)
+            effect.insert(1, "fromValue", before)
+            effect.insert(2, "toValue", after)
+            effect.insert(3, "basis", "scenario means")
+            for source, label in effect_metrics.items():
+                effect[f"{label}From"] = effect[f"{source}From"]
+                effect[f"{label}To"] = effect[f"{source}To"]
+                effect[f"{label}DeltaPct"] = (
+                    effect[f"{source}To"] / effect[f"{source}From"] - 1.0
+                ) * 100.0
+            effect["pickupDeltaPoints"] = effect["pickupPctTo"] - effect["pickupPctFrom"]
+            effect["communicationShareDeltaPoints"] = (
+                effect["communicationSharePctTo"] - effect["communicationSharePctFrom"]
+            )
+            factor_effects.append(effect)
+            if before in normalized.index and after in normalized.index:
+                factor_effects.append(
+                    pd.DataFrame(
+                        [
+                            {
+                                "factor": factor,
+                                "fromValue": before,
+                                "toValue": after,
+                                "basis": "equal-weight normalized index",
+                                "spawnScenario": "ALL_NORMALIZED",
+                                "waitingMinFrom": normalized.loc[before],
+                                "waitingMinTo": normalized.loc[after],
+                                "waitingMinDeltaPct": (
+                                    normalized.loc[after] / normalized.loc[before] - 1.0
+                                )
+                                * 100.0,
+                            }
+                        ]
+                    )
+                )
+    factor_levels = pd.concat(factor_levels, ignore_index=True)
+    factor_levels.to_csv(out / "parameter_level_summary.csv", index=False)
+    factor_effects = pd.concat(factor_effects, ignore_index=True)
+    factor_effects.to_csv(out / "parameter_effect_summary.csv", index=False)
+
+    interaction = summarize_result_values(
+        p2p, SCENARIO_COLS + ["kHops", "p2pRqsRadius", "idleRoamingMode"]
+    )
+    interaction.to_csv(out / "interaction_k_radius_roaming.csv", index=False)
+    topology_interaction = summarize_result_values(
+        p2p, SCENARIO_COLS + ["kHops", "p2pOverlayShortcuts"]
+    )
+    topology_interaction.to_csv(out / "interaction_k_shortcuts.csv", index=False)
 
     roaming = (
         p2p.groupby(SCENARIO_COLS + ["idleRoamingMode"], dropna=False)[metric_cols]
@@ -744,6 +857,12 @@ def write_extended_analysis(
         seed_counts.append(grouped.reset_index())
     seed_counts = pd.concat(seed_counts, ignore_index=True)
     seed_counts.to_csv(out / "crossover_seed_robustness.csv", index=False)
+    crossover_summary = crossover_counts.merge(
+        seed_counts,
+        on=SCENARIO_COLS + ["thresholdPct", "configurations"],
+        how="left",
+    )
+    crossover_summary.to_csv(out / "crossover_summary.csv", index=False)
 
     return {
         "roaming": roaming,
@@ -763,6 +882,34 @@ def write_time_window_summary(time_df: pd.DataFrame, out: Path, tick_block_size:
     if time_df.empty:
         return
     time_df.to_csv(out / "time_window_summary.csv", index=False)
+    windows = [("all", time_df)]
+    start, end = RESULT_CORE_BLOCKS
+    windows.append((f"blocks_{start}_{end}", time_df[time_df["tickBlock"].between(start, end)]))
+    summaries = []
+    for window, rows in windows:
+        if rows.empty:
+            continue
+        grouped = (
+            rows.groupby(["algorithm", "taxiCount", "clientCount", "spawnScenario"], dropna=False)
+            .agg(
+                firstBlock=("tickBlock", "min"),
+                lastBlock=("tickBlock", "max"),
+                blocks=("tickBlock", "nunique"),
+                activeClientsMean=("activeClientsMean", "mean"),
+                servedRequestsMean=("servedRequestsMean", "mean"),
+                finishedRequestsMean=("finishedRequestsMean", "mean"),
+                waitingTimeMean=("waitingTimeAvg", "mean"),
+                waitingTimeMax=("waitingTimeAvg", "max"),
+                calculationTimeMillisMean=("calcTimeMillisMean", "mean"),
+            )
+            .reset_index()
+        )
+        grouped.insert(0, "window", window)
+        grouped.insert(1, "tickBlockSize", tick_block_size)
+        summaries.append(grouped)
+    pd.concat(summaries, ignore_index=True).to_csv(
+        out / "time_window_result_summary.csv", index=False
+    )
 
 
 def write_request_tail_summary(request_df: pd.DataFrame, out: Path) -> None:
@@ -793,6 +940,56 @@ def write_request_tail_summary(request_df: pd.DataFrame, out: Path) -> None:
     grouped.drop(columns=["waitingSum", "travelSum"]).reset_index().to_csv(
         out / "request_tail_summary.csv", index=False
     )
+
+
+def write_spatial_result_summary(
+    request_df: pd.DataFrame, summary: pd.DataFrame, out: Path
+) -> None:
+    if request_df.empty:
+        return
+    panel_cols = [
+        "algorithm",
+        "taxiCount",
+        "clientCount",
+        "taxiSeatCount",
+        "spawnScenario",
+        "idleRoamingMode",
+    ]
+    zones = (
+        request_df.groupby(panel_cols + ["zoneX", "zoneY"], dropna=False)
+        .agg(requests=("requestCount", "sum"), waitingSum=("waitingTimeSum", "sum"))
+        .reset_index()
+    )
+    zones["zoneWaitingMean"] = zones["waitingSum"] / zones["requests"].where(
+        zones["requests"].ne(0)
+    )
+    spatial = (
+        zones.groupby(panel_cols, dropna=False)
+        .agg(
+            spatialRequests=("requests", "sum"),
+            waitingSum=("waitingSum", "sum"),
+            zoneWaitingMin=("zoneWaitingMean", "min"),
+            zoneWaitingMax=("zoneWaitingMean", "max"),
+        )
+        .reset_index()
+    )
+    spatial["waitingMean"] = spatial["waitingSum"] / spatial["spatialRequests"].where(
+        spatial["spatialRequests"].ne(0)
+    )
+    pickup = (
+        summary[summary["metric"].eq(WAITING_METRIC)]
+        .groupby(panel_cols, dropna=False)["countMean"]
+        .mean()
+        .reset_index(name="pickedUpPerRun")
+    )
+    spatial = spatial.merge(pickup, on=panel_cols, how="left")
+    spatial["notPickedUpPerRun"] = (spatial["clientCount"] - spatial["pickedUpPerRun"]).clip(
+        lower=0
+    )
+    spatial["notPickedUpPct"] = (
+        spatial["notPickedUpPerRun"] / spatial["clientCount"] * 100.0
+    )
+    spatial.drop(columns="waitingSum").to_csv(out / "spatial_result_summary.csv", index=False)
 
 
 def pair_effect(df: pd.DataFrame, factor: str, a: object, b: object) -> pd.DataFrame:
@@ -1974,6 +2171,36 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     return files
 
 
+def report_csv_table(
+    base: Path, title: str, filename: str, columns: list[str], opened: bool = False
+) -> str:
+    path = base / "tables" / filename
+    if not path.exists():
+        return ""
+    rows = pd.read_csv(path)
+    if rows.empty:
+        return ""
+    if {"taxiCount", "clientCount"}.issubset(rows.columns):
+        rows.insert(
+            0,
+            "city",
+            rows.apply(
+                lambda row: "All" if pd.isna(row["taxiCount"]) else city_label(row["taxiCount"], row["clientCount"]),
+                axis=1,
+            ),
+        )
+    columns = [column for column in columns if column in rows.columns]
+    table = rows[columns].round(3).to_html(
+        index=False, border=0, classes="result-table", na_rep=""
+    )
+    return (
+        f'<details class="result"{" open" if opened else ""}>'
+        f'<summary>{html.escape(title)} <small>{len(rows)} rows</small></summary>'
+        f'<p><a href="tables/{html.escape(filename)}">{html.escape(filename)}</a></p>'
+        f'<div class="table-wrap">{table}</div></details>'
+    )
+
+
 def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -> None:
     tables = sorted(p.name for p in (base / "tables").glob("*.csv"))
     stats_files = sorted(p.name for p in (base / "stats").glob("*.csv"))
@@ -1981,7 +2208,7 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
     best_rows = pd.read_csv(best_path) if best_path.exists() else pd.DataFrame()
     if not best_rows.empty:
         best_rows = best_rows.copy()
-        best_rows = best_rows[best_rows["metric"].isin(core_metrics(best_rows))]
+        best_rows = best_rows[best_rows["metric"].isin(analysis_metrics(best_rows))]
         if not best_rows.empty:
             best_rows["city"] = best_rows.apply(lambda r: city_label(r["taxiCount"], r["clientCount"]), axis=1)
             best_rows["config"] = best_rows.apply(config_label, axis=1)
@@ -2001,6 +2228,103 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
             best_table = '<tr><td colspan="7">No core best-config rows found.</td></tr>'
     else:
         best_table = '<tr><td colspan="7">No best-config table found.</td></tr>'
+    result_tables = "".join(
+        [
+            report_csv_table(
+                base,
+                "System comparison",
+                "system_comparison_summary.csv",
+                [
+                    "city", "spawnScenario", "architecture", "waitingAvgMean",
+                    "travelAvgMean", "distanceAvgMean", "pickupPct",
+                    "calculationAvgMean", "communicationSharePct",
+                ],
+                True,
+            ),
+            report_csv_table(
+                base,
+                "Parameter effects",
+                "parameter_effect_summary.csv",
+                [
+                    "factor", "fromValue", "toValue", "basis", "city", "spawnScenario",
+                    "waitingMinFrom", "waitingMinTo", "waitingMinDeltaPct",
+                    "distanceKmDeltaPct", "pickupDeltaPoints", "calculationMsFrom",
+                    "calculationMsTo", "calculationMsDeltaPct", "communicationMicrosFrom",
+                    "communicationMicrosTo", "communicationMicrosDeltaPct",
+                    "communicationSharePctFrom", "communicationSharePctTo",
+                    "communicationShareDeltaPoints",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "k / radius / roaming interactions",
+                "interaction_k_radius_roaming.csv",
+                [
+                    "city", "spawnScenario", "kHops", "p2pRqsRadius", "idleRoamingMode",
+                    "waitingAvgMean", "travelAvgMean", "distanceAvgMean", "pickupPct",
+                    "calculationAvgMean", "communicationSharePct",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "k / shortcut interactions",
+                "interaction_k_shortcuts.csv",
+                [
+                    "city", "spawnScenario", "kHops", "p2pOverlayShortcuts",
+                    "waitingAvgMean", "distanceAvgMean", "pickupPct",
+                    "calculationAvgMean", "communicationSharePct",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Crossover and seed stability",
+                "crossover_summary.csv",
+                [
+                    "city", "spawnScenario", "thresholdPct", "configurations", "currentPass",
+                    "withTravelTime", "atLeastEightSeeds", "allSeeds",
+                    "withTravelAtLeastEightSeeds",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Best fixed Minimax configuration",
+                "robust_config_scenario_details.csv",
+                [
+                    "city", "spawnScenario", "kHops", "p2pRqsRadius", "p2pStrategy",
+                    "p2pOverlayMinNeighbors", "p2pOverlayShortcuts", "idleRoamingMode",
+                    "waitingDeltaPct", "travelDeltaPct", "distanceDeltaPct", "pickupGapPoints",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Waiting-best configuration and cost",
+                "best_waiting_operational_cost.csv",
+                [
+                    "city", "spawnScenario", "waitingAvgMean", "centralWaitingAvgMean",
+                    "waitingDeltaPct", "travelDeltaPct", "distanceDeltaPct", "pickupPct",
+                    "kmPerServedClientDeltaPct", "calculationMsPerServedClientDeltaPct",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Time-window results",
+                "time_window_result_summary.csv",
+                [
+                    "window", "city", "spawnScenario", "algorithm", "firstBlock", "lastBlock",
+                    "activeClientsMean", "servedRequestsMean", "waitingTimeMean", "waitingTimeMax",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Spatial results",
+                "spatial_result_summary.csv",
+                [
+                    "city", "spawnScenario", "algorithm", "idleRoamingMode", "waitingMean",
+                    "zoneWaitingMin", "zoneWaitingMax", "pickedUpPerRun", "notPickedUpPct",
+                ],
+            ),
+        ]
+    )
     table_links = "".join(
         f'<a class="file" href="tables/{html.escape(name)}"><span>{html.escape(name)}</span><small>table</small></a>'
         for name in tables
@@ -2105,6 +2429,12 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
     .card small {{ display: block; color: var(--muted); margin-bottom: 6px; }}
     .card strong {{ display: block; font-size: 22px; }}
     .panel {{ padding: 18px; }}
+    details.result {{ margin-top: 10px; border-top: 1px solid var(--line); padding-top: 10px; }}
+    details.result:first-child {{ margin-top: 0; border-top: 0; padding-top: 0; }}
+    details.result summary {{ cursor: pointer; font-weight: 650; }}
+    details.result summary small {{ color: var(--muted); font-weight: 400; margin-left: 6px; }}
+    details.result p {{ margin: 8px 0; }}
+    details.result p a {{ color: var(--accent); }}
     .split {{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }}
     ul {{ margin: 0; padding-left: 20px; }}
     .files {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }}
@@ -2172,6 +2502,7 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
     <nav>
       <a href="#overview">Overview</a>
       <a href="#dimensions">Dimensions</a>
+      <a href="#results">Results summary</a>
       <a href="#best">Best P2P</a>
       <a href="#averaging">Averaging</a>
       <a href="#tables">Tables</a>
@@ -2206,6 +2537,12 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
         <h2>Scenarios</h2>
         <ul>{scenario_list}</ul>
       </div>
+    </section>
+
+    <section id="results" class="panel">
+      <h2>Results summary</h2>
+      <p>All values used for result interpretation, calculated from the same exact-config aggregates. Open a group for its complete summary table.</p>
+      {result_tables or '<p>No result summaries generated.</p>'}
     </section>
 
     <section id="best" class="panel">
@@ -2273,6 +2610,7 @@ def main() -> None:
     extended = write_extended_analysis(df, summary, dirs["tables"])
     write_time_window_summary(time_df, dirs["tables"], config.tick_block_size)
     write_request_tail_summary(request_df, dirs["tables"])
+    write_spatial_result_summary(request_df, summary, dirs["tables"])
     write_effect_screens(df, dirs["stats"])
     plots = plot_thesis_focus(summary, comp, dirs["plots"], time_df, request_df, config.tick_block_size)
     plots += plot_extended_analysis(extended, dirs["plots"])
