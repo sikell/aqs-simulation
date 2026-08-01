@@ -68,6 +68,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private static final long DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS = 3L;
   private static final int DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M = 200;
   private static final long DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS = 600L;
+  private static final long DEFAULT_VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS = 1000L;
   private static final long DEFAULT_CLEANUP_INTERVAL_TICKS = 10L;
   private static final int MAX_FORWARDED_PAYLOAD_CACHE_SIZE = 200;
 
@@ -76,6 +77,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
   private volatile long cachedReofferMinIntervalTicks = DEFAULT_VEHICLE_REOFFER_MIN_INTERVAL_TICKS;
   private volatile int cachedReofferMoveDistanceM = DEFAULT_VEHICLE_REOFFER_MOVE_DISTANCE_M;
   private volatile long cachedRequestCacheTtlTicks = DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS;
+  private volatile long cachedSeenClientTtlTicks = DEFAULT_VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS;
 
   /**
    * When true, skip isBestKnownVehicle — collector selects winner from multiple commits. -- SETTER
@@ -148,6 +150,12 @@ public class VehicleP2PService extends AbstractP2PNodeService {
             P2PRunContext.getLong(
                 P2PSystemProperties.VEHICLE_REQUEST_CACHE_TTL_TICKS,
                 DEFAULT_VEHICLE_REQUEST_CACHE_TTL_TICKS));
+    cachedSeenClientTtlTicks =
+        Math.max(
+            1L,
+            P2PRunContext.getLong(
+                P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS,
+                DEFAULT_VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS));
     String speedStr = P2PRunContext.getProperty(P2PSystemProperties.VEHICLE_ASSUMED_SPEED_MPS);
     cachedAssumedSpeedMps =
         (speedStr == null || speedStr.isBlank())
@@ -654,11 +662,6 @@ public class VehicleP2PService extends AbstractP2PNodeService {
 
   private void cleanupStaleOpenRequests() {
     long nowTick = currentSimulationTick;
-    long seenClientTtlTicks =
-        Math.max(
-            1L,
-            P2PRunContext.getLong(
-                P2PSystemProperties.VEHICLE_IDLE_SEEN_CLIENT_TTL_TICKS, 1000L));
     openRideRequests
         .entrySet()
         .removeIf(entry -> nowTick - entry.getValue().firstSeenAtTick > cachedRequestCacheTtlTicks);
@@ -667,7 +670,7 @@ public class VehicleP2PService extends AbstractP2PNodeService {
         .removeIf(entry -> nowTick - entry.getValue() > cachedRequestCacheTtlTicks);
     roamingRegisteredRideRequests
         .entrySet()
-        .removeIf(entry -> nowTick - entry.getValue() >= seenClientTtlTicks);
+        .removeIf(entry -> nowTick - entry.getValue() >= cachedSeenClientTtlTicks);
     if (forwardedPayloadCache.size() > MAX_FORWARDED_PAYLOAD_CACHE_SIZE) {
       forwardedPayloadCache.clear();
     }
