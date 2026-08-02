@@ -1,0 +1,9 @@
+taxiCount,clientCount,taxiSeatCount,spawnScenario,selectedConfig
+1685,27762,1,SPATIAL_IMBALANCE,"k=0, r=3000, greedy, shortcuts=0, roam=past-avg, minN=0"
+39,638,1,BASELINE,"k=1, r=1000, greedy, shortcuts=1, roam=past-avg, minN=1"
+39,638,1,RUSH_HOUR,"k=1, r=2000, greedy, shortcuts=0, roam=random, minN=0"
+39,638,1,SPATIAL_IMBALANCE,"k=1, r=2000, greedy, shortcuts=1, roam=past-avg, minN=0"
+1685,27762,1,RUSH_HOUR,"k=1, r=2000, greedy, shortcuts=1, roam=past-avg-revisit, minN=0"
+1685,27762,1,SPATIAL_ISLANDS,"k=1, r=2000, nearest, shortcuts=1, roam=past-avg-total, minN=0"
+1685,27762,1,BASELINE,"k=2, r=2000, greedy, shortcuts=0, roam=past-avg-total, minN=1"
+39,638,1,SPATIAL_ISLANDS,"k=2, r=3000, greedy, shortcuts=0, roam=past-avg, minN=0"

@@ -153,10 +153,15 @@ AUX_CHUNK_SIZE = 100_000
 RESULT_CORE_BLOCKS = (10, 85)
 
 TIME_SERIES_GROUP_COLS = [
+    "series",
+    "selectedConfig",
     "algorithm",
     "taxiCount",
     "clientCount",
+    "taxiSeatCount",
     "spawnScenario",
+    "runIndex",
+    "worldSeed",
     "tickBlock",
 ]
 REQUEST_GROUP_COLS = [
@@ -354,15 +359,35 @@ def normalize_aux(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFrame:
 # Result tables
 
 
-def load_time_series_summary(path: Path, tick_block_size: int) -> pd.DataFrame:
+def load_time_series_summary(
+        path: Path, tick_block_size: int, selected_configs: pd.DataFrame
+) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
-    required = TIME_NUMERIC_COLS + ["algorithm", "spawnScenario"]
+    required = list(
+        dict.fromkeys(
+            TIME_NUMERIC_COLS
+            + ["algorithm", "spawnScenario", "p2pStrategy", "idleRoamingMode"]
+        )
+    )
+    selection_cols = SCENARIO_COLS + CONFIG_COLS
     parts = []
     for chunk in pd.read_csv(path, usecols=required, chunksize=AUX_CHUNK_SIZE, low_memory=False):
         chunk = normalize_aux(chunk, TIME_NUMERIC_COLS)
         chunk[["waitingTimeSum", "waitingTimeAvg"]] /= 60.0
         chunk["tickBlock"] = (chunk["tick"] // tick_block_size).astype("int64")
+        central = chunk[~is_p2p(chunk)].copy()
+        central["series"] = "Central"
+        central["selectedConfig"] = "n/a"
+        selected = chunk[is_p2p(chunk)].merge(
+            selected_configs[selection_cols + ["selectedConfig"]],
+            on=selection_cols,
+            how="inner",
+        )
+        selected["series"] = "Selected P2P"
+        chunk = pd.concat([central, selected], ignore_index=True)
+        if chunk.empty:
+            continue
         parts.append(
             chunk.groupby(TIME_SERIES_GROUP_COLS, dropna=False)
             .agg(
@@ -900,10 +925,34 @@ def write_extended_analysis(
     }
 
 
+def scenario_minimax_configs(matched: pd.DataFrame) -> pd.DataFrame:
+    selected = (
+        matched.sort_values(
+            SCENARIO_COLS
+            + ["referenceWorstNormalizedRegret", "waitingAvgMean", "distanceAvgMean"]
+        )
+        .groupby(SCENARIO_COLS, dropna=False)
+        .head(1)
+        .reset_index(drop=True)
+    )
+    selected["selectedConfig"] = selected.apply(
+        lambda row: f"{config_label(row)}, minN={int(row.p2pOverlayMinNeighbors)}", axis=1
+    )
+    assert not selected.duplicated(SCENARIO_COLS).any()
+    return selected
+
+
 def write_time_window_summary(time_df: pd.DataFrame, out: Path, tick_block_size: int) -> None:
     if time_df.empty:
         return
     time_df.to_csv(out / "time_window_summary.csv", index=False)
+    (
+        time_df.loc[
+            time_df["series"].eq("Selected P2P"), SCENARIO_COLS + ["selectedConfig"]
+        ]
+        .drop_duplicates()
+        .to_csv(out / "time_window_selected_configs.csv", index=False)
+    )
     windows = [("all", time_df)]
     start, end = RESULT_CORE_BLOCKS
     windows.append((f"blocks_{start}_{end}", time_df[time_df["tickBlock"].between(start, end)]))
@@ -912,7 +961,9 @@ def write_time_window_summary(time_df: pd.DataFrame, out: Path, tick_block_size:
         if rows.empty:
             continue
         grouped = (
-            rows.groupby(["algorithm", "taxiCount", "clientCount", "spawnScenario"], dropna=False)
+            rows.groupby(
+                ["series", "selectedConfig", "algorithm", *SCENARIO_COLS], dropna=False
+            )
             .agg(
                 firstBlock=("tickBlock", "min"),
                 lastBlock=("tickBlock", "max"),
@@ -1680,28 +1731,62 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
     if plt is None or time_df.empty:
         return []
     files = []
-    for (taxi_count, client_count, scenario), sub in time_df.groupby(
-            ["taxiCount", "clientCount", "spawnScenario"], dropna=False
+    metrics = [
+        ("activeClientsMean", "Active clients"),
+        ("servedRequestsMean", "Mean served / block"),
+        ("finishedRequestsMean", "Mean finished / block"),
+        ("waitingTimeAvg", "Avg wait [min] / block"),
+        ("calcTimeMillisMean", "Calc. time [ms]"),
+    ]
+    styles = {
+        "Central": ("#0072B2", "-"),
+        "Selected P2P": ("#D55E00", "--"),
+    }
+    for (taxi_count, client_count, _seat_count, scenario), block in time_df.groupby(
+            SCENARIO_COLS, dropna=False
     ):
-        block = sub.copy()
-        if block.empty:
+        selected = block.loc[block["series"].eq("Selected P2P"), "selectedConfig"]
+        if selected.empty:
             continue
+        selected_label = selected.iloc[0]
         fig, axes = plt.subplots(5, 1, figsize=(10, 11), sharex=True)
-        for algorithm, group in block.groupby("algorithm", dropna=False):
-            group = group.sort_values("tickBlock")
-            label = str(algorithm).replace("TaxiAlgorithm", "")
-            axes[0].plot(group["tickBlock"], group["activeClientsMean"], linewidth=1.8, label=label)
-            axes[1].plot(group["tickBlock"], group["servedRequestsMean"], linewidth=1.8, label=label)
-            axes[2].plot(group["tickBlock"], group["finishedRequestsMean"], linewidth=1.8, label=label)
-            axes[3].plot(group["tickBlock"], group["waitingTimeAvg"], linewidth=1.8, label=label)
-            axes[4].plot(group["tickBlock"], group["calcTimeMillisMean"], linewidth=1.8, label=label)
-        axes[0].set_ylabel("Active clients")
-        axes[1].set_ylabel("Mean served / block")
-        axes[2].set_ylabel("Mean finished / block")
-        axes[3].set_ylabel("Avg wait [min] / block")
-        axes[4].set_ylabel("Calc. time [ms]")
+        for ax, (metric, ylabel) in zip(axes, metrics):
+            values = (
+                block.groupby(["series", "tickBlock"], dropna=False)[metric]
+                .agg(["mean", "std"])
+                .reset_index()
+            )
+            for series, group in values.groupby("series", dropna=False):
+                group = group.sort_values("tickBlock")
+                x = group["tickBlock"].to_numpy(dtype=float)
+                mean = group["mean"].to_numpy(dtype=float)
+                std = group["std"].fillna(0).to_numpy(dtype=float)
+                color, linestyle = styles[str(series)]
+                ax.plot(
+                    x,
+                    mean,
+                    color=color,
+                    linestyle=linestyle,
+                    linewidth=2,
+                    label=str(series),
+                    zorder=2,
+                )
+                ax.fill_between(
+                    x,
+                    np.maximum(mean - std, 0),
+                    mean + std,
+                    color=color,
+                    alpha=0.06,
+                    linewidth=0,
+                    zorder=1,
+                )
+            ax.set_ylabel(ylabel)
         axes[4].set_xlabel(f"Tick block ({tick_block_size} ticks)")
-        axes[0].set_title(f"Load windows | {city_label(taxi_count, client_count)} | {scenario}")
+        axes[0].set_title(
+            f"Load windows | {city_label(taxi_count, client_count)} | {scenario}\n"
+            f"Scenario Minimax P2P\n{selected_label}",
+            fontsize=10,
+        )
         for ax in axes:
             ax.grid(alpha=0.2)
         axes[0].legend(fontsize=8, ncol=2)
@@ -1713,8 +1798,8 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
             plot_entry(
                 name,
                 "Time windows",
-                "Stream-aggregated windows; service counts are normalized per input block "
-                "before comparing algorithms.",
+                "Central reference and the scenario-specific P2P configuration with the lowest "
+                "mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.",
             )
         )
         if len(files) >= MAX_TIME_SERIES_PLOTS:
@@ -2421,7 +2506,8 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
                 "Time-window results",
                 "time_window_result_summary.csv",
                 [
-                    "window", "city", "spawnScenario", "algorithm", "firstBlock", "lastBlock",
+                    "window", "city", "spawnScenario", "series", "selectedConfig",
+                    "firstBlock", "lastBlock",
                     "activeClientsMean", "servedRequestsMean", "waitingTimeMean", "waitingTimeMax",
                 ],
             ),
@@ -2725,13 +2811,16 @@ def main() -> None:
     config = parse_args()
     dirs = ensure_dirs(config.output_dir)
     df = load_data(config.input_csv, config.metrics)
-    time_df = load_time_series_summary(config.time_series_csv, config.tick_block_size)
-    request_df = load_request_summary(config.requests_csv)
     overview = write_overview(df, dirs["base"] / "overview.json")
     summary = aggregate_exact_configs(df, dirs["tables"])
     comp = compare_p2p_to_single(summary, dirs["tables"])
     write_single_passenger(summary, dirs["tables"])
     extended = write_extended_analysis(df, summary, dirs["tables"])
+    selected_configs = scenario_minimax_configs(extended["matched"])
+    time_df = load_time_series_summary(
+        config.time_series_csv, config.tick_block_size, selected_configs
+    )
+    request_df = load_request_summary(config.requests_csv)
     write_time_window_summary(time_df, dirs["tables"], config.tick_block_size)
     write_request_tail_summary(request_df, dirs["tables"])
     write_spatial_result_summary(request_df, summary, dirs["tables"])

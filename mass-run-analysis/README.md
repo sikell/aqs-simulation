@@ -30,7 +30,8 @@ If present next to the input CSV, these files are analyzed automatically:
 - `tables/parameter_level_summary.csv` and `parameter_effect_summary.csv`: values and thesis contrasts for radius, hops, strategy, topology, and roaming
 - `tables/interaction_k_radius_roaming.csv` and `interaction_k_shortcuts.csv`
 - `tables/crossover_summary.csv`: corridor counts, travel-time control, and seed stability
-- `tables/time_window_result_summary.csv`: whole-run and blocks 10--85 result values
+- `tables/time_window_selected_configs.csv`: scenario-specific P2P Minimax selections
+- `tables/time_window_result_summary.csv`: central and selected-P2P values for the whole run and blocks 10--85
 - `tables/spatial_result_summary.csv`: pickup gaps and spatial waiting-time range per roaming mode
 - `tables/single_passenger.csv`
 - `tables/time_window_summary.csv`: tick-block load, served requests, wait, calc time

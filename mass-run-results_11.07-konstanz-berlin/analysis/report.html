@@ -155,7 +155,7 @@
     <section class="hero" id="overview">
       <div>
         <h1>Stratified mass-run report</h1>
-        <p>Exact-config summaries. Matched P2P vs SinglePassenger deltas. No blended city averages.</p>
+        <p>Summaries, Matched P2P vs SinglePassenger deltas, Plots</p>
       </div>
       <p><code>2026-07-11 to 2026-07-19</code></p>
     </section>
@@ -7846,7 +7846,8 @@
       <th>window</th>
       <th>city</th>
       <th>spawnScenario</th>
-      <th>algorithm</th>
+      <th>series</th>
+      <th>selectedConfig</th>
       <th>firstBlock</th>
       <th>lastBlock</th>
       <th>activeClientsMean</th>
@@ -7860,385 +7861,417 @@
       <td>all</td>
       <td>Konstanz</td>
       <td>BASELINE</td>
-      <td>TaxiAlgorithmP2PCollector</td>
+      <td>Central</td>
+      <td></td>
       <td>0</td>
-      <td>91</td>
-      <td>4.735</td>
-      <td>6.908</td>
-      <td>5.773</td>
-      <td>90.521</td>
+      <td>87</td>
+      <td>4.154</td>
+      <td>7.291</td>
+      <td>1.690</td>
+      <td>4.948</td>
     </tr>
     <tr>
       <td>all</td>
       <td>Konstanz</td>
       <td>RUSH_HOUR</td>
-      <td>TaxiAlgorithmP2PCollector</td>
+      <td>Central</td>
+      <td></td>
       <td>0</td>
-      <td>90</td>
-      <td>4.863</td>
-      <td>6.983</td>
-      <td>6.020</td>
-      <td>71.833</td>
+      <td>87</td>
+      <td>4.225</td>
+      <td>7.308</td>
+      <td>1.729</td>
+      <td>7.467</td>
     </tr>
     <tr>
       <td>all</td>
       <td>Konstanz</td>
       <td>SPATIAL_IMBALANCE</td>
-      <td>TaxiAlgorithmP2PCollector</td>
+      <td>Central</td>
+      <td></td>
       <td>0</td>
-      <td>90</td>
-      <td>5.525</td>
-      <td>6.718</td>
-      <td>7.694</td>
-      <td>67.327</td>
+      <td>87</td>
+      <td>4.313</td>
+      <td>7.267</td>
+      <td>3.237</td>
+      <td>6.080</td>
     </tr>
     <tr>
       <td>all</td>
       <td>Konstanz</td>
       <td>SPATIAL_ISLANDS</td>
-      <td>TaxiAlgorithmP2PCollector</td>
+      <td>Central</td>
+      <td></td>
       <td>0</td>
-      <td>91</td>
-      <td>6.597</td>
-      <td>6.510</td>
-      <td>9.685</td>
-      <td>89.110</td>
+      <td>87</td>
+      <td>4.851</td>
+      <td>7.275</td>
+      <td>3.532</td>
+      <td>7.110</td>
     </tr>
     <tr>
       <td>all</td>
       <td>Berlin</td>
       <td>BASELINE</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>0</td>
-      <td>113</td>
-      <td>513.409</td>
-      <td>243.425</td>
-      <td>25.020</td>
-      <td>324.817</td>
-    </tr>
-    <tr>
-      <td>all</td>
-      <td>Berlin</td>
-      <td>RUSH_HOUR</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>0</td>
-      <td>112</td>
-      <td>703.808</td>
-      <td>242.310</td>
-      <td>54.836</td>
-      <td>369.467</td>
-    </tr>
-    <tr>
-      <td>all</td>
-      <td>Berlin</td>
-      <td>SPATIAL_IMBALANCE</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>0</td>
-      <td>112</td>
-      <td>1108.643</td>
-      <td>213.323</td>
-      <td>93.245</td>
-      <td>438.723</td>
-    </tr>
-    <tr>
-      <td>all</td>
-      <td>Berlin</td>
-      <td>SPATIAL_ISLANDS</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>0</td>
-      <td>115</td>
-      <td>1556.244</td>
-      <td>192.324</td>
-      <td>116.559</td>
-      <td>463.300</td>
-    </tr>
-    <tr>
-      <td>all</td>
-      <td>Konstanz</td>
-      <td>BASELINE</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
-      <td>0</td>
-      <td>87</td>
-      <td>4.138</td>
-      <td>7.250</td>
-      <td>1.709</td>
-      <td>2.162</td>
-    </tr>
-    <tr>
-      <td>all</td>
-      <td>Konstanz</td>
-      <td>RUSH_HOUR</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
-      <td>0</td>
-      <td>87</td>
-      <td>4.202</td>
-      <td>7.250</td>
-      <td>1.717</td>
-      <td>2.429</td>
-    </tr>
-    <tr>
-      <td>all</td>
-      <td>Konstanz</td>
-      <td>SPATIAL_IMBALANCE</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
-      <td>0</td>
-      <td>87</td>
-      <td>4.306</td>
-      <td>7.250</td>
-      <td>3.284</td>
-      <td>4.247</td>
-    </tr>
-    <tr>
-      <td>all</td>
-      <td>Konstanz</td>
-      <td>SPATIAL_ISLANDS</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
-      <td>0</td>
-      <td>87</td>
-      <td>4.839</td>
-      <td>7.250</td>
-      <td>3.628</td>
-      <td>5.130</td>
-    </tr>
-    <tr>
-      <td>all</td>
-      <td>Berlin</td>
-      <td>BASELINE</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>0</td>
       <td>90</td>
       <td>598.535</td>
       <td>305.077</td>
       <td>1.317</td>
-      <td>1.560</td>
+      <td>2.305</td>
     </tr>
     <tr>
       <td>all</td>
       <td>Berlin</td>
       <td>RUSH_HOUR</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>0</td>
       <td>90</td>
-      <td>1316.348</td>
-      <td>289.229</td>
-      <td>25.908</td>
-      <td>131.343</td>
+      <td>1319.244</td>
+      <td>289.866</td>
+      <td>25.868</td>
+      <td>137.671</td>
     </tr>
     <tr>
       <td>all</td>
       <td>Berlin</td>
       <td>SPATIAL_IMBALANCE</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>0</td>
       <td>90</td>
       <td>709.725</td>
       <td>305.077</td>
-      <td>12.194</td>
-      <td>29.302</td>
+      <td>12.053</td>
+      <td>29.581</td>
     </tr>
     <tr>
       <td>all</td>
       <td>Berlin</td>
       <td>SPATIAL_ISLANDS</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>0</td>
       <td>92</td>
-      <td>800.352</td>
-      <td>298.516</td>
-      <td>15.278</td>
+      <td>807.287</td>
+      <td>301.106</td>
+      <td>14.890</td>
       <td>47.733</td>
     </tr>
     <tr>
-      <td>blocks_10_85</td>
-      <td>Konstanz</td>
-      <td>BASELINE</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>10</td>
-      <td>85</td>
-      <td>4.990</td>
-      <td>7.358</td>
-      <td>3.552</td>
-      <td>4.183</td>
-    </tr>
-    <tr>
-      <td>blocks_10_85</td>
-      <td>Konstanz</td>
-      <td>RUSH_HOUR</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>10</td>
-      <td>85</td>
-      <td>5.560</td>
-      <td>8.014</td>
-      <td>3.875</td>
-      <td>5.312</td>
-    </tr>
-    <tr>
-      <td>blocks_10_85</td>
-      <td>Konstanz</td>
-      <td>SPATIAL_IMBALANCE</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>10</td>
-      <td>85</td>
-      <td>5.814</td>
-      <td>6.985</td>
-      <td>5.997</td>
-      <td>8.550</td>
-    </tr>
-    <tr>
-      <td>blocks_10_85</td>
-      <td>Konstanz</td>
-      <td>SPATIAL_ISLANDS</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>10</td>
-      <td>85</td>
-      <td>7.043</td>
-      <td>6.856</td>
-      <td>6.842</td>
-      <td>9.272</td>
-    </tr>
-    <tr>
-      <td>blocks_10_85</td>
-      <td>Berlin</td>
-      <td>BASELINE</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>10</td>
-      <td>85</td>
-      <td>678.029</td>
-      <td>320.672</td>
-      <td>3.967</td>
-      <td>4.884</td>
-    </tr>
-    <tr>
-      <td>blocks_10_85</td>
-      <td>Berlin</td>
-      <td>RUSH_HOUR</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>10</td>
-      <td>85</td>
-      <td>1015.353</td>
-      <td>346.367</td>
-      <td>14.609</td>
-      <td>61.880</td>
-    </tr>
-    <tr>
-      <td>blocks_10_85</td>
+      <td>all</td>
       <td>Berlin</td>
       <td>SPATIAL_IMBALANCE</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>10</td>
-      <td>85</td>
-      <td>1430.904</td>
-      <td>271.107</td>
-      <td>41.862</td>
-      <td>46.190</td>
+      <td>Selected P2P</td>
+      <td>k=0, r=3000, greedy, shortcuts=0, roam=past-avg, minN=0</td>
+      <td>0</td>
+      <td>91</td>
+      <td>597.790</td>
+      <td>304.685</td>
+      <td>6.016</td>
+      <td>22.407</td>
     </tr>
     <tr>
-      <td>blocks_10_85</td>
+      <td>all</td>
+      <td>Konstanz</td>
+      <td>BASELINE</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=1000, greedy, shortcuts=1, roam=past-avg, minN=1</td>
+      <td>0</td>
+      <td>87</td>
+      <td>4.434</td>
+      <td>7.249</td>
+      <td>2.589</td>
+      <td>20.983</td>
+    </tr>
+    <tr>
+      <td>all</td>
+      <td>Konstanz</td>
+      <td>RUSH_HOUR</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=2000, greedy, shortcuts=0, roam=random, minN=0</td>
+      <td>0</td>
+      <td>87</td>
+      <td>4.565</td>
+      <td>7.300</td>
+      <td>2.710</td>
+      <td>8.783</td>
+    </tr>
+    <tr>
+      <td>all</td>
+      <td>Konstanz</td>
+      <td>SPATIAL_IMBALANCE</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=2000, greedy, shortcuts=1, roam=past-avg, minN=0</td>
+      <td>0</td>
+      <td>87</td>
+      <td>4.070</td>
+      <td>7.283</td>
+      <td>2.720</td>
+      <td>4.504</td>
+    </tr>
+    <tr>
+      <td>all</td>
+      <td>Berlin</td>
+      <td>RUSH_HOUR</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=2000, greedy, shortcuts=1, roam=past-avg-revisit, minN=0</td>
+      <td>0</td>
+      <td>90</td>
+      <td>784.109</td>
+      <td>303.487</td>
+      <td>8.052</td>
+      <td>40.666</td>
+    </tr>
+    <tr>
+      <td>all</td>
       <td>Berlin</td>
       <td>SPATIAL_ISLANDS</td>
-      <td>TaxiAlgorithmP2PCollector</td>
-      <td>10</td>
-      <td>85</td>
-      <td>2044.974</td>
-      <td>244.122</td>
-      <td>66.176</td>
-      <td>77.921</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=2000, nearest, shortcuts=1, roam=past-avg-total, minN=0</td>
+      <td>0</td>
+      <td>93</td>
+      <td>840.782</td>
+      <td>294.838</td>
+      <td>20.220</td>
+      <td>98.350</td>
+    </tr>
+    <tr>
+      <td>all</td>
+      <td>Berlin</td>
+      <td>BASELINE</td>
+      <td>Selected P2P</td>
+      <td>k=2, r=2000, greedy, shortcuts=0, roam=past-avg-total, minN=1</td>
+      <td>0</td>
+      <td>90</td>
+      <td>625.196</td>
+      <td>305.074</td>
+      <td>2.866</td>
+      <td>22.550</td>
+    </tr>
+    <tr>
+      <td>all</td>
+      <td>Konstanz</td>
+      <td>SPATIAL_ISLANDS</td>
+      <td>Selected P2P</td>
+      <td>k=2, r=3000, greedy, shortcuts=0, roam=past-avg, minN=0</td>
+      <td>0</td>
+      <td>87</td>
+      <td>4.945</td>
+      <td>7.275</td>
+      <td>3.847</td>
+      <td>5.933</td>
     </tr>
     <tr>
       <td>blocks_10_85</td>
       <td>Konstanz</td>
       <td>BASELINE</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>10</td>
       <td>85</td>
       <td>4.203</td>
       <td>7.407</td>
-      <td>1.734</td>
-      <td>2.162</td>
+      <td>1.713</td>
+      <td>4.948</td>
     </tr>
     <tr>
       <td>blocks_10_85</td>
       <td>Konstanz</td>
       <td>RUSH_HOUR</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>10</td>
       <td>85</td>
       <td>4.668</td>
       <td>8.068</td>
-      <td>1.768</td>
-      <td>2.429</td>
+      <td>1.780</td>
+      <td>7.467</td>
     </tr>
     <tr>
       <td>blocks_10_85</td>
       <td>Konstanz</td>
       <td>SPATIAL_IMBALANCE</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>10</td>
       <td>85</td>
       <td>4.389</td>
       <td>7.346</td>
-      <td>3.371</td>
-      <td>4.247</td>
+      <td>3.320</td>
+      <td>6.080</td>
     </tr>
     <tr>
       <td>blocks_10_85</td>
       <td>Konstanz</td>
       <td>SPATIAL_ISLANDS</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>10</td>
       <td>85</td>
       <td>4.980</td>
       <td>7.397</td>
-      <td>3.761</td>
-      <td>5.130</td>
+      <td>3.659</td>
+      <td>7.110</td>
     </tr>
     <tr>
       <td>blocks_10_85</td>
       <td>Berlin</td>
       <td>BASELINE</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>10</td>
       <td>85</td>
       <td>630.795</td>
       <td>321.254</td>
-      <td>1.344</td>
-      <td>1.465</td>
+      <td>1.343</td>
+      <td>2.028</td>
     </tr>
     <tr>
       <td>blocks_10_85</td>
       <td>Berlin</td>
       <td>RUSH_HOUR</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>10</td>
       <td>85</td>
       <td>1550.889</td>
       <td>333.275</td>
-      <td>29.533</td>
-      <td>131.343</td>
+      <td>29.487</td>
+      <td>137.671</td>
     </tr>
     <tr>
       <td>blocks_10_85</td>
       <td>Berlin</td>
       <td>SPATIAL_IMBALANCE</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>10</td>
       <td>85</td>
       <td>755.566</td>
       <td>320.793</td>
-      <td>12.424</td>
-      <td>13.232</td>
+      <td>12.402</td>
+      <td>15.445</td>
     </tr>
     <tr>
       <td>blocks_10_85</td>
       <td>Berlin</td>
       <td>SPATIAL_ISLANDS</td>
-      <td>TaxiAlgorithmSinglePassenger</td>
+      <td>Central</td>
+      <td></td>
       <td>10</td>
       <td>85</td>
       <td>871.563</td>
       <td>320.486</td>
-      <td>15.278</td>
-      <td>16.801</td>
+      <td>15.242</td>
+      <td>18.991</td>
+    </tr>
+    <tr>
+      <td>blocks_10_85</td>
+      <td>Berlin</td>
+      <td>SPATIAL_IMBALANCE</td>
+      <td>Selected P2P</td>
+      <td>k=0, r=3000, greedy, shortcuts=0, roam=past-avg, minN=0</td>
+      <td>10</td>
+      <td>85</td>
+      <td>619.762</td>
+      <td>324.243</td>
+      <td>5.460</td>
+      <td>22.407</td>
+    </tr>
+    <tr>
+      <td>blocks_10_85</td>
+      <td>Konstanz</td>
+      <td>BASELINE</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=1000, greedy, shortcuts=1, roam=past-avg, minN=1</td>
+      <td>10</td>
+      <td>85</td>
+      <td>4.504</td>
+      <td>7.374</td>
+      <td>2.590</td>
+      <td>12.828</td>
+    </tr>
+    <tr>
+      <td>blocks_10_85</td>
+      <td>Konstanz</td>
+      <td>RUSH_HOUR</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=2000, greedy, shortcuts=0, roam=random, minN=0</td>
+      <td>10</td>
+      <td>85</td>
+      <td>5.049</td>
+      <td>8.072</td>
+      <td>2.740</td>
+      <td>8.783</td>
+    </tr>
+    <tr>
+      <td>blocks_10_85</td>
+      <td>Konstanz</td>
+      <td>SPATIAL_IMBALANCE</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=2000, greedy, shortcuts=1, roam=past-avg, minN=0</td>
+      <td>10</td>
+      <td>85</td>
+      <td>4.084</td>
+      <td>7.345</td>
+      <td>2.704</td>
+      <td>4.504</td>
+    </tr>
+    <tr>
+      <td>blocks_10_85</td>
+      <td>Berlin</td>
+      <td>RUSH_HOUR</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=2000, greedy, shortcuts=1, roam=past-avg-revisit, minN=0</td>
+      <td>10</td>
+      <td>85</td>
+      <td>911.101</td>
+      <td>349.936</td>
+      <td>8.770</td>
+      <td>40.666</td>
+    </tr>
+    <tr>
+      <td>blocks_10_85</td>
+      <td>Berlin</td>
+      <td>SPATIAL_ISLANDS</td>
+      <td>Selected P2P</td>
+      <td>k=1, r=2000, nearest, shortcuts=1, roam=past-avg-total, minN=0</td>
+      <td>10</td>
+      <td>85</td>
+      <td>909.030</td>
+      <td>310.434</td>
+      <td>19.395</td>
+      <td>41.273</td>
+    </tr>
+    <tr>
+      <td>blocks_10_85</td>
+      <td>Berlin</td>
+      <td>BASELINE</td>
+      <td>Selected P2P</td>
+      <td>k=2, r=2000, greedy, shortcuts=0, roam=past-avg-total, minN=1</td>
+      <td>10</td>
+      <td>85</td>
+      <td>658.449</td>
+      <td>321.246</td>
+      <td>2.783</td>
+      <td>3.721</td>
+    </tr>
+    <tr>
+      <td>blocks_10_85</td>
+      <td>Konstanz</td>
+      <td>SPATIAL_ISLANDS</td>
+      <td>Selected P2P</td>
+      <td>k=2, r=3000, greedy, shortcuts=0, roam=past-avg, minN=0</td>
+      <td>10</td>
+      <td>85</td>
+      <td>5.022</td>
+      <td>7.403</td>
+      <td>3.846</td>
+      <td>5.933</td>
     </tr>
   </tbody>
 </table></div></details><details class="result"><summary>Spatial results <small>48 rows</small></summary><p><a href="tables/spatial_result_summary.csv">spatial_result_summary.csv</a></p><div class="table-wrap"><table class="dataframe result-table">
@@ -8820,7 +8853,7 @@
 
     <section id="tables" class="panel">
       <h2>Tables</h2>
-      <div class="files"><a class="file" href="tables/architecture_roaming_control.csv"><span>architecture_roaming_control.csv</span><small>table</small></a><a class="file" href="tables/best_p2p_vs_single.csv"><span>best_p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/best_waiting_operational_cost.csv"><span>best_waiting_operational_cost.csv</span><small>table</small></a><a class="file" href="tables/crossover_seed_pass_rates.csv"><span>crossover_seed_pass_rates.csv</span><small>table</small></a><a class="file" href="tables/crossover_seed_robustness.csv"><span>crossover_seed_robustness.csv</span><small>table</small></a><a class="file" href="tables/crossover_summary.csv"><span>crossover_summary.csv</span><small>table</small></a><a class="file" href="tables/crossover_travel_validation.csv"><span>crossover_travel_validation.csv</span><small>table</small></a><a class="file" href="tables/interaction_k_radius_roaming.csv"><span>interaction_k_radius_roaming.csv</span><small>table</small></a><a class="file" href="tables/interaction_k_shortcuts.csv"><span>interaction_k_shortcuts.csv</span><small>table</small></a><a class="file" href="tables/interaction_radius_k.csv"><span>interaction_radius_k.csv</span><small>table</small></a><a class="file" href="tables/interaction_radius_roaming.csv"><span>interaction_radius_roaming.csv</span><small>table</small></a><a class="file" href="tables/p2p_vs_single.csv"><span>p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/paired_seed_deltas.csv"><span>paired_seed_deltas.csv</span><small>table</small></a><a class="file" href="tables/parameter_effect_summary.csv"><span>parameter_effect_summary.csv</span><small>table</small></a><a class="file" href="tables/parameter_level_summary.csv"><span>parameter_level_summary.csv</span><small>table</small></a><a class="file" href="tables/request_tail_summary.csv"><span>request_tail_summary.csv</span><small>table</small></a><a class="file" href="tables/robust_config_ranking.csv"><span>robust_config_ranking.csv</span><small>table</small></a><a class="file" href="tables/robust_config_scenario_details.csv"><span>robust_config_scenario_details.csv</span><small>table</small></a><a class="file" href="tables/same_config_metrics.csv"><span>same_config_metrics.csv</span><small>table</small></a><a class="file" href="tables/single_passenger.csv"><span>single_passenger.csv</span><small>table</small></a><a class="file" href="tables/spatial_result_summary.csv"><span>spatial_result_summary.csv</span><small>table</small></a><a class="file" href="tables/summary.csv"><span>summary.csv</span><small>table</small></a><a class="file" href="tables/system_comparison_summary.csv"><span>system_comparison_summary.csv</span><small>table</small></a><a class="file" href="tables/time_window_result_summary.csv"><span>time_window_result_summary.csv</span><small>table</small></a><a class="file" href="tables/time_window_summary.csv"><span>time_window_summary.csv</span><small>table</small></a></div>
+      <div class="files"><a class="file" href="tables/architecture_roaming_control.csv"><span>architecture_roaming_control.csv</span><small>table</small></a><a class="file" href="tables/best_p2p_vs_single.csv"><span>best_p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/best_waiting_operational_cost.csv"><span>best_waiting_operational_cost.csv</span><small>table</small></a><a class="file" href="tables/crossover_seed_pass_rates.csv"><span>crossover_seed_pass_rates.csv</span><small>table</small></a><a class="file" href="tables/crossover_seed_robustness.csv"><span>crossover_seed_robustness.csv</span><small>table</small></a><a class="file" href="tables/crossover_summary.csv"><span>crossover_summary.csv</span><small>table</small></a><a class="file" href="tables/crossover_travel_validation.csv"><span>crossover_travel_validation.csv</span><small>table</small></a><a class="file" href="tables/interaction_k_radius_roaming.csv"><span>interaction_k_radius_roaming.csv</span><small>table</small></a><a class="file" href="tables/interaction_k_shortcuts.csv"><span>interaction_k_shortcuts.csv</span><small>table</small></a><a class="file" href="tables/interaction_radius_k.csv"><span>interaction_radius_k.csv</span><small>table</small></a><a class="file" href="tables/interaction_radius_roaming.csv"><span>interaction_radius_roaming.csv</span><small>table</small></a><a class="file" href="tables/p2p_vs_single.csv"><span>p2p_vs_single.csv</span><small>table</small></a><a class="file" href="tables/paired_seed_deltas.csv"><span>paired_seed_deltas.csv</span><small>table</small></a><a class="file" href="tables/parameter_effect_summary.csv"><span>parameter_effect_summary.csv</span><small>table</small></a><a class="file" href="tables/parameter_level_summary.csv"><span>parameter_level_summary.csv</span><small>table</small></a><a class="file" href="tables/request_tail_summary.csv"><span>request_tail_summary.csv</span><small>table</small></a><a class="file" href="tables/robust_config_ranking.csv"><span>robust_config_ranking.csv</span><small>table</small></a><a class="file" href="tables/robust_config_scenario_details.csv"><span>robust_config_scenario_details.csv</span><small>table</small></a><a class="file" href="tables/same_config_metrics.csv"><span>same_config_metrics.csv</span><small>table</small></a><a class="file" href="tables/single_passenger.csv"><span>single_passenger.csv</span><small>table</small></a><a class="file" href="tables/spatial_result_summary.csv"><span>spatial_result_summary.csv</span><small>table</small></a><a class="file" href="tables/summary.csv"><span>summary.csv</span><small>table</small></a><a class="file" href="tables/system_comparison_summary.csv"><span>system_comparison_summary.csv</span><small>table</small></a><a class="file" href="tables/time_window_result_summary.csv"><span>time_window_result_summary.csv</span><small>table</small></a><a class="file" href="tables/time_window_selected_configs.csv"><span>time_window_selected_configs.csv</span><small>table</small></a><a class="file" href="tables/time_window_summary.csv"><span>time_window_summary.csv</span><small>table</small></a></div>
     </section>
 
     <section id="stats" class="panel">
@@ -10453,42 +10486,42 @@
 <section class="plot-group"><h3>Time windows</h3><div class="plots">
             <a class="plot" href="plots/time_windows_Konstanz_BASELINE.png">
               <img src="plots/time_windows_Konstanz_BASELINE.png" alt="time_windows_Konstanz_BASELINE.png">
-              <span><strong>time_windows_Konstanz_BASELINE.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+              <span><strong>time_windows_Konstanz_BASELINE.png</strong><small>Central reference and the scenario-specific P2P configuration with the lowest mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.</small></span>
             </a>
 
             <a class="plot" href="plots/time_windows_Konstanz_RUSH_HOUR.png">
               <img src="plots/time_windows_Konstanz_RUSH_HOUR.png" alt="time_windows_Konstanz_RUSH_HOUR.png">
-              <span><strong>time_windows_Konstanz_RUSH_HOUR.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+              <span><strong>time_windows_Konstanz_RUSH_HOUR.png</strong><small>Central reference and the scenario-specific P2P configuration with the lowest mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.</small></span>
             </a>
 
             <a class="plot" href="plots/time_windows_Konstanz_SPATIAL_IMBALANCE.png">
               <img src="plots/time_windows_Konstanz_SPATIAL_IMBALANCE.png" alt="time_windows_Konstanz_SPATIAL_IMBALANCE.png">
-              <span><strong>time_windows_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+              <span><strong>time_windows_Konstanz_SPATIAL_IMBALANCE.png</strong><small>Central reference and the scenario-specific P2P configuration with the lowest mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.</small></span>
             </a>
 
             <a class="plot" href="plots/time_windows_Konstanz_SPATIAL_ISLANDS.png">
               <img src="plots/time_windows_Konstanz_SPATIAL_ISLANDS.png" alt="time_windows_Konstanz_SPATIAL_ISLANDS.png">
-              <span><strong>time_windows_Konstanz_SPATIAL_ISLANDS.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+              <span><strong>time_windows_Konstanz_SPATIAL_ISLANDS.png</strong><small>Central reference and the scenario-specific P2P configuration with the lowest mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.</small></span>
             </a>
 
             <a class="plot" href="plots/time_windows_Berlin_BASELINE.png">
               <img src="plots/time_windows_Berlin_BASELINE.png" alt="time_windows_Berlin_BASELINE.png">
-              <span><strong>time_windows_Berlin_BASELINE.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+              <span><strong>time_windows_Berlin_BASELINE.png</strong><small>Central reference and the scenario-specific P2P configuration with the lowest mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.</small></span>
             </a>
 
             <a class="plot" href="plots/time_windows_Berlin_RUSH_HOUR.png">
               <img src="plots/time_windows_Berlin_RUSH_HOUR.png" alt="time_windows_Berlin_RUSH_HOUR.png">
-              <span><strong>time_windows_Berlin_RUSH_HOUR.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+              <span><strong>time_windows_Berlin_RUSH_HOUR.png</strong><small>Central reference and the scenario-specific P2P configuration with the lowest mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.</small></span>
             </a>
 
             <a class="plot" href="plots/time_windows_Berlin_SPATIAL_IMBALANCE.png">
               <img src="plots/time_windows_Berlin_SPATIAL_IMBALANCE.png" alt="time_windows_Berlin_SPATIAL_IMBALANCE.png">
-              <span><strong>time_windows_Berlin_SPATIAL_IMBALANCE.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+              <span><strong>time_windows_Berlin_SPATIAL_IMBALANCE.png</strong><small>Central reference and the scenario-specific P2P configuration with the lowest mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.</small></span>
             </a>
 
             <a class="plot" href="plots/time_windows_Berlin_SPATIAL_ISLANDS.png">
               <img src="plots/time_windows_Berlin_SPATIAL_ISLANDS.png" alt="time_windows_Berlin_SPATIAL_ISLANDS.png">
-              <span><strong>time_windows_Berlin_SPATIAL_ISLANDS.png</strong><small>Stream-aggregated windows; service counts are normalized per input block before comparing algorithms.</small></span>
+              <span><strong>time_windows_Berlin_SPATIAL_ISLANDS.png</strong><small>Central reference and the scenario-specific P2P configuration with the lowest mean multi-objective Minimax regret; lines show seed means and bands ±1 SD.</small></span>
             </a></div></section>
 <section class="plot-group"><h3>Spatial maps</h3><div class="plots">
             <a class="plot" href="plots/spatial_waits_Konstanz_SPATIAL_IMBALANCE.png">
