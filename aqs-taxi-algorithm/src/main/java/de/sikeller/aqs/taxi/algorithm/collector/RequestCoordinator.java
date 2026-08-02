@@ -114,7 +114,7 @@ final class RequestCoordinator {
       String requestId;
 
       if (embedded && vehicleNodeResolver != null) {
-        // Direct delivery: bypass P2P network
+        // Synchronous delivery models commit arrival order, the collector keeps the first commit.
         requestId =
             collectorNodeId
                 + "-embedded-request-"

@@ -268,7 +268,7 @@ public class SimulationRunner implements SimulationControl {
     List<RequestDataPoint> rows = new ArrayList<>();
     for (EventClientEntersTaxi enter : pickups.values()) {
       EventClientFinished finish = finishes.get(enter.getClient().getName());
-      Position origin = enter.getClient().getPosition();
+      Position origin = enter.getPickupPosition();
       Position target = enter.getClient().getTarget();
       rows.add(
           new RequestDataPoint(
