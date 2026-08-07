@@ -214,6 +214,11 @@ RESULT_FACTOR_CONTRASTS = {
         ("random", "past-avg-total"),
     ],
 }
+MODERATION_OUTCOMES = {
+    "waiting": ("waitingAvgMean", "relative percent"),
+    "pickup": ("servedRatio", "percentage points"),
+    "distance": ("distanceAvgMean", "relative percent"),
+}
 DEFAULT_COLUMNS = {
     "p2pStrategy": "n/a",
     "idleRoamingStrategy": "n/a",
@@ -634,7 +639,7 @@ def add_crossover_flags(rows: pd.DataFrame, prefix: str = "") -> pd.DataFrame:
     return result
 
 
-def paired_seed_tables(df: pd.DataFrame, out: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+def seed_result_matrix(df: pd.DataFrame) -> pd.DataFrame:
     seed_rows = (
         df.groupby(EXACT_CONFIG_COLS + ["worldSeed"], dropna=False)
         .agg(
@@ -645,7 +650,10 @@ def paired_seed_tables(df: pd.DataFrame, out: Path) -> tuple[pd.DataFrame, pd.Da
         )
         .reset_index()
     )
-    seed_matrix = add_operational_metrics(metric_matrix(seed_rows, ["worldSeed"]))
+    return add_operational_metrics(metric_matrix(seed_rows, ["worldSeed"]))
+
+
+def paired_seed_tables(seed_matrix: pd.DataFrame, out: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     paired = add_crossover_flags(match_central(seed_matrix, ["worldSeed"]), "seed")
 
     deltas = []
@@ -678,6 +686,145 @@ def paired_seed_tables(df: pd.DataFrame, out: Path) -> tuple[pd.DataFrame, pd.Da
     seed_pass["seeds"] = paired.groupby(group_cols, dropna=False)["worldSeed"].nunique().to_numpy()
     seed_pass.to_csv(out / "crossover_seed_pass_rates.csv", index=False)
     return paired_deltas, seed_pass
+
+
+def moderation_seed_contrast(
+        rows: pd.DataFrame,
+        name: str,
+        factor: str,
+        factor_values: tuple[object, object],
+        moderator: str,
+        moderator_values: tuple[object, object],
+        strata: list[str],
+) -> pd.DataFrame:
+    factor_from, factor_to = factor_values
+    moderator_from, moderator_to = moderator_values
+    grouped = (
+        rows[rows[factor].isin(factor_values) & rows[moderator].isin(moderator_values)]
+        .groupby(strata + ["worldSeed", factor, moderator], dropna=False)[
+            [column for column, _ in MODERATION_OUTCOMES.values()]
+        ]
+        .mean()
+        .reset_index()
+    )
+    index = strata + ["worldSeed"]
+    results = []
+    required = [
+        (factor_from, moderator_from),
+        (factor_to, moderator_from),
+        (factor_from, moderator_to),
+        (factor_to, moderator_to),
+    ]
+    for outcome, (column, scale) in MODERATION_OUTCOMES.items():
+        cells = grouped.pivot(index=index, columns=[factor, moderator], values=column)
+        if not all(cell in cells.columns for cell in required):
+            continue
+        if scale == "relative percent":
+            effect_from = (cells[(factor_to, moderator_from)] / cells[(factor_from, moderator_from)] - 1.0) * 100.0
+            effect_to = (cells[(factor_to, moderator_to)] / cells[(factor_from, moderator_to)] - 1.0) * 100.0
+        else:
+            effect_from = (cells[(factor_to, moderator_from)] - cells[(factor_from, moderator_from)]) * 100.0
+            effect_to = (cells[(factor_to, moderator_to)] - cells[(factor_from, moderator_to)]) * 100.0
+        result = pd.DataFrame(
+            {
+                "effectAtModeratorFrom": effect_from,
+                "effectAtModeratorTo": effect_to,
+                "interaction": effect_to - effect_from,
+            }
+        ).reset_index()
+        result["moderation"] = name
+        result["factor"] = factor
+        result["factorFrom"] = factor_from
+        result["factorTo"] = factor_to
+        result["moderator"] = moderator
+        result["moderatorFrom"] = moderator_from
+        result["moderatorTo"] = moderator_to
+        result["outcome"] = outcome
+        result["effectScale"] = scale
+        results.append(result)
+    return pd.concat(results, ignore_index=True)
+
+
+def summarize_moderation(rows: pd.DataFrame) -> pd.DataFrame:
+    values = {"effectAtModeratorFrom", "effectAtModeratorTo", "interaction", "worldSeed"}
+    group_cols = [column for column in rows.columns if column not in values]
+    summaries = []
+    for keys, part in rows.groupby(group_cols, dropna=False):
+        interaction = part["interaction"].dropna()
+        mean = interaction.mean()
+        std = interaction.std()
+        margin = stats.t.ppf(0.975, len(interaction) - 1) * std / np.sqrt(len(interaction)) if stats is not None and len(interaction) > 1 else np.nan
+        p_value = stats.ttest_1samp(interaction, 0.0).pvalue if stats is not None and len(interaction) > 1 else np.nan
+        summaries.append(
+            {
+                **dict(zip(group_cols, keys)),
+                "seeds": len(interaction),
+                "effectAtModeratorFromMean": part["effectAtModeratorFrom"].mean(),
+                "effectAtModeratorToMean": part["effectAtModeratorTo"].mean(),
+                "interactionMean": mean,
+                "interactionStd": std,
+                "ci95Low": mean - margin,
+                "ci95High": mean + margin,
+                "sameDirectionSeeds": int((interaction >= 0).sum() if mean >= 0 else (interaction <= 0).sum()),
+                "pValue": p_value,
+            }
+        )
+    summary = pd.DataFrame(summaries)
+    summary["pValueHolm"] = np.nan
+    for indices in summary.groupby("scope", dropna=False).groups.values():
+        p_values = summary.loc[indices, "pValue"].dropna().sort_values()
+        adjusted = np.maximum.accumulate(p_values.to_numpy() * np.arange(len(p_values), 0, -1)).clip(max=1.0)
+        summary.loc[p_values.index, "pValueHolm"] = adjusted
+    return summary
+
+
+def write_moderation_analysis(seed_matrix: pd.DataFrame, out: Path) -> pd.DataFrame:
+    p2p = seed_matrix[is_p2p(seed_matrix)].copy()
+    city_cols = ["taxiCount", "clientCount", "taxiSeatCount"]
+    detailed = [
+        moderation_seed_contrast(
+            p2p, "roaming_by_radius", "idleRoamingMode", ("none", "past-avg-total"),
+            "p2pRqsRadius", (1000, 3000), SCENARIO_COLS,
+        ),
+        moderation_seed_contrast(
+            p2p, "hops_by_radius", "kHops", (0, 2),
+            "p2pRqsRadius", (1000, 3000), SCENARIO_COLS,
+        ),
+        moderation_seed_contrast(
+            p2p, "shortcuts_by_hops", "p2pOverlayShortcuts", (0, 1),
+            "kHops", (0, 2), SCENARIO_COLS,
+        ),
+    ]
+    for scenario in ["SPATIAL_IMBALANCE", "SPATIAL_ISLANDS"]:
+        detailed.append(
+            moderation_seed_contrast(
+                p2p, "roaming_by_scenario", "idleRoamingMode", ("random", "past-avg-total"),
+                "spawnScenario", ("BASELINE", scenario), city_cols,
+            )
+        )
+    detailed = pd.concat(detailed, ignore_index=True)
+    detailed["scope"] = "city-scenario"
+
+    overall_cols = [
+        "moderation", "factor", "factorFrom", "factorTo", "moderator", "moderatorFrom",
+        "moderatorTo", "outcome", "effectScale", "worldSeed",
+    ]
+    overall = (
+        detailed.groupby(overall_cols, dropna=False)[
+            ["effectAtModeratorFrom", "effectAtModeratorTo", "interaction"]
+        ]
+        .mean()
+        .reset_index()
+    )
+    overall["scope"] = "equal-weight overall"
+    rows = pd.concat([detailed, overall], ignore_index=True)
+    summary = summarize_moderation(rows)
+    expected_seeds = p2p["worldSeed"].nunique()
+    if summary.empty or not summary["seeds"].eq(expected_seeds).all():
+        raise ValueError("Moderation contrasts are incomplete across world seeds.")
+    rows.to_csv(out / "moderation_seed_contrasts.csv", index=False)
+    summary.to_csv(out / "moderation_summary.csv", index=False)
+    return summary
 
 
 def write_parameter_effects(p2p: pd.DataFrame, out: Path) -> None:
@@ -888,7 +1035,9 @@ def write_extended_analysis(
     )
     best_waiting.to_csv(out / "best_waiting_operational_cost.csv", index=False)
 
-    paired_deltas, seed_pass = paired_seed_tables(df, out)
+    seed_matrix = seed_result_matrix(df)
+    paired_deltas, seed_pass = paired_seed_tables(seed_matrix, out)
+    moderation = write_moderation_analysis(seed_matrix, out)
     seed_counts = []
     for threshold in [0, 5, 10, 15]:
         grouped = seed_pass.groupby(SCENARIO_COLS, dropna=False).agg(
@@ -922,6 +1071,7 @@ def write_extended_analysis(
         "bestWaiting": best_waiting,
         "pairedDeltas": paired_deltas,
         "seedCounts": seed_counts,
+        "moderation": moderation,
     }
 
 
@@ -2469,6 +2619,17 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
                     "city", "spawnScenario", "kHops", "p2pOverlayShortcuts",
                     "waitingAvgMean", "distanceAvgMean", "pickupPct",
                     "calculationAvgMean", "communicationSharePct",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Seed-based moderation contrasts",
+                "moderation_summary.csv",
+                [
+                    "scope", "city", "spawnScenario", "moderation", "outcome",
+                    "moderatorFrom", "moderatorTo", "effectAtModeratorFromMean",
+                    "effectAtModeratorToMean", "interactionMean", "ci95Low", "ci95High",
+                    "sameDirectionSeeds", "seeds", "pValue", "pValueHolm",
                 ],
             ),
             report_csv_table(

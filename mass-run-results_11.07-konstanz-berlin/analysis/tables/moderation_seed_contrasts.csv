@@ -1,0 +1,991 @@
+taxiCount,clientCount,taxiSeatCount,spawnScenario,worldSeed,effectAtModeratorFrom,effectAtModeratorTo,interaction,moderation,factor,factorFrom,factorTo,moderator,moderatorFrom,moderatorTo,outcome,effectScale,scope
+39.0,638.0,1.0,BASELINE,0,-64.3266889632107,-1.8464653357716077,62.480223627439095,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,1,-58.32734891315026,1.9591932217762897,60.28654213492655,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,2,-58.44906127392895,-2.1025401613976813,56.34652111253126,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,3,-62.65205497830981,-0.08620725298623677,62.56584772532358,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,4,-53.459230559247295,0.2062971766247257,53.66552773587202,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,5,-68.49496023128145,1.2979412869358553,69.7929015182173,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,6,-54.39202472998146,-0.8877230614169895,53.504301668564466,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,7,-62.84389292815459,2.320127458635013,65.1640203867896,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,8,-65.55603689203065,-1.8619142852327686,63.694122606797876,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,9,-49.76392814008459,-0.800097382356646,48.96383075772794,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,-55.93632748548833,-3.1976865930746334,52.73864089241369,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,-35.599921799158686,-0.6244843139447065,34.97543748521398,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,-52.886309343072234,-1.141432027833733,51.744877315238504,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,-45.00065018855468,-1.4527721466948251,43.54787804185985,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,-41.41573118256148,1.3754927632146918,42.791223945776174,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,-61.95714262175329,1.3245638974353158,63.28170651918861,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,-31.715487883276072,-2.0795365652551023,29.63595131802097,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,-61.76302782261944,2.1966866807970664,63.95971450341651,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,-46.02107764027339,0.7519320425734666,46.773009682846855,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,-55.38289374945724,-1.2673809430023275,54.11551280645491,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,-90.3246764767645,-0.018839010998517036,90.30583746576598,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,-91.16161194314333,-1.5333514036888651,89.62826053945446,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,-90.75249381666349,-1.4851127258196928,89.2673810908438,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,-91.3907439613156,-2.831744868035202,88.55899909328039,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,-90.67313546860103,-0.8305054591698724,89.84263000943116,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,-89.81590857267653,-2.42923902672072,87.38666954595581,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,-91.33220108095142,-2.265815165801355,89.06638591515006,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,-90.56734827698803,-0.8078679544605727,89.75948032252745,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,-91.40891901848605,-1.3564768137027894,90.05244220478326,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,-90.87083759046868,-1.177029480143088,89.69380811032559,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,-93.54081022819919,-26.843995833183666,66.69681439501552,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,-94.59289228795711,-32.74523498138875,61.847657306568365,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,-93.48189952966479,-11.196655052624592,82.2852444770402,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,-93.69384552216279,-33.86531596930366,59.82852955285913,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,-93.67904746244005,-16.97669818505714,76.70234927738292,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,-93.04672201271235,-16.68562357262867,76.36109844008368,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,-93.3763202725724,-32.34934065249865,61.02697962007375,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,-93.46507267538645,-26.416817089744736,67.04825558564171,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,-92.50340759175636,-23.663648891329757,68.8397587004266,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,-92.80414143809891,-15.283028800820874,77.52111263727804,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,84.68589168937572,0.03539280981974535,-84.65049887955598,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,51.857607688772745,0.5270723848764813,-51.33053530389626,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,47.58374974822943,-0.25465591793427667,-47.83840566616371,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,85.38337541061209,0.2250170960647946,-85.1583583145473,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,52.566699322639025,-0.07614409011167389,-52.6428434127507,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,47.980932102942496,0.2059605673149445,-47.77497153562755,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,72.88082525167572,-0.35760103913006214,-73.23842629080578,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,50.77765584376426,0.10242666224222763,-50.67522918152203,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,61.674189361017476,0.21624070955912345,-61.45794865145835,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,94.62195901225337,0.143246193576263,-94.47871281867711,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,15.866073790041657,43.2830969535974,27.417023163555744,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,25.60884194973665,39.23672525342632,13.627883303689671,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,23.816002347238086,48.26528110985966,24.44927876262157,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,15.69441905942428,41.094124735316996,25.399705675892715,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,17.86112098388921,42.213652211604426,24.352531227715215,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,14.037713930918706,45.0419483082392,31.004234377320493,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,14.21758922687597,39.39108416154793,25.173494934671957,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,38.09774562025707,42.89292663499311,4.795181014736038,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,29.346234046260868,46.22697572470864,16.88074167844777,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,11.356873649524047,37.960134044737124,26.603260395213077,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,-97.8101920885932,-94.66931393221569,3.1408781563775108,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,-97.61387597831225,-94.5566074735577,3.0572685047545463,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,-97.84989722054563,-94.63936920564471,3.210528014900916,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,-97.62678614292784,-94.57469395979285,3.052092183134988,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,-97.80962903337634,-94.68943877183771,3.1201902615386246,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,-97.66249774716842,-94.61697145627299,3.045526290895424,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,-97.85146701080797,-94.6616301362547,3.189836874553265,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,-97.47326609312198,-94.52260456563731,2.9506615274846695,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,-97.4589557364458,-94.45806113002077,3.0008946064250352,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,-97.72989540534253,-94.6300753876062,3.0998200177363344,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,-75.09140057351,-93.2922448562684,-18.200844282758396,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,-74.11447943018,-93.04749012954645,-18.93301069936645,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,-73.83367848163469,-92.28844626754697,-18.45476778591228,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,-73.74729869538106,-91.50168386147595,-17.75438516609489,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,-73.71217796786081,-93.68118210618665,-19.969004138325843,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,-73.99945605502582,-93.91721043707193,-19.917754382046112,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,-73.33503743592406,-91.84865798717478,-18.51362055125071,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,-74.69650216624937,-92.79134103114043,-18.09483886489106,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,-74.36228526009224,-92.40442547612219,-18.04214021602995,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,-74.287645387019,-92.1622650056442,-17.874619618625204,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,0,4.858934169278983,0.0,-4.858934169278983,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,1,2.7298850574712596,0.0,-2.7298850574712596,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,2,3.709508881922685,0.0,-3.709508881922685,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,3,3.7878787878787956,0.0,-3.7878787878787956,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,4,3.369905956112862,0.0,-3.369905956112862,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,5,5.721003134796243,0.0,-5.721003134796243,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,6,2.285788923719956,0.0,-2.285788923719956,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,7,4.33646812957158,0.0,-4.33646812957158,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,8,4.584639498432608,0.026123301985370162,-4.558516196447238,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,9,2.4033437826541326,0.0,-2.4033437826541326,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,4.754440961337503,0.052246603970740324,-4.702194357366762,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,2.8213166144200663,0.0,-2.8213166144200663,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,5.067920585161955,0.0,-5.067920585161955,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,1.4759665621734586,0.0,-1.4759665621734586,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,2.6645768025078453,0.0,-2.6645768025078453,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,6.570010449320796,0.0,-6.570010449320796,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,3.4482758620689724,0.0,-3.4482758620689724,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,3.3045977011494143,0.0,-3.3045977011494143,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,1.580459770114928,0.0,-1.580459770114928,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,4.7283176593521326,0.0,-4.7283176593521326,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,31.008359456635326,0.0,-31.008359456635326,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,27.951933124346915,0.0,-27.951933124346915,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,29.89811912225704,0.0,-29.89811912225704,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,32.05329153605017,0.0,-32.05329153605017,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,30.642633228840133,0.0,-30.642633228840133,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,32.314524555903866,0.0,-32.314524555903866,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,30.041797283176606,0.0,-30.041797283176606,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,27.403343782654133,0.0,-27.403343782654133,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,25.613897596656223,0.0,-25.613897596656223,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,31.465517241379317,0.0,-31.465517241379317,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,40.04702194357367,0.5355276907001105,-39.51149425287356,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,46.159874608150474,0.757575757575768,-45.40229885057471,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,41.34012539184953,0.10449320794148065,-41.23563218390805,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,46.21212121212122,0.9665621734587293,-45.24555903866249,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,38.37513061650992,0.37878787878787845,-37.996342737722046,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,36.83385579937305,0.470219435736674,-36.363636363636374,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,42.293625914315584,0.44409613375130386,-41.84952978056428,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,39.85109717868339,0.470219435736674,-39.380877742946716,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,41.745036572622794,0.4179728317659337,-41.32706374085686,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,34.24764890282132,0.10449320794148065,-34.14315569487984,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,-0.11976802824004151,0.0,0.11976802824004151,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,-0.05793290589055644,0.0,0.05793290589055644,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,-0.12096871022739819,0.0,0.12096871022739819,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,-0.14918473693057432,0.0,0.14918473693057432,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,-0.08494825060633149,0.0,0.08494825060633149,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,-0.0420238695579056,0.0,0.0420238695579056,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,-0.09875609346107206,0.0006003409936838899,0.09935643445475595,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,-0.03902216458948615,0.0,0.03902216458948615,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,-0.11136325432845595,0.0,0.11136325432845595,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,-0.1692961602190013,0.0,0.1692961602190013,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,0.7358679730086748,-0.729264222078152,-1.4651321950868268,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,0.216122757726378,-0.6806366015896903,-0.8967593593160683,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,0.25739620104219263,-0.6890413755012981,-0.9464375765434907,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,0.6117474725644167,-0.7076519463054987,-1.3193994188699154,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,0.8095598299834195,-0.6887412050044506,-1.49830103498787,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,0.7288139663328863,-0.7594313570107758,-1.488245323343662,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,0.6654779914991638,-0.5434586845328049,-1.2089366760319686,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,-0.1634428355305806,-0.7052505823307742,-0.5418077468001936,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,0.0663376798021309,-0.7166570612107681,-0.782994741012899,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,1.26942103114569,-0.5953881804865113,-1.8648092116322013,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,44.04296640491799,22.564416588622336,-21.478549816295654,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,43.84995677544845,22.14898062099273,-21.700976154455716,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,43.86406478880003,22.33823811925174,-21.525826669548287,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,44.0849902744759,22.298315443171724,-21.786674831304175,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,44.47986456307183,22.92882357178877,-21.55104099128306,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,44.675275556516105,22.705196551641336,-21.97007900487477,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,44.926818432869865,23.428457363782652,-21.498361069087213,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,44.66086737266768,23.097069135268832,-21.56379823739885,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,43.59556227937469,22.427989097807565,-21.167573181567125,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,44.13496866220012,22.67142737074659,-21.463541291453534,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,53.06999375645367,36.508536848930184,-16.561456907523485,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,53.8717491535192,37.39178853588838,-16.479960617630816,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,53.415640083567475,37.56633767980213,-15.849302403765343,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,52.9707874072473,37.51185673462526,-15.458930672622039,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,52.85582210695675,35.74190139999519,-17.113920706961558,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,52.825805057272525,36.120416396513235,-16.70538866075929,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,53.173852748361064,36.739518046250275,-16.43433470211079,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,54.0844199505319,37.03698700862089,-17.047432941911012,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,53.52625291165383,36.97680282400404,-16.549450087649788,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,52.92891362293782,36.525496482001785,-16.403417140936035,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,0,105.46198086297034,11.61268226348302,-93.84929859948731,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,1,101.9911192060051,7.925899862319663,-94.06521934368543,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,2,98.80436576101425,7.021392038726826,-91.78297372228742,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,3,106.72582348333223,9.172786918980357,-97.55303656435188,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,4,94.81761445369389,6.949162911969764,-87.86845154172413,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,5,98.1025936328624,9.576558690336402,-88.526034942526,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,6,97.12623893955497,10.10197661731873,-87.02426232223624,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,7,100.16429222069019,11.523644968341461,-88.64064725234873,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,8,101.52172422594413,10.436048777747352,-91.08567544819678,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,9,81.46542594109616,10.131896238012317,-71.33352970308384,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,98.45706325903254,8.204998716798295,-90.25206454223424,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,94.20104562823877,9.226188498386346,-84.97485712985242,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,86.37986173565253,6.851353519276726,-79.5285082163758,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,89.01812210230314,7.973708625768117,-81.04441347653503,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,78.67418490289693,8.503854058772342,-70.17033084412458,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,97.7355991823998,9.439193060542994,-88.2964061218568,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,84.95782865174648,7.247273211546368,-77.71055544020011,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,92.61827454244089,9.385070574089882,-83.233203968351,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,76.68579441264158,8.79266996456607,-67.89312444807551,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,115.35673206284103,8.196179419262073,-107.16055264357897,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,250.46958103733616,8.870549142992633,-241.5990318943435,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,211.4325123232335,10.128355153239132,-201.30415716999437,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,221.903890436182,9.676810454124073,-212.22707998205792,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,246.98956268865672,7.5803909499638555,-239.40917173869286,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,250.13249516959863,8.447179028327056,-241.68531614127158,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,249.62276038551198,9.122786427584062,-240.49997395792792,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,229.09517799535058,10.799589577846103,-218.2955884175045,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,205.11177548593028,9.367080329629562,-195.7446951563007,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,220.01332193830177,8.81607177008088,-211.1972501682209,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,232.70334043620963,11.924164944536585,-220.77917549167304,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,307.9442686921097,13.188625521344122,-294.75564317076555,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,388.840666582588,13.514489496865579,-375.32617708572246,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,307.7472299218738,10.049415616919056,-297.6978143049547,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,401.51665949322864,14.536190152618289,-386.98046934061034,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,276.1131223428024,12.644128198775672,-263.46899414402674,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,289.8338203109031,13.935937692440014,-275.8978826184631,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,331.1345242378257,15.571374876869925,-315.5631493609558,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,330.07611876659035,12.961736073933983,-317.11438269265636,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,323.91420243165925,10.643686345388325,-313.2705160862709,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,271.89209984158975,10.59927248253032,-261.29282735905946,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,57.66831020582765,66.48128698626084,8.812976780433189,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,59.03547816982761,64.94596456745934,5.910486397631729,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,57.64384996384258,62.3432908333531,4.699440869510525,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,55.61309713268516,61.90608965006839,6.292992517383226,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,60.02874608672857,64.78301866854778,4.754272581819215,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,58.096068383657396,62.91383384179405,4.817765458136655,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,56.49670771582647,63.136803487050045,6.640095771223578,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,56.48337873796607,58.711270145894275,2.2278914079282046,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,57.662750004054296,64.2211826509552,6.558432646900904,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,53.99569598214655,61.18394223908119,7.18824625693464,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,43.30627509468259,30.079616842250267,-13.226658252432323,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,43.47480086320412,30.42780697956644,-13.046993883637683,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,42.908553528062775,29.587776578742854,-13.32077694931992,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,42.23497856380172,29.992086199715317,-12.242892364086401,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,44.66831038372745,30.67045115928222,-13.997859224445232,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,45.566917731960864,30.120707001431878,-15.446210730528986,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,42.24541328374667,29.82489028930415,-12.420522994442521,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,40.0602173015814,30.53883926703631,-9.521378034545094,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,43.466301250009984,30.042437239507613,-13.42386401050237,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,43.66905904777128,29.94048977442727,-13.728569273344007,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,387.07325054063585,192.62453677805289,-194.44871376258297,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,381.29660355064044,190.80690500063352,-190.48969855000692,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,383.73297632847647,190.6143192317841,-193.11865709669237,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,382.92173163698175,192.74581369713383,-190.17591793984792,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,388.3635748579163,196.5084133504318,-191.85516150748452,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,381.9957321944436,190.5445405660872,-191.45119162835638,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,393.5522866042146,192.87761103366492,-200.67467557054968,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,384.81975880441405,193.49499613936896,-191.32476266504509,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,374.01753556390463,190.1077022946842,-183.90983326922043,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,385.10548449425653,192.04559961112207,-193.05988488313446,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,565.8027183467282,268.0024635290435,-297.8002548176847,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,579.8549604091528,273.4894442681473,-306.3655161410055,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,583.0028716368578,273.68285429161887,-309.3200173452389,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,555.5958561233972,265.66020237502653,-289.93565374837067,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,557.270074310785,261.1213237788835,-296.14875053190156,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,557.0679209689588,264.23933700980166,-292.82858395915713,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,554.6737783240667,263.52592516002795,-291.14785316403874,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,586.723590331043,271.74158460930494,-314.9820057217381,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,587.7581668884833,271.9315300247393,-315.826636863744,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,568.8632164254598,264.1215510072899,-304.7416654181699,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,0,0.0013813681069896333,0.03999124366380613,0.0386098755568165,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,1,1.3237517346781802,1.1500190548114242,-0.173732679866756,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,2,0.14385892802541989,0.9305268876550921,0.7866679596296722,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,3,-3.3344923844567997,0.3450849035753878,3.6795772880321875,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,4,0.9856571695621374,1.8750536379768201,0.8893964684146827,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,5,0.2551541777634947,-0.2350416187789417,-0.4901957965424364,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,6,-3.325879064992343,1.3755135479353253,4.701392612927668,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,7,-0.7812828567453911,-0.7325916720473002,0.04869118469809086,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,8,-0.9118345425657925,0.8079034161292187,1.7197379586950112,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,9,-0.29019028587904394,0.10000452238878577,0.3901948082678297,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,-2.685200333046056,-0.6323551238052949,2.052845209240761,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,-0.07571245152151462,0.5034762105248669,0.5791886620463815,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,-3.893205901108976,-0.3602425068096493,3.5329633942993266,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,-2.632181410400669,1.029002034492854,3.661183444893523,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,-0.02090587654824949,-0.632167839342912,-0.6112619627946625,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,1.3548399374420539,0.9872164752614987,-0.3676234621805552,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,-1.6933373629193893,0.40518126665136656,2.098518629570756,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,-2.6100956177889323,-0.13133850592013108,2.478757111868801,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,1.7208815966816893,0.47065286981646803,-1.2502287268652212,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,-0.27436557710389664,0.2024260467904826,0.47679162389437924,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,-1.1973824654347598,-0.526691527512646,0.6706909379221138,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,-0.38381915220817575,0.643720654328428,1.0275398065366037,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,0.05130314670733771,-0.8188491373955498,-0.8701522841028875,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,0.07394040052381978,0.19582085300180463,0.12188045247798485,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,-0.4439116364129636,0.37701516360735265,0.8209268000203163,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,-2.098368378184179,-0.7146616868651812,1.3837066913189977,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,-0.16111733350812063,0.0008010837060146159,0.16191841721413525,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,0.30822253826134904,0.48340509106727936,0.1751825528059303,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,-0.17143514330286713,0.047549247156397634,0.21898439045926477,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,-1.5952764265277142,0.2607458912768701,1.8560223178045843,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,-1.0140145107450316,-2.0842026880570907,-1.0701881773120592,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,-0.6944836731469728,-2.453038910196126,-1.758555237049153,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,-1.5545385024151814,2.2877035504595744,3.842242052874756,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,0.009098490098846668,-1.3896304987950692,-1.3987289888939158,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,-0.2703805912768309,-1.774794790403944,-1.5044141991271132,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,-0.30568954037277773,0.8948575620885801,1.2005471024613579,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,-0.3021251906801137,-4.3380952985825445,-4.035970107902431,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,-2.3385516130340234,0.46619897382746966,2.804750586861493,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,-2.0716073594231887,-0.07336183670029195,1.9982455227228968,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,0.5715776484899848,-1.5251524863020727,-2.0967301347920575,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,-0.6255641522830979,0.45070361295609374,1.0762677652391917,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,-2.423170842916944,0.5749032436713986,2.9980740865883426,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,-2.8888304633089668,0.6053349059016222,3.494165369210589,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,-1.711778385004481,0.7668404129648643,2.4786187979693453,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,-1.1799312230768355,0.33116423377947957,1.511095456856315,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,-3.1570563135061125,0.6349718489360612,3.7920281624421737,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,-1.753818904960558,0.8695070577195985,2.6233259626801564,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,-2.412983307420258,0.8345040380265178,3.2474873454467756,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,-2.2458154733294156,0.5508398122223035,2.796655285551719,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,-3.27008631647403,0.5907585457580522,3.8608448622320823,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,-8.212890119910742,-1.4726683716767996,6.740221748233942,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,-7.250871318202201,-0.6788332519778506,6.57203806622435,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,-8.11178796239702,-1.0410290942367895,7.070758868160231,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,-7.894732028136165,-1.4430223739097303,6.451709654226434,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,-8.470079774240059,-1.3473985996833027,7.122681174556757,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,-8.26837423814325,-1.425875105887131,6.842499132256119,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,-9.02014979019995,-1.5710164488285772,7.449133341371373,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,-6.6711255629677275,-0.8678541922440441,5.803271370723683,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,-7.990558154742933,-1.225408623353108,6.7651495313898256,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,-8.430885705852676,-1.1780247892508644,7.252860916601811,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,-4.590334451894085,-18.52489126595429,-13.934556814060207,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,-4.100366085472206,-17.989394427697626,-13.88902834222542,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,-4.266460929991633,-18.272985412892695,-14.00652448290106,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,-4.382850675095495,-18.123142973036177,-13.740292297940682,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,-4.657088470977843,-18.453574236649395,-13.796485765671552,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,-4.566865390146091,-18.347160023121745,-13.780294632975654,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,-4.5068933606230654,-18.330623710165504,-13.823730349542439,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,-4.96063201013307,-18.348780628855643,-13.388148618722573,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,-4.894718400572195,-18.889423562774677,-13.994705162202482,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,-4.675030136908376,-18.86314175027004,-14.188111613361663,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,-5.497986563528157,-24.912467410336838,-19.41448084680868,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,-5.309514536258031,-25.76927333872939,-20.45975880247136,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,-5.111660095052617,-24.277484001786643,-19.165823906734026,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,-5.209540083032005,-25.539778743340612,-20.33023866030861,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,-5.189299931752545,-26.01636890803858,-20.827068976286036,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,-4.854529718579537,-24.88922244787276,-20.034692729293226,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,-4.922023532531982,-24.273353241998997,-19.351329709467016,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,-5.139224455396096,-24.80367234564603,-19.664447890249935,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,-4.979683261798007,-24.729626582738273,-19.749943320940268,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,-5.038873882502381,-24.885901994132954,-19.84702811163057,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,0,0.0,0.0,0.0,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,1,-0.21159874608150941,0.0,0.21159874608150941,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,2,-0.015673981191210995,0.0,0.015673981191210995,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,3,-0.11755485893416573,0.0,0.11755485893416573,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,4,0.039184952978066345,0.0,-0.039184952978066345,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,5,0.02351097178681094,0.0,-0.02351097178681094,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,6,-0.0156739811912332,0.0,0.0156739811912332,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,7,0.06269592476488839,0.0,-0.06269592476488839,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,8,0.12539184952978788,-0.015673981191210995,-0.14106583072099887,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,9,-0.03918495297805524,0.0,0.03918495297805524,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,0.2429467084639425,0.031347962382444194,-0.2115987460814983,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,-0.023510971786833146,-0.031347962382444194,-0.007836990595611049,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,0.5250783699059403,-0.015673981191210995,-0.5407523510971513,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,-0.023510971786844248,0.031347962382444194,0.05485893416928844,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,-0.06269592476488839,-0.031347962382444194,0.031347962382444194,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,0.47805642633228507,0.0,-0.47805642633228507,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,-0.023510971786833146,0.0,0.023510971786833146,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,0.19592476489027622,0.0,-0.19592476489027622,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,-0.305642633228842,0.0,0.305642633228842,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,0.5250783699059625,0.0,-0.5250783699059625,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,-0.39184952978055243,0.0,0.39184952978055243,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,-0.16457680250785423,0.0,0.16457680250785423,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,0.007836990595611049,0.0,-0.007836990595611049,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,0.031347962382444194,0.0,-0.031347962382444194,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,0.0156739811912332,0.0,-0.0156739811912332,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,0.6112852664576729,0.0,-0.6112852664576729,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,0.14106583072098777,0.0,-0.14106583072098777,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,-0.007836990595611049,0.0,0.007836990595611049,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,0.25078369905955356,0.0,-0.25078369905955356,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,-0.023510971786833146,0.0,0.023510971786833146,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,0.6896551724138056,0.015673981191210995,-0.6739811912225946,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,0.5015673981191182,0.20376175548589837,-0.29780564263321985,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,0.8307210031347823,0.0,-0.8307210031347823,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,0.06269592476488839,0.06269592476488839,0.0,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,0.11755485893417683,0.08620689655172153,-0.0313479623824553,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,-0.047021943573677394,0.12539184952977678,0.17241379310345417,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,0.10188087774293253,0.10971786833854358,0.007836990595611049,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,0.09404388714733258,0.031347962382444194,-0.06269592476488839,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,0.7053291536050166,0.06269592476488839,-0.6426332288401282,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,-0.11755485893416573,0.047021943573677394,0.16457680250784312,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,0.0037821482602118373,0.0,-0.0037821482602118373,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,0.02107196887832785,0.00036020459620589307,-0.02071176428212196,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,0.017740076363370605,-0.0010806137886398837,-0.01882069015201049,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,0.007744398818532172,0.0,-0.007744398818532172,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,-0.0032418413658974465,0.0010806137886287814,0.004322455154526228,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,0.0005403068943143907,0.0,-0.0005403068943143907,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,0.005313017794106312,-0.0003602045962169953,-0.005673222390323307,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,0.010896189035369819,0.0,-0.010896189035369819,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,0.030437288379792093,0.0,-0.030437288379792093,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,0.006753836178952088,0.0,-0.006753836178952088,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,0.6851991931417056,0.05817304228803444,-0.6270261508536712,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,0.45484835386498945,0.05907355377855472,-0.39577480008643473,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,0.4572797348894153,0.06771846408758497,-0.38956127080183034,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,0.590915640083578,0.0781643973777224,-0.5127512427058556,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,0.6269360997046447,0.06699805489517319,-0.5599380448094715,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,0.627116202002731,0.02359340105180241,-0.6035228009509286,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,0.5239175851883826,0.08933073986022722,-0.4345868453281554,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,0.4053202218860297,0.09869605936172476,-0.3066241625243049,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,0.5271594265542912,0.1144550104459352,-0.41270441610835595,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,0.6340501404797805,0.10031698004465683,-0.5337331604351236,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,2.5874396657301513,4.705262589150627,2.117822923420476,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,2.526835242417691,4.480765074562354,1.9539298321446634,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,2.5463763417621244,4.541909804769107,1.9955334630069825,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,2.546196239464016,4.583063179886171,2.036866940422155,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,2.597615445573087,4.695717167351043,2.0981017217779563,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,2.6094121460989883,4.646459188819241,2.037047042720253,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,2.3311540955262666,4.751548879763712,2.4203947842374456,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,2.6439017361861605,4.800896909444575,2.156995173258414,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,2.7005439089402783,4.781716014696347,2.0811721057560684,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,2.622289460413496,4.708234277069378,2.085944816655882,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,2.991679273827541,8.752791585620646,5.761112311793104,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,3.111267199769474,8.956937540523002,5.845670340753529,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,2.763399610979045,9.130015849002238,6.366616238023193,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,2.863896693321799,8.96819393415461,6.104297240832812,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,2.9890677905050067,8.838160074922552,5.849092284417545,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,2.9820438008788974,8.64617102514228,5.664127224263383,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,2.827696131402635,8.594211512138905,5.76651538073627,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,2.6025682587709875,8.825823067502336,6.223254808731348,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,2.6869461854333365,8.816998054895176,6.130051869461839,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,2.9329659246451922,8.698040486996616,5.765074562351424,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,0,0.0019604486745539162,0.379711062274124,0.3777506135995701,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,1,3.7164338320167856,0.742353816996566,-2.9740800150202196,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,2,0.015045300338889511,0.45451784800432105,0.43947254766543153,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,3,0.06580881449229636,0.5131682556134276,0.44735944112113124,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,4,2.381848268749165,0.9358225283633281,-1.4460257403858368,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,5,0.15382009488602577,-0.041946508817092276,-0.19576660370311805,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,6,-0.05540534500094729,0.3069800603463735,0.3623854053473208,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,7,0.14874604769874455,0.22893899586109434,0.08019294816234979,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,8,0.09589568355663491,0.9900196922227433,0.8941240086661084,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,9,0.05362228042307127,-0.023727046918231576,-0.07734932734130284,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,-1.9425767487536882,0.013097740304535144,1.9556744890582234,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,0.5341739223912123,-0.14330076051021212,-0.6774746829014244,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,-1.1546151972807173,0.4221091543063382,1.5767243515870555,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,1.8206250609384966,0.49248895117153246,-1.3281361097669642,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,-0.060744486574904055,-0.22094340211562535,-0.1601989155407213,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,-2.7945101637835923,0.3730418100517552,3.1675519738353475,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,-0.8030573573831523,-0.02391008707707254,0.7791472703060798,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,0.35770237495384993,-0.30102856631341046,-0.6587309412672604,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,-0.5328166533602796,-0.1851730197222512,0.3476436336380284,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,0.3737524878384191,0.12535116553427095,-0.24840132230414813,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,0.5398696530348746,-0.002129530784844569,-0.5419991838197191,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,-1.4485510879603924,0.3651901053117079,1.8137411932721004,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,-0.8670740623482831,0.030555879421312326,0.8976299417695954,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,0.19631107837647654,0.1201966384384745,-0.07611443993800204,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,-0.1387225533710068,0.6169807059645871,0.7557032593355939,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,-0.22360951965171294,-0.06461000353616964,0.1589995161155433,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,-0.9464644539639355,-0.2205199013641912,0.7259445525997443,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,-1.7724141476672228,0.3133189985255358,2.0857331461927586,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,-0.09101204353940684,0.16646496711423264,0.2574770106536395,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,-0.5972730296368911,0.4598201043484407,1.0570931339853318,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,1.142659277521707,-0.5144415579319772,-1.6571008354536843,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,-0.9149830230583023,0.1240165059386733,1.0389995289969756,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,-2.9273127947190725,-0.7059541725543905,2.221358622164682,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,1.104345746244051,-0.14110808781130357,-1.2454538340553545,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,0.8635891139989083,0.565577069480705,-0.2980120445182033,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,1.292764510894151,0.28604550335145085,-1.0067190075427002,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,3.2962654228382515,1.019658207428642,-2.2766072154096095,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,0.20542324379198007,0.07650746215162041,-0.12891578164035966,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,1.2342653896379119,0.14461190086574316,-1.0896534887721687,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,1.857453355885852,0.23707405630797318,-1.6203792995778787,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,0.08303073045599074,-0.15541288900239314,-0.23844361945838388,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,0.13295108760904562,-0.07257478777932258,-0.2055258753883682,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,0.21423725377169855,-0.20084705069399744,-0.415084304465696,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,0.077247835656169,0.07352828013282853,-0.0037195555233404676,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,0.24863532341858896,-0.08145636835821257,-0.33009169177680153,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,0.2077786969961526,-0.2337666218099277,-0.4415453188060803,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,0.09931371370606179,-0.08919718503068719,-0.18851089873674898,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,0.21379988378262826,0.1585237420320018,-0.05527614175062645,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,0.1696796687028046,-0.1381069057498463,-0.3077865744526509,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,0.5016110148266639,-0.15425005315712337,-0.6558610679837873,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,1.5968244544891874,0.8605000027648302,-0.7363244517243572,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,1.4028982574547433,0.6831822083003036,-0.7197160491544397,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,1.6249018606243615,0.8415507162778724,-0.7833511443464891,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,1.4857728264362713,0.9308311118287005,-0.5549417146075708,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,1.4146789993888298,0.8513543447971061,-0.5633246545917237,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,1.2216596317855766,0.7119208062231319,-0.5097388255624447,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,0.8754037218425159,0.7297976610726842,-0.14560606076983174,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,0.5524771560281527,0.7395665495042225,0.1870893934760698,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,1.5978090952987856,0.8056076158060366,-0.792201479492749,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,1.787245958792738,0.7599935848978223,-1.0272523738949157,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,2.1975015889056815,6.0259135851843615,3.82841199627868,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,2.1682287571926695,5.6903470642855725,3.522118307092903,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,2.16963559590162,5.322732726331969,3.153097130430349,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,2.221353001878512,5.427945476227425,3.2065924743489127,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,2.370584224911876,5.557097990094029,3.186513765182153,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,2.2332207330469034,5.351612126859107,3.118391393812203,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,2.159105091498792,5.640874902725379,3.481769811226587,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,2.185135482277145,5.778341628345851,3.593206146068706,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,2.185825354389981,5.628317227803681,3.4424918734137,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,2.450212861963763,5.444169485102068,2.9939566231383052,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,3.392721744371796,11.879378938029772,8.486657193657976,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,3.5017094780329217,12.41233379694906,8.910624318916138,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,3.2751291021934303,12.12054880697524,8.84541970478181,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,3.4539408755816847,12.607543711461112,9.153602835879427,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,3.5915216070125044,12.261073619688624,8.66955201267612,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,3.0392692344812122,11.284760840673226,8.245491606192013,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,3.067070543567829,11.947755065805389,8.880684522237559,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,3.273840662483307,12.201805145327182,8.927964482843874,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,3.3518005344953083,12.203542122354705,8.851741587859397,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,3.199869980387815,11.919337196588241,8.719467216200426,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,0,0.0,0.03674791626306906,0.03674791626306906,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,1,0.0,-1.0162025024147536,-1.0162025024147536,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,2,0.0,0.15832072902273175,0.15832072902273175,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,3,0.0,-1.1435367521747453,-1.1435367521747453,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,4,0.0,2.0232846172900665,2.0232846172900665,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,5,0.0,-0.30551843834900616,-0.30551843834900616,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,6,0.0,-0.2720080412492165,-0.2720080412492165,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,7,0.0,-0.29166769468448317,-0.29166769468448317,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,8,0.0,-0.9235364385599909,-0.9235364385599909,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,9,0.0,-0.029562502367497245,-0.029562502367497245,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,0.0,-1.1751795216340843,-1.1751795216340843,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,0.0,-0.06359199125933745,-0.06359199125933745,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,0.0,-0.4544409094042079,-0.4544409094042079,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,0.0,-0.7746784992939793,-0.7746784992939793,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,0.0,-0.647982059555019,-0.647982059555019,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,0.0,-0.1632728278935569,-0.1632728278935569,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,0.0,-0.2490136717141378,-0.2490136717141378,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,0.0,-0.7077625955905775,-0.7077625955905775,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,0.0,0.7006327606556839,0.7006327606556839,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,0.0,0.1998983582257141,0.1998983582257141,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,0.0,1.4916554404843074,1.4916554404843074,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,0.0,1.414641729518773,1.414641729518773,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,0.0,-0.5478854810549993,-0.5478854810549993,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,0.0,0.0803809457422755,0.0803809457422755,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,0.0,0.8547334091036696,0.8547334091036696,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,0.0,-0.7604252080938512,-0.7604252080938512,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,0.0,-0.7641701251139721,-0.7641701251139721,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,0.0,-0.22124065318409603,-0.22124065318409603,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,0.0,0.2163556638758779,0.2163556638758779,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,0.0,-1.7484099292005673,-1.7484099292005673,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,0.0,-1.3126571014357769,-1.3126571014357769,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,0.0,-1.9061961641712144,-1.9061961641712144,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,0.0,-1.894995465974636,-1.894995465974636,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,0.0,-2.7189159105221905,-2.7189159105221905,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,0.0,-0.8189790775541272,-0.8189790775541272,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,0.0,-1.7280898451237259,-1.7280898451237259,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,0.0,-3.06149532587362,-3.06149532587362,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,0.0,-1.8207638516221647,-1.8207638516221647,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,0.0,-3.2560139652225373,-3.2560139652225373,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,0.0,-2.025163674594832,-2.025163674594832,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,0.0,-0.5129618486657384,-0.5129618486657384,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,0.0,-1.2320599407096622,-1.2320599407096622,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,0.0,-1.281219067701611,-1.281219067701611,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,0.0,0.10050114602595528,0.10050114602595528,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,0.0,-0.47691616063126885,-0.47691616063126885,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,0.0,-0.5247075331500262,-0.5247075331500262,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,0.0,-1.3569406881538626,-1.3569406881538626,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,0.0,-1.4838547230149768,-1.4838547230149768,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,0.0,-0.8246126565723433,-0.8246126565723433,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,0.0,-0.8776518756486884,-0.8776518756486884,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,0.0,-6.307037392317771,-6.307037392317771,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,0.0,-4.979458000412562,-4.979458000412562,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,0.0,-6.16323676032594,-6.16323676032594,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,0.0,-5.292291500244217,-5.292291500244217,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,0.0,-5.851874199480456,-5.851874199480456,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,0.0,-6.051725177778955,-6.051725177778955,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,0.0,-5.790996723544362,-5.790996723544362,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,0.0,-4.896201613985996,-4.896201613985996,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,0.0,-5.649488318556795,-5.649488318556795,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,0.0,-5.881536073134819,-5.881536073134819,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,0.0,-19.505191937216892,-19.505191937216892,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,0.0,-19.110193728536306,-19.110193728536306,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,0.0,-19.095059518738534,-19.095059518738534,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,0.0,-18.912303202154433,-18.912303202154433,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,0.0,-19.237779819234945,-19.237779819234945,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,0.0,-19.2179272726966,-19.2179272726966,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,0.0,-19.293868751233568,-19.293868751233568,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,0.0,-19.764336372921264,-19.764336372921264,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,0.0,-20.21046819460972,-20.21046819460972,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,0.0,-19.823779676662202,-19.823779676662202,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,0.0,-27.430421414585147,-27.430421414585147,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,0.0,-27.601708795743175,-27.601708795743175,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,0.0,-26.689521123969683,-26.689521123969683,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,0.0,-27.212564275995476,-27.212564275995476,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,0.0,-27.172049474221225,-27.172049474221225,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,0.0,-27.236833631683766,-27.236833631683766,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,0.0,-26.76110407605129,-26.76110407605129,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,0.0,-27.090122045530318,-27.090122045530318,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,0.0,-26.395575622848334,-26.395575622848334,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,0.0,-26.777682644517643,-26.777682644517643,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,0,0.0,0.026123301985370162,0.026123301985370162,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,1,0.0,-0.005224660397085135,-0.005224660397085135,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,2,0.0,-0.010449320794148065,-0.010449320794148065,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,3,0.0,0.005224660397085135,0.005224660397085135,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,4,0.0,-0.02089864158829613,-0.02089864158829613,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,5,0.0,0.010449320794136963,0.010449320794136963,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,6,0.0,0.010449320794159167,0.010449320794159167,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,7,0.0,0.03134796238243309,0.03134796238243309,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,8,0.0,0.12539184952977678,0.12539184952977678,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,9,0.0,-0.005224660397074032,-0.005224660397074032,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,0.0,0.18286311389759113,0.18286311389759113,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,0.0,-0.005224660397074032,-0.005224660397074032,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,0.0,-0.00522466039706293,-0.00522466039706293,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,0.0,-0.005224660397074032,-0.005224660397074032,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,0.0,-0.0313479623824553,-0.0313479623824553,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,0.0,0.09926854754440662,0.09926854754440662,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,0.0,0.08881922675025855,0.08881922675025855,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,0.0,0.06792058516196242,0.06792058516196242,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,0.0,-0.052246603970751426,-0.052246603970751426,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,0.0,0.005224660397074032,0.005224660397074032,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,0.0,-0.052246603970740324,-0.052246603970740324,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,0.0,-0.04179728317659226,-0.04179728317659226,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,0.0,0.08359456635318452,0.08359456635318452,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,0.0,0.12539184952977678,0.12539184952977678,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,0.0,0.026123301985381264,0.026123301985381264,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,0.0,0.15673981191223207,0.15673981191223207,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,0.0,0.04702194357366629,0.04702194357366629,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,0.0,0.015673981191222097,0.015673981191222097,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,0.0,-0.026123301985370162,-0.026123301985370162,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,0.0,-0.10449320794148065,-0.10449320794148065,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,0.0,0.41274817136885966,0.41274817136885966,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,0.0,0.3709508881922674,0.3709508881922674,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,0.0,0.23510971786833146,0.23510971786833146,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,0.0,0.5276907001044995,0.5276907001044995,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,0.0,0.14106583072099887,0.14106583072099887,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,0.0,0.11494252873562871,0.11494252873562871,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,0.0,0.4649947753396111,0.4649947753396111,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,0.0,0.19853709508882433,0.19853709508882433,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,0.0,0.36050156739810824,0.36050156739810824,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,0.0,0.2612330198537016,0.2612330198537016,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,0.0,0.006243546334316896,0.006243546334316896,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,0.0,0.00534303484378551,0.00534303484378551,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,0.0,0.006063444036219501,0.006063444036219501,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,0.0,-0.0007204091924117861,-0.0007204091924117861,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,0.0,0.0051028984463186156,0.0051028984463186156,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,0.0,0.005222966645057614,0.005222966645057614,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,0.0,0.010986240184429619,0.010986240184429619,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,0.0,0.002761568570941453,0.002761568570941453,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,0.0,0.00852484211032456,0.00852484211032456,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,0.0,0.00714405782483718,0.00714405782483718,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,0.0,0.34609658285906786,0.34609658285906786,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,0.0,0.2696131402636692,0.2696131402636692,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,0.0,0.3139783396969409,0.3139783396969409,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,0.0,0.30515332708977994,0.30515332708977994,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,0.0,0.3268256369617917,0.3268256369617917,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,0.0,0.35726292534158377,0.35726292534158377,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,0.0,0.3145786806906359,0.3145786806906359,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,0.0,0.26096822995461677,0.26096822995461677,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,0.0,0.30515332708979104,0.30515332708979104,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,0.0,0.3252047162788485,0.3252047162788485,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,0.0,6.007732391998644,6.007732391998644,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,0.0,5.747304468938353,5.747304468938353,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,0.0,5.78524601973921,5.78524601973921,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,0.0,5.846901039790597,5.846901039790597,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,0.0,6.014156040631081,6.014156040631081,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,0.0,5.899490910837358,5.899490910837358,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,0.0,5.938393007228104,5.938393007228104,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,0.0,6.083195254904783,6.083195254904783,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,0.0,6.061102706337196,6.061102706337196,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,0.0,6.138966933218071,6.138966933218071,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,0.0,11.16616238023197,11.16616238023197,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,0.0,11.646255072881395,11.646255072881395,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,0.0,11.472876593905335,11.472876593905335,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,0.0,11.535972432341568,11.535972432341568,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,0.0,11.167663232716185,11.167663232716185,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,0.0,11.166642653026926,11.166642653026926,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,0.0,11.141728501789006,11.141728501789006,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,0.0,11.372139375165101,11.372139375165101,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,0.0,11.254832744999154,11.254832744999154,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,0.0,11.141248228994073,11.141248228994073,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,city-scenario
+39.0,638.0,1.0,BASELINE,0,0.0,-0.023897850311482838,-0.023897850311482838,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,1,0.0,-0.1962395463419364,-0.1962395463419364,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,2,0.0,-0.0369532781651527,-0.0369532781651527,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,3,0.0,0.12220677451000306,0.12220677451000306,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,4,0.0,0.1923957674853538,0.1923957674853538,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,5,0.0,0.18350188838607284,0.18350188838607284,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,6,0.0,-0.0001086324981414144,-0.0001086324981414144,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,7,0.0,0.06628198125535611,0.06628198125535611,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,8,0.0,0.03922842695101014,0.03922842695101014,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,BASELINE,9,0.0,0.1025823092599687,0.1025823092599687,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,0,0.0,0.33813748736950533,0.33813748736950533,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,1,0.0,0.2993550141124901,0.2993550141124901,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,2,0.0,-0.16235628699823312,-0.16235628699823312,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,3,0.0,0.41047695376894566,0.41047695376894566,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,4,0.0,0.34780559036038383,0.34780559036038383,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,5,0.0,-0.27108877677137766,-0.27108877677137766,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,6,0.0,0.4014694664236984,0.4014694664236984,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,7,0.0,0.44922180429953773,0.44922180429953773,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,8,0.0,-0.2382116274491919,-0.2382116274491919,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,RUSH_HOUR,9,0.0,0.23419975670446735,0.23419975670446735,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,0,0.0,0.34998856734971273,0.34998856734971273,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,1,0.0,-0.512525792451235,-0.512525792451235,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,2,0.0,-0.3852191218979173,-0.3852191218979173,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,3,0.0,-0.1779977929068255,-0.1779977929068255,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,4,0.0,0.38960618111985035,0.38960618111985035,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,5,0.0,1.004614161177697,1.004614161177697,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,6,0.0,-0.6483013997167553,-0.6483013997167553,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,7,0.0,-0.44526575564768356,-0.44526575564768356,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,8,0.0,0.37536037787759824,0.37536037787759824,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_IMBALANCE,9,0.0,-0.06964729768573763,-0.06964729768573763,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,0,0.0,0.77794387479726,0.77794387479726,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,1,0.0,1.581522402647173,1.581522402647173,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,2,0.0,0.08961986729529858,0.08961986729529858,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,3,0.0,1.5146037730370043,1.5146037730370043,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,4,0.0,0.4574544330702812,0.4574544330702812,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,5,0.0,0.7764325571098629,0.7764325571098629,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,6,0.0,-0.006159714746478695,-0.006159714746478695,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,7,0.0,0.566016353837151,0.566016353837151,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,8,0.0,0.6859678727175744,0.6859678727175744,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,SPATIAL_ISLANDS,9,0.0,1.4987253272328749,1.4987253272328749,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,0,0.0,0.21631211366721637,0.21631211366721637,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,1,0.0,0.1652103177002484,0.1652103177002484,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,2,0.0,0.12142303603517313,0.12142303603517313,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,3,0.0,0.09686153901413697,0.09686153901413697,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,4,0.0,0.18451072255563084,0.18451072255563084,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,5,0.0,0.039418719907913236,0.039418719907913236,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,6,0.0,0.3030022986372227,0.3030022986372227,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,7,0.0,0.29104673530988556,0.29104673530988556,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,8,0.0,0.277264948571343,0.277264948571343,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,BASELINE,9,0.0,0.31072262481055546,0.31072262481055546,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,0,0.0,1.2008292979263313,1.2008292979263313,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,1,0.0,1.1740892386834956,1.1740892386834956,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,2,0.0,1.4383122970503592,1.4383122970503592,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,3,0.0,1.3202363829928787,1.3202363829928787,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,4,0.0,1.262610949462295,1.262610949462295,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,5,0.0,1.388953997461062,1.388953997461062,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,6,0.0,1.2411638357377353,1.2411638357377353,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,7,0.0,1.0417380776835294,1.0417380776835294,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,8,0.0,1.2809140335593217,1.2809140335593217,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,RUSH_HOUR,9,0.0,1.3029336039520611,1.3029336039520611,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,0,0.0,7.008680855336613,7.008680855336613,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,1,0.0,6.7989853223020535,6.7989853223020535,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,2,0.0,6.759447646843086,6.759447646843086,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,3,0.0,6.766298562583284,6.766298562583284,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,4,0.0,7.046463207557752,7.046463207557752,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,5,0.0,6.698104779183023,6.698104779183023,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,6,0.0,6.792990428153556,6.792990428153556,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,7,0.0,6.965276335583859,6.965276335583859,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,8,0.0,6.873604436847414,6.873604436847414,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_IMBALANCE,9,0.0,6.8519149857699135,6.8519149857699135,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,0,0.0,15.203241973748337,15.203241973748337,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,1,0.0,15.762399018284047,15.762399018284047,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,2,0.0,15.414668456659243,15.414668456659243,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,3,0.0,15.472464040132339,15.472464040132339,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,4,0.0,15.129218965734669,15.129218965734669,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,5,0.0,15.020142872661157,15.020142872661157,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,6,0.0,15.363022374072234,15.363022374072234,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,7,0.0,15.219441329163818,15.219441329163818,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,8,0.0,15.14754176778743,15.14754176778743,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,SPATIAL_ISLANDS,9,0.0,15.006581136871212,15.006581136871212,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,city-scenario
+39.0,638.0,1.0,,0,3.519236831468464,-4.933222536068838,-8.452459367537301,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,1,12.432389771825525,-6.75884726312953,-19.191237034955055,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,2,8.13305780157576,-5.198455335056085,-13.331513136631845,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,3,3.8384776227958106,-8.633517898051846,-12.471995520847656,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,4,8.095114715908224,-5.123001230012292,-13.218115945920516,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,5,4.099141745198409,-5.512481577440475,-9.611623322638884,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,6,4.705309335846786,-8.541236633233229,-13.246545969080014,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,7,5.524942115437903,-6.50811848925581,-12.033060604693713,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,8,3.4930439098478594,-7.243462521933286,-10.736506431781144,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,9,10.147429360278792,-7.141299599685791,-17.288728959964583,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,0,53.71059228616686,-93.80665385398927,-147.51724614015615,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,1,47.5044160047504,-93.47488551145543,-140.97930151620582,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,2,53.97250357898362,-93.77291678607097,-147.7454203650546,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,3,53.75205950445192,-93.51931406789382,-147.27137357234574,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,4,47.999711366333145,-93.82915713676132,-141.82886850309447,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,5,53.11775941808246,-93.62065012630423,-146.73840954438668,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,6,59.70091220870162,-93.7784950726536,-153.4794072813552,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,7,59.07557753544983,-93.26018368741322,-152.33576122286306,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,8,53.70034228639771,-93.30724725264024,-147.00758953903795,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,9,59.710023763406504,-93.67259250927158,-153.3826162726781,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,0,-0.10449320794148065,-0.03483106931382318,0.06966213862765747,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,1,-0.034831069313845386,0.0653082549634254,0.10013932427727079,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,2,-0.06966213862765747,-0.021769418321149203,0.04789272030650826,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,3,-0.10449320794148065,0.052246603970751426,0.15673981191223207,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,4,-0.10449320794148065,-0.052246603970751426,0.05224660397072922,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,5,-0.07836990595611049,-0.21769418321143652,-0.13932427725532603,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,6,-0.15673981191223207,-0.021769418321149203,0.13497039359108287,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,7,-0.017415534656928244,-0.043538836642287304,-0.02612330198535906,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,8,0.10449320794148065,-0.10449320794148065,-0.2089864158829613,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,9,-0.052246603970751426,0.004353883664220959,0.056600487634972385,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,0,-0.05553154191582088,8.082140655892555,8.137672197808376,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,1,-0.04592608601685644,8.008798997830757,8.054725083847615,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,2,-0.0779442723466861,8.232476046394355,8.310420318741041,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,3,-0.06343603166598655,7.956719416628644,8.02015544829463,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,4,-0.057532678561422745,8.234927438785212,8.292460117346634,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,5,-0.05182943912142024,8.156382825444874,8.208212264566294,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,6,-0.06813870278318257,8.409976866860392,8.478115569643574,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,7,-0.06493688415019072,8.22387115881822,8.28880804296841,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,8,-0.05963387203932191,8.202408968293994,8.262042840333317,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,9,-0.06883910060915266,8.239480024654,8.308319125263154,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,0,-26.257572786590956,-38.88517310280633,-12.627600316215371,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,1,-24.058404820218925,-36.65997260134514,-12.601567781126214,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,2,-29.498525773754768,-40.37479458391936,-10.876268810164593,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,3,-29.502520593612847,-42.19392896658283,-12.691408372969985,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,4,-28.08313356100538,-39.668321394572615,-11.585187833567236,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,5,-28.694773838373344,-38.56226269194886,-9.867488853575516,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,6,-26.62335166432097,-40.37214255951237,-13.748790895191398,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,7,-28.372867438677783,-39.390642925511244,-11.017775486833461,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,8,-30.296633749010848,-40.110147084652645,-9.813513335641797,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,9,-30.702887415712087,-42.89291889440039,-12.1900314786883,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,0,-30.477754819343616,-38.4027089652532,-7.924954145909581,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,1,-30.60808069625032,-39.03032442198936,-8.422243725739044,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,2,-31.675725431919886,-38.527954558912946,-6.852229126993059,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,3,-31.586508426844496,-38.59005264634101,-7.003544219496511,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,4,-30.24401561842881,-38.174748975550855,-7.930733357122044,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,5,-30.837408551871338,-38.83123817375187,-7.993829621880533,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,6,-31.450366362792693,-38.5251081773073,-7.07474181451461,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,7,-32.42428468107767,-39.25040976871455,-6.826125087636875,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,8,-30.76255184359794,-38.58294733449059,-7.8203954908926505,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,9,-32.251248182182024,-38.83129583036378,-6.580047648181754,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,city-scenario
+39.0,638.0,1.0,,0,3.519236831468464,-10.666828824966679,-14.186065656435144,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,1,12.432389771825525,-13.341934611505813,-25.77432438333134,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,2,8.13305780157576,-11.533085399708941,-19.6661432012847,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,3,3.8384776227958106,-11.325828847564567,-15.164306470360378,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,4,8.095114715908224,-11.40316183168556,-19.498276547593782,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,5,4.099141745198409,-9.721328763511728,-13.820470508710137,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,6,4.705309335846786,-10.286044009250672,-14.991353345097458,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,7,5.524942115437903,-9.438321060382926,-14.963263175820828,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,8,3.4930439098478594,-8.018286505847517,-11.511330415695376,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,9,10.147429360278792,-9.711316414421523,-19.858745774700317,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,0,53.71059228616686,-61.31154107518508,-115.02213336135193,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,1,47.5044160047504,-60.05393399290126,-107.55834999765165,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,2,53.97250357898362,-59.74996181939504,-113.72246539837866,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,3,53.75205950445192,-59.020838503045894,-112.77289800749782,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,4,47.999711366333145,-61.86134769374103,-109.86105906007418,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,5,53.11775941808246,-61.97314853129191,-115.09090794937437,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,6,59.70091220870162,-57.88614256751785,-117.58705477621947,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,7,59.07557753544983,-61.588967008115404,-120.66454454356523,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,8,53.70034228639771,-60.770809155170646,-114.47115144156835,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+1685.0,27762.0,1.0,,9,59.710023763406504,-60.82739982805325,-120.53742359145976,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,city-scenario
+39.0,638.0,1.0,,0,-0.10449320794148065,0.09578544061302763,0.20027864855450828,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,1,-0.034831069313845386,0.034831069313845386,0.06966213862769077,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,2,-0.06966213862765747,0.00870776732845302,0.07836990595611049,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,3,-0.10449320794148065,-0.07836990595611049,0.026123301985370162,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,4,-0.10449320794148065,0.0,0.10449320794148065,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,5,-0.07836990595611049,0.004353883664220959,0.08272378962033144,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,6,-0.15673981191223207,-0.017415534656928244,0.13932427725530383,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,7,-0.017415534656928244,-0.02612330198535906,-0.008707767328430815,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,8,0.10449320794148065,-0.02612330198535906,-0.1306165099268397,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,9,-0.052246603970751426,0.06966213862765747,0.12190874259840889,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,0,-0.05553154191582088,5.486116113952733,5.5416476558685535,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,1,-0.04592608601685644,5.215162212136493,5.261088298153349,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,2,-0.0779442723466861,5.625945537065058,5.703889809411744,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,3,-0.06343603166598655,5.266991651257902,5.330427682923888,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,4,-0.057532678561422745,5.360894988353381,5.418427666914804,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,5,-0.05182943912142024,5.521536232580127,5.573365671701547,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,6,-0.06813870278318257,5.191048515556829,5.259187218340012,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,7,-0.06493688415019072,5.46930656612955,5.534243450279741,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,8,-0.05963387203932191,5.4924697228025625,5.552103594841885,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+1685.0,27762.0,1.0,,9,-0.06883910060915266,5.616690280079084,5.685529380688236,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,city-scenario
+39.0,638.0,1.0,,0,-26.257572786590956,-41.16936877012688,-14.911795983535924,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,1,-24.058404820218925,-41.654713598438455,-17.59630877821953,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,2,-29.498525773754768,-42.62249556808022,-13.12396979432545,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,3,-29.502520593612847,-39.912104105630355,-10.409583512017509,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,4,-28.08313356100538,-42.29216764412804,-14.209034083122663,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,5,-28.694773838373344,-39.742427041404085,-11.047653203030741,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,6,-26.62335166432097,-40.5889728106479,-13.965621146326932,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,7,-28.372867438677783,-38.13597604454214,-9.763108605864357,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,8,-30.296633749010848,-40.71962576015268,-10.422992011141833,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+39.0,638.0,1.0,,9,-30.702887415712087,-41.445119319585565,-10.742231903873478,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,0,-30.477754819343616,-40.73791650090374,-10.26016168156012,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,1,-30.60808069625032,-40.8078174514167,-10.199736755166384,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,2,-31.675725431919886,-40.75085596790227,-9.075130535982382,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,3,-31.586508426844496,-41.25197590828935,-9.665467481444857,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,4,-30.24401561842881,-40.72072120680864,-10.47670558837983,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,5,-30.837408551871338,-40.206545428189514,-9.369136876318176,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,6,-31.450366362792693,-41.329738851804734,-9.879372489012042,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,7,-32.42428468107767,-40.446440300547025,-8.022155619469352,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,8,-30.76255184359794,-40.77910802539903,-10.016556181801093,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+1685.0,27762.0,1.0,,9,-32.251248182182024,-40.74125213599622,-8.490003953814195,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,city-scenario
+,,,,0,0.8764988935875129,2.310827168854801,1.4343282752672881,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,1,1.1366076529598355,2.4751934936865436,1.3385858407267082,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,2,0.2937433823102409,2.285651738508583,1.9919083561983422,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,3,1.3031756549504947,2.5030742921327747,1.19989863718228,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,4,1.3339238121917452,2.5606883109893177,1.2267644987975723,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,5,0.6412991523318395,2.208382244124435,1.5670830917925955,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,6,0.9615289171381769,2.4139298404883145,1.4524009233501376,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,7,0.6455888379185731,2.3994967444292623,1.753907906510689,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,8,1.0014308786477175,2.4519104500868805,1.4504795714391632,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,9,1.203311863810179,2.3459710615879326,1.1426591977777538,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,0,0.8511065790071006,1.6954061450791202,0.8442995660720196,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,1,0.7769879553341754,1.7086937708204464,0.931705815486271,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,2,0.8915947683048847,1.7153611903598849,0.8237664220550001,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,3,0.7452163785142809,1.7154331748207297,0.9702167963064487,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,4,0.7900119203444287,1.7071018556408344,0.9170899352964057,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,5,0.9106178971097528,1.6802019330678877,0.7695840359581347,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,6,0.7364803231746555,1.6930560994381465,0.9565757762634908,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,7,0.7509392490106792,1.719595499836385,0.9686562508257057,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,8,0.8401186097841518,1.7200238779513919,0.8799052681672401,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,9,0.8176108684905412,1.6942017109605412,0.87659084247,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,0,-2.9777489035918676,-5.9578226913403824,-2.980073787748515,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,1,-2.364273290630983,-5.50230259565811,-3.138029305027126,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,2,-3.2039152224427045,-5.11837810113813,-1.9144628786954248,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,3,-3.135317009437869,-5.519853298130835,-2.3845362886929666,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,4,-2.4057425418403984,-5.70513391734431,-3.2993913755039115,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,5,-2.7051111829658,-5.386864374529953,-2.681753191564153,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,6,-3.21066806755194,-5.732760717945415,-2.522092650393475,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,7,-3.0757091106530186,-5.387516155223985,-2.3118070445709664,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,8,-2.6930963423815886,-5.380109407530245,-2.6870130651486566,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,9,-2.8753913353447667,-5.662285751717718,-2.7868944163729505,hops_by_radius,kHops,0,2,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,0,227.02293100491536,74.8830949725282,-152.13983603238717,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,1,232.5158983416113,75.05813172832717,-157.45776661328415,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,2,222.76544991399527,73.7284015705682,-149.03704834342705,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,3,235.0769789030483,73.69590857115934,-161.381070331889,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,4,218.75851531351864,73.70344139437377,-145.0550739191449,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,5,222.25267659883724,73.73661178625228,-148.51606481258494,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,6,223.66024446904152,74.13568053170353,-149.524563937338,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,7,224.50717577383205,74.71552776344993,-149.79164801038212,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,8,223.12997458937485,74.37391613345862,-148.75605845591625,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,9,219.13138177892134,73.51788696453272,-145.61349481438862,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,distance,relative percent,equal-weight overall
+,,,,0,22.299727079620723,7.366432938768153,-14.93329414085257,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,1,22.192863148149023,7.452213539108399,-14.740649609040624,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,2,22.17897579304669,7.415003453936757,-14.763972339109932,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,3,22.630949814447586,7.508635300618777,-15.122314513828808,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,4,21.639068106672052,7.295096455695924,-14.34397165097613,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,5,22.453408081244696,7.317050128360059,-15.136357952884637,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,6,22.092110132818767,7.508651650030639,-14.58345848278813,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,7,21.679791139392254,7.487378124661953,-14.1924130147303,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,8,21.325102881791093,7.391528874294018,-13.933574007497075,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,9,21.376104342783943,7.338253610025418,-14.037850732758523,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,pickup,percentage points,equal-weight overall
+,,,,0,-47.05976629204357,-22.068756974761918,24.991009317281645,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,1,-46.74296008917403,-22.598022180255924,24.144937908918106,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,2,-49.48169844625528,-19.35536628111775,30.126332165137534,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,3,-45.37919812732693,-22.874159528363368,22.50503859896356,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,4,-47.54014142094485,-20.307315807614902,27.232825613329947,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,5,-52.86975515084458,-19.972328804096122,32.89742634674846,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,6,-44.363015491870215,-23.132402555747962,21.23061293612225,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,7,-48.99171356231231,-20.878307900539454,28.113405661772862,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,8,-47.03628234147577,-20.81867226494588,26.217610076529887,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,9,-44.35756363108669,-20.902062095157493,23.455501535929198,roaming_by_radius,idleRoamingMode,none,past-avg-total,p2pRqsRadius,1000,3000,waiting,relative percent,equal-weight overall
+,,,,0,-28.367663802967286,-38.643941034029766,-10.276277231062476,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,1,-27.333242758234622,-37.84514851166725,-10.511905753432629,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,2,-30.587125602837325,-39.45137457141615,-8.864248968578826,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,3,-30.544514510228673,-40.39199080646192,-9.847476296233248,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,4,-29.163574589717093,-38.921535185061735,-9.75796059534464,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,5,-29.766091195122343,-38.696750432850365,-8.930659237728024,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,6,-29.036859013556832,-39.448625368409836,-10.411766354853004,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,7,-30.398576059877726,-39.320526347112896,-8.921950287235168,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,8,-30.529592796304392,-39.34654720957162,-8.816954413267224,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,9,-31.477067798947054,-40.86210736238208,-9.385039563435027,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,distance,relative percent,equal-weight overall
+,,,,0,-0.08001237492865076,4.023654793289366,4.103667168218017,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,1,-0.04037857766535091,4.037053626397091,4.0774322040624424,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,2,-0.07380320548717179,4.105353314036603,4.179156519523775,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,3,-0.0839646198037336,4.0044830102996976,4.088447630103431,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,4,-0.0810129432514517,4.09134041740723,4.172353360658682,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,5,-0.06509967253876536,3.9693443211167185,4.034443993655484,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,6,-0.11243925734770732,4.194103724269621,4.306542981617328,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,7,-0.04117620940355948,4.090166161087966,4.1313423704915255,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,8,0.02242966795107937,4.048957880176257,4.026528212225178,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,9,-0.06054285228995204,4.1219169541591105,4.182459806449063,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,pickup,percentage points,equal-weight overall
+,,,,0,28.61491455881766,-49.36993819502906,-77.98485275384672,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,1,29.96840288828796,-50.116866387292475,-80.08526927558044,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,2,31.05278069027969,-49.48568606056352,-80.53846675084323,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,3,28.795268563623864,-51.07641598297283,-79.8716845465967,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,4,28.047413041120684,-49.47607918338681,-77.52349222450749,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,5,28.608450581640433,-49.566565851872355,-78.17501643351278,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,6,32.2031107722742,-51.15986585294341,-83.36297662521761,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,7,32.30025982544387,-49.88415108833451,-82.18441091377838,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,8,28.596693098122785,-50.27535488728676,-78.87204798540955,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,9,34.92872656184265,-50.40694605447869,-85.33567261632133,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_IMBALANCE,waiting,relative percent,equal-weight overall
+,,,,0,-28.367663802967286,-40.95364263551531,-12.585978832548022,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,1,-27.333242758234622,-41.23126552492758,-13.898022766692957,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,2,-30.587125602837325,-41.68667576799125,-11.099550165153916,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,3,-30.544514510228673,-40.58204000695986,-10.037525496731183,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,4,-29.163574589717093,-41.506444425468345,-12.342869835751246,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,5,-29.766091195122343,-39.9744862347968,-10.208395039674459,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,6,-29.036859013556832,-40.95935583122632,-11.922496817669487,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,7,-30.398576059877726,-39.291208172544586,-8.892632112666854,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,8,-30.529592796304392,-40.74936689277585,-10.219774096471463,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,9,-31.477067798947054,-41.093185727790896,-9.616117928843837,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,distance,relative percent,equal-weight overall
+,,,,0,-0.08001237492865076,2.7909507772828803,2.870963152211531,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,1,-0.04037857766535091,2.6249966407251693,2.66537521839052,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,2,-0.07380320548717179,2.8173266521967557,2.8911298576839273,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,3,-0.0839646198037336,2.5943108726508957,2.6782754924546293,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,4,-0.0810129432514517,2.6804474941766907,2.761460437428142,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,5,-0.06509967253876536,2.762945058122174,2.828044730660939,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,6,-0.11243925734770732,2.58681649044995,2.6992557477976575,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,7,-0.04117620940355948,2.721591632072095,2.7627678414756547,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,8,0.02242966795107937,2.7331732104086015,2.7107435424575224,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,9,-0.06054285228995204,2.843176209353371,2.9037190616433226,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,pickup,percentage points,equal-weight overall
+,,,,0,28.61491455881766,-35.98918495007588,-64.60409950889354,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,1,29.96840288828796,-36.697934302203535,-66.66633719049149,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,2,31.05278069027969,-35.64152360955199,-66.69430429983169,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,3,28.795268563623864,-35.17333367530523,-63.968602238929094,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,4,28.047413041120684,-36.632254762713295,-64.67966780383398,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,5,28.608450581640433,-35.847238647401824,-64.45568922904225,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,6,32.2031107722742,-34.08609328838426,-66.28920406065846,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,7,32.30025982544387,-35.51364403424917,-67.81390385969303,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,8,28.596693098122785,-34.39454783050908,-62.99124092863187,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,9,34.92872656184265,-35.26935812123739,-70.19808468308004,roaming_by_scenario,idleRoamingMode,random,past-avg-total,spawnScenario,BASELINE,SPATIAL_ISLANDS,waiting,relative percent,equal-weight overall
+,,,,0,0.0,3.1339045399854366,3.1339045399854366,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,1,0.0,3.1340994968670417,3.1340994968670417,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,2,0.0,2.9048678271027324,2.9048678271027324,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,3,0.0,3.190643779141471,3.190643779141471,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,4,0.0,3.126258227168277,3.126258227168277,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,5,0.0,3.1050100248894266,3.1050100248894266,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,6,0.0,2.9308848320078837,2.9308848320078837,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,7,0.0,3.019219607685682,3.019219607685682,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,8,0.0,3.0552087796078125,3.0552087796078125,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,9,0.0,3.154751555864414,3.154751555864414,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,distance,relative percent,equal-weight overall
+,,,,0,0.0,2.261965360588135,2.261965360588135,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,1,0.0,2.24840250014359,2.24840250014359,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,2,0.0,2.235149337551001,2.235149337551001,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,3,0.0,2.2925486174579772,2.2925486174579772,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,4,0.0,2.2035862921863756,2.2035862921863756,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,5,0.0,2.2262524581046663,2.2262524581046663,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,6,0.0,2.2521214620437338,2.2521214620437338,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,7,0.0,2.254068006552486,2.254068006552486,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,8,0.0,2.2546421414385285,2.2546421414385285,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,9,0.0,2.2211629685285064,2.2211629685285064,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,pickup,percentage points,equal-weight overall
+,,,,0,0.0,-6.839380732388504,-6.839380732388504,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,1,0.0,-6.811846174216029,-6.811846174216029,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,2,0.0,-6.99600469976836,-6.99600469976836,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,3,0.0,-6.984176006077101,-6.984176006077101,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,4,0.0,-6.4159453455354125,-6.4159453455354125,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,5,0.0,-6.998562491846186,-6.998562491846186,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,6,0.0,-7.193699675366753,-7.193699675366753,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,7,0.0,-7.034493693816735,-7.034493693816735,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,8,0.0,-7.04283834647977,-7.04283834647977,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
+,,,,9,0.0,-7.120486002237567,-7.120486002237567,shortcuts_by_hops,p2pOverlayShortcuts,0,1,kHops,0,2,waiting,relative percent,equal-weight overall
