@@ -1042,11 +1042,10 @@ def write_extended_analysis(
     for threshold in [0, 5, 10, 15]:
         grouped = seed_pass.groupby(SCENARIO_COLS, dropna=False).agg(
             configurations=(f"seedCurrentPass{threshold}", "size"),
-            atLeastEightSeeds=(f"seedCurrentPass{threshold}", lambda s: int((s >= 0.8).sum())),
             allSeeds=(f"seedCurrentPass{threshold}", lambda s: int((s >= 1.0).sum())),
-            withTravelAtLeastEightSeeds=(
+            withTravelAllSeeds=(
                 f"seedExtendedPass{threshold}",
-                lambda s: int((s >= 0.8).sum()),
+                lambda s: int((s >= 1.0).sum()),
             ),
         )
         grouped["thresholdPct"] = threshold
@@ -2253,12 +2252,16 @@ def plot_crossover_robustness(
     merged = mean.merge(seeds, on=SCENARIO_COLS + ["thresholdPct"], how="inner")
     labels = scenario_labels(merged)
     x = np.arange(len(merged))
-    width = 0.22
+    width = 0.26
     fig, ax = plt.subplots(figsize=(12, 5.5))
-    ax.bar(x - 1.5 * width, merged["currentPass"], width, label="Mean passes")
-    ax.bar(x - 0.5 * width, merged["atLeastEightSeeds"], width, label="Passes in >=8/10 seeds")
-    ax.bar(x + 0.5 * width, merged["allSeeds"], width, label="Passes in all seeds")
-    ax.bar(x + 1.5 * width, merged["withTravelAtLeastEightSeeds"], width, label=">=8/10 incl. travel time")
+    ax.bar(x - width, merged["currentPass"], width, label="Mean passes")
+    ax.bar(x, merged["allSeeds"], width, label="Passes in all 10 seed pairs")
+    ax.bar(
+        x + width,
+        merged["withTravelAllSeeds"],
+        width,
+        label="All 10 seed pairs incl. travel time",
+    )
     ax.set_ylabel("Configurations")
     ax.set_xticks(x, labels, rotation=30, ha="right")
     ax.legend(ncol=2)
@@ -2638,8 +2641,7 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
                 "crossover_summary.csv",
                 [
                     "city", "spawnScenario", "thresholdPct", "configurations", "currentPass",
-                    "withTravelTime", "atLeastEightSeeds", "allSeeds",
-                    "withTravelAtLeastEightSeeds",
+                    "withTravelTime", "allSeeds", "withTravelAllSeeds",
                 ],
             ),
             report_csv_table(
