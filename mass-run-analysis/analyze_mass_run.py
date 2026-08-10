@@ -2522,6 +2522,47 @@ def plot_thesis_focus(
 # HTML report
 
 
+PRINT_PLOT_SECTIONS = {
+    "Best P2P",
+    "Hypothesis plots",
+    "Extended analysis",
+    "Interesting trends",
+    "Time windows",
+    "Spatial maps",
+}
+
+PRINT_RESULT_FILES = {
+    "system_comparison_summary.csv",
+    "crossover_summary.csv",
+    "robust_config_scenario_details.csv",
+    "best_waiting_operational_cost.csv",
+    "time_window_result_summary.csv",
+    "spatial_result_summary.csv",
+}
+
+
+def report_result_cards(rows: pd.DataFrame, columns: list[str]) -> str:
+    cards = []
+    identity_columns = [
+        column
+        for column in ("city", "spawnScenario", "architecture", "series", "algorithm", "window")
+        if column in columns
+    ]
+    for number, row in enumerate(rows[columns].round(3).to_dict("records"), start=1):
+        title = " · ".join(str(row[column]) for column in identity_columns if pd.notna(row[column]))
+        values = "".join(
+            f"<div><dt>{html.escape(column)}</dt>"
+            f"<dd>{'' if pd.isna(value) else html.escape(str(value))}</dd></div>"
+            for column, value in row.items()
+            if column not in identity_columns
+        )
+        cards.append(
+            f'<article class="result-card"><h4>{html.escape(title or f"Result {number}")}</h4>'
+            f"<dl>{values}</dl></article>"
+        )
+    return "".join(cards)
+
+
 def report_csv_table(
         base: Path, title: str, filename: str, columns: list[str], opened: bool = False
 ) -> str:
@@ -2544,11 +2585,15 @@ def report_csv_table(
     table = rows[columns].round(3).to_html(
         index=False, border=0, classes="result-table", na_rep=""
     )
+    print_result = filename in PRINT_RESULT_FILES
+    print_cards = report_result_cards(rows, columns) if print_result else ""
+    detail_class = "result print-result" if print_result else "result print-hidden"
     return (
-        f'<details class="result"{" open" if opened else ""}>'
+        f'<details class="{detail_class}"{" open" if opened else ""}>'
         f'<summary>{html.escape(title)} <small>{len(rows)} rows</small></summary>'
         f'<p><a href="tables/{html.escape(filename)}">{html.escape(filename)}</a></p>'
-        f'<div class="table-wrap">{table}</div></details>'
+        f'<div class="table-wrap">{table}</div>'
+        f'<div class="result-cards">{print_cards}</div></details>'
     )
 
 
@@ -2722,8 +2767,9 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
             </a>"""
             for record in records
         )
+        print_class = "" if section in PRINT_PLOT_SECTIONS else " print-hidden"
         plot_sections.append(
-            f'<section class="plot-group"><h3>{html.escape(section)}</h3>'
+            f'<section class="plot-group{print_class}"><h3>{html.escape(section)}</h3>'
             f'<div class="plots">{cards}</div></section>'
         )
     plots = "\n".join(plot_sections)
@@ -2786,6 +2832,16 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
       border-bottom: 1px solid var(--line);
       margin-bottom: 24px;
     }}
+    .hero-actions {{ display: flex; align-items: center; gap: 10px; }}
+    .print-action {{
+      border: 0;
+      border-radius: 7px;
+      padding: 9px 12px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+    }}
     h1 {{ font-size: 30px; line-height: 1.15; margin: 0 0 8px; }}
     h2 {{ font-size: 18px; margin: 0 0 12px; }}
     p {{ color: var(--muted); margin: 0; }}
@@ -2847,6 +2903,7 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
     .plot span strong {{ display: block; color: var(--ink); font-weight: 650; margin-bottom: 4px; }}
     .plot span small {{ display: block; color: var(--muted); line-height: 1.35; }}
     .plot-group {{ margin-bottom: 18px; }}
+    .print-only, .result-cards {{ display: none; }}
     h3 {{ font-size: 15px; margin: 0 0 10px; color: var(--muted); }}
     code {{
       background: #eef1f5;
@@ -2867,6 +2924,47 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
       .hero {{ display: block; }}
       .cards, .split {{ grid-template-columns: 1fr; }}
       .plots {{ grid-template-columns: 1fr; }}
+    }}
+    @media print {{
+      @page {{ size: A4 portrait; margin: 12mm; }}
+      html {{ scroll-behavior: auto; }}
+      body {{
+        background: #fff;
+        color: #000;
+        font-size: 9pt;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }}
+      aside, .print-hidden, .print-action, .screen-only {{ display: none !important; }}
+      .layout {{ display: block; min-height: 0; }}
+      main {{ max-width: none; width: auto; padding: 0; }}
+      section {{ margin-bottom: 7mm; }}
+      .hero {{ align-items: flex-start; margin-bottom: 7mm; padding-bottom: 4mm; }}
+      h1 {{ font-size: 20pt; }}
+      h2 {{ font-size: 14pt; }}
+      h3 {{ font-size: 11pt; color: #000; }}
+      .cards {{ grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3mm; }}
+      .card, .panel, .plot {{ box-shadow: none; }}
+      .card {{ padding: 3mm; }}
+      .card strong {{ font-size: 14pt; }}
+      .panel {{ padding: 4mm; }}
+      #results, #plots {{ break-before: page; }}
+      .print-only {{ display: block; }}
+      details.print-result {{ border: 0; padding-top: 4mm; }}
+      details.print-result summary {{ font-size: 12pt; break-after: avoid; }}
+      details.print-result > p, details.print-result > .table-wrap {{ display: none !important; }}
+      details.print-result > .result-cards {{ display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4mm; margin-top: 3mm; }}
+      .result-card {{ break-inside: avoid; border: 1px solid var(--line); border-radius: 5px; padding: 3mm; }}
+      .result-card h4 {{ margin: 0 0 2mm; font-size: 10pt; }}
+      .result-card dl {{ display: grid; gap: 1mm; margin: 0; }}
+      .result-card dl > div {{ display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2mm; border-bottom: 1px solid #eef1f5; }}
+      .result-card dt {{ color: var(--muted); font-size: 7pt; overflow-wrap: anywhere; }}
+      .result-card dd {{ margin: 0; max-width: 42mm; font-size: 8pt; text-align: right; overflow-wrap: anywhere; }}
+      .plot-group h3 {{ break-after: avoid; }}
+      .plots {{ grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 5mm; }}
+      .plot {{ align-self: start; break-inside: avoid; border-color: #aeb7c4; }}
+      .plot img {{ height: auto; object-fit: contain; }}
+      .plot span {{ display: none; }}
     }}
   </style>
 </head>
@@ -2891,7 +2989,10 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
         <h1>Stratified mass-run report</h1>
         <p>Summaries, Matched P2P vs SinglePassenger deltas, Plots</p>
       </div>
-      <p><code>{day_text}</code></p>
+      <div class="hero-actions">
+        <p><code>{day_text}</code></p>
+        <button class="print-action" type="button" onclick="window.print()">Export A4 PDF</button>
+      </div>
     </section>
 
     <section>
@@ -2916,11 +3017,12 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
 
     <section id="results" class="panel">
       <h2>Results summary</h2>
-      <p>All values used for result interpretation, calculated from the same exact-config aggregates. Open a group for its complete summary table.</p>
+      <p class="screen-only">All values used for result interpretation, calculated from the same exact-config aggregates. Open a group for its complete summary table.</p>
+      <p class="print-only">Selected calculations are shown as portrait result sheets. Full tables and statistical outputs remain in the accompanying ZIP archive.</p>
       {result_tables or '<p>No result summaries generated.</p>'}
     </section>
 
-    <section id="best" class="panel">
+    <section id="best" class="panel print-hidden">
       <h2>Best P2P configs</h2>
       <div class="table-wrap">
         <table>
@@ -2945,17 +3047,22 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
       <ul>
         <li><code>summary.csv</code>: one row per exact config; averages repeated runs only.</li>
         <li><code>best_p2p_vs_single.csv</code>: chooses the lowest P2P average per metric, scale, seat count, and scenario.</li>
+        <li>Relative delta [%] = 100 * (P2P - central) / central.</li>
+        <li>Pickup gap [percentage points] = central pickup rate - P2P pickup rate.</li>
+        <li>Crossover pass: waiting and taxi-distance deltas stay below the selected threshold; pickup gap stays at or below one percentage point. The extended pass also applies the threshold to client travel time.</li>
+        <li>Normalized Minimax regret is the maximum of waiting/5, travel/5, distance/5, and pickup-gap/1 for the same configuration.</li>
+        <li>Seed stability counts only configurations satisfying the rule in every paired world seed.</li>
         <li>Overview hypothesis plots average over non-plotted P2P parameters; each caption states what varies.</li>
         <li>Interesting trend plots fix all non-plotted config columns; only repeated runs are averaged.</li>
       </ul>
     </section>
 
-    <section id="tables" class="panel">
+    <section id="tables" class="panel print-hidden">
       <h2>Tables</h2>
       <div class="files">{table_links}</div>
     </section>
 
-    <section id="stats" class="panel">
+    <section id="stats" class="panel print-hidden">
       <h2>Stats</h2>
       <div class="files">{stat_links}</div>
     </section>
@@ -2966,6 +3073,11 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
     </section>
   </main>
 </div>
+<script>
+  window.addEventListener("beforeprint", () => {{
+    document.querySelectorAll("details.print-result").forEach(detail => detail.open = true);
+  }});
+</script>
 </body>
 </html>
 """
