@@ -1736,7 +1736,8 @@ def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str,
             frontier["distanceAvgMean"],
             frontier["waitingAvgMean"],
             color="black",
-            linewidth=2,
+            linewidth=1.25,
+            alpha=0.65,
             label="Pareto frontier",
         )
         pickup_points = pickup_ax.scatter(
@@ -1752,7 +1753,8 @@ def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str,
             frontier["distanceAvgMean"],
             frontier["waitingAvgMean"],
             color="black",
-            linewidth=2,
+            linewidth=1.25,
+            alpha=0.65,
         )
         reference = single[
             (single["taxiCount"] == taxi_count)
