@@ -829,6 +829,7 @@ def write_moderation_analysis(seed_matrix: pd.DataFrame, out: Path) -> pd.DataFr
 
 def write_parameter_effects(p2p: pd.DataFrame, out: Path) -> None:
     factor_levels = []
+    overall_factor_levels = []
     factor_effects = []
     effect_metrics = {
         "waitingAvgMean": "waitingMin",
@@ -846,6 +847,11 @@ def write_parameter_effects(p2p: pd.DataFrame, out: Path) -> None:
             SCENARIO_COLS, dropna=False
         )["waitingAvgMean"].transform("mean")
         factor_levels.append(levels.rename(columns={factor: "level"}).assign(factor=factor))
+        overall_factor_levels.append(
+            summarize_result_values(p2p, [factor])
+            .rename(columns={factor: "level"})
+            .assign(factor=factor, basis="equal-weight configuration means")
+        )
         normalized = levels.groupby(factor, dropna=False)["normalizedWaitingIndex"].mean()
         for before, after in contrasts:
             left = levels[levels[factor].eq(before)].drop(columns=[factor])
@@ -888,6 +894,9 @@ def write_parameter_effects(p2p: pd.DataFrame, out: Path) -> None:
                 )
     pd.concat(factor_levels, ignore_index=True).to_csv(
         out / "parameter_level_summary.csv", index=False
+    )
+    pd.concat(overall_factor_levels, ignore_index=True).to_csv(
+        out / "parameter_level_overall_summary.csv", index=False
     )
     pd.concat(factor_effects, ignore_index=True).to_csv(
         out / "parameter_effect_summary.csv", index=False
@@ -1037,6 +1046,14 @@ def write_extended_analysis(
 
     seed_matrix = seed_result_matrix(df)
     paired_deltas, seed_pass = paired_seed_tables(seed_matrix, out)
+    best_waiting_seed_uncertainty = best_waiting[SCENARIO_COLS + CONFIG_COLS].merge(
+        paired_deltas[paired_deltas["metric"].eq("waiting")],
+        on=SCENARIO_COLS + CONFIG_COLS,
+        how="left",
+    )
+    best_waiting_seed_uncertainty.to_csv(
+        out / "best_waiting_seed_uncertainty.csv", index=False
+    )
     moderation = write_moderation_analysis(seed_matrix, out)
     seed_counts = []
     for threshold in [0, 5, 10, 15]:
@@ -2536,6 +2553,8 @@ PRINT_RESULT_FILES = {
     "crossover_summary.csv",
     "robust_config_scenario_details.csv",
     "best_waiting_operational_cost.csv",
+    "best_waiting_seed_uncertainty.csv",
+    "scenario_minimax_configs.csv",
     "time_window_result_summary.csv",
     "spatial_result_summary.csv",
 }
@@ -2653,6 +2672,46 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
             ),
             report_csv_table(
                 base,
+                "Overall parameter levels",
+                "parameter_level_overall_summary.csv",
+                [
+                    "factor", "level", "basis", "waitingAvgMean", "travelAvgMean",
+                    "distanceAvgMean", "pickupPct", "calculationAvgMean",
+                    "communicationAvgMean", "communicationSharePct",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Roaming-mode comparison",
+                "architecture_roaming_control.csv",
+                [
+                    "city", "spawnScenario", "variant", "waitingAvgMean",
+                    "travelAvgMean", "distanceAvgMean", "servedRatio",
+                    "calculationAvgMean", "calculationMsPerServedClient",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Radius / k interaction",
+                "interaction_radius_k.csv",
+                [
+                    "city", "spawnScenario", "p2pRqsRadius", "kHops",
+                    "waitingAvgMean", "servedRatio", "centralWaitingAvgMean",
+                    "waitingDeltaPct",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Radius / roaming interaction",
+                "interaction_radius_roaming.csv",
+                [
+                    "city", "spawnScenario", "p2pRqsRadius", "idleRoamingMode",
+                    "waitingAvgMean", "servedRatio", "centralWaitingAvgMean",
+                    "waitingDeltaPct",
+                ],
+            ),
+            report_csv_table(
+                base,
                 "k / radius / roaming interactions",
                 "interaction_k_radius_roaming.csv",
                 [
@@ -2709,6 +2768,26 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
                     "city", "spawnScenario", "waitingAvgMean", "centralWaitingAvgMean",
                     "waitingDeltaPct", "travelDeltaPct", "distanceDeltaPct", "pickupPct",
                     "kmPerServedClientDeltaPct", "calculationMsPerServedClientDeltaPct",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Waiting-best seed uncertainty",
+                "best_waiting_seed_uncertainty.csv",
+                [
+                    "city", "spawnScenario", "kHops", "p2pRqsRadius", "p2pStrategy",
+                    "p2pOverlayMinNeighbors", "p2pOverlayShortcuts", "idleRoamingMode",
+                    "seeds", "deltaPctMean", "deltaPctStd", "deltaPctMin", "deltaPctMax",
+                ],
+            ),
+            report_csv_table(
+                base,
+                "Scenario-specific Minimax configurations",
+                "scenario_minimax_configs.csv",
+                [
+                    "city", "spawnScenario", "selectedConfig", "waitingDeltaPct",
+                    "travelDeltaPct", "distanceDeltaPct", "pickupGapPoints",
+                    "referenceWorstNormalizedRegret",
                 ],
             ),
             report_csv_table(
@@ -3094,6 +3173,7 @@ def main() -> None:
     write_single_passenger(summary, dirs["tables"])
     extended = write_extended_analysis(df, summary, dirs["tables"])
     selected_configs = scenario_minimax_configs(extended["matched"])
+    selected_configs.to_csv(dirs["tables"] / "scenario_minimax_configs.csv", index=False)
     time_df = load_time_series_summary(
         config.time_series_csv, config.tick_block_size, selected_configs
     )

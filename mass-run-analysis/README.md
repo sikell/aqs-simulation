@@ -28,9 +28,12 @@ If present next to the input CSV, these files are analyzed automatically:
 - `tables/best_p2p_vs_single.csv`: best P2P config per metric/scale/scenario
 - `tables/system_comparison_summary.csv`: central and all-P2P means per city/scenario
 - `tables/parameter_level_summary.csv` and `parameter_effect_summary.csv`: values and thesis contrasts for radius, hops, strategy, topology, and roaming
+- `tables/parameter_level_overall_summary.csv`: overall factor levels, including communication share calculated from the grouped mean times
 - `tables/interaction_k_radius_roaming.csv` and `interaction_k_shortcuts.csv`
 - `tables/moderation_seed_contrasts.csv` and `moderation_summary.csv`: paired seed-level difference-in-differences and 95% confidence intervals
 - `tables/crossover_summary.csv`: corridor counts, travel-time control, and stability across all 10 seed pairs
+- `tables/best_waiting_seed_uncertainty.csv`: paired-seed spread for each mean-selected waiting-time best configuration
+- `tables/scenario_minimax_configs.csv`: scenario-specific Minimax selections with their metric deltas and normalized worst deviation
 - `tables/time_window_selected_configs.csv`: scenario-specific P2P Minimax selections
 - `tables/time_window_result_summary.csv`: central and selected-P2P values for the whole run and blocks 10--85
 - `tables/spatial_result_summary.csv`: pickup gaps and spatial waiting-time range per roaming mode
