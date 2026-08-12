@@ -153,7 +153,19 @@ EXPECTED_METRICS = frozenset(
     }
 )
 COMMUNICATION_COL = "communicationTimeMillisMean"
-CALCULATION_COLOR = "#4c78a8"
+OKABE_ITO_COLORS = (
+    "#0072B2",
+    "#E69F00",
+    "#009E73",
+    "#CC79A7",
+    "#56B4E9",
+    "#D55E00",
+    "#F0E442",
+    "#000000",
+)
+CALCULATION_COLOR = OKABE_ITO_COLORS[0]
+if plt is not None:
+    plt.rcParams["axes.prop_cycle"] = plt.cycler(color=OKABE_ITO_COLORS)
 LEGACY_SECOND_METRICS = {"Client Waiting Time [min]", "Client Travel Time [min]"}
 LEGACY_METER_METRICS = {"Taxi Travel Distance [km]"}
 MAX_TIME_SERIES_PLOTS = 24
@@ -2578,8 +2590,10 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
             continue
 
         configs = [config_label(row) for row in sub.itertuples(index=False)]
-        palette = plt.get_cmap("tab20")
-        colors = {cfg: palette(i % 20) for i, cfg in enumerate(dict.fromkeys(configs))}
+        colors = {
+            cfg: OKABE_ITO_COLORS[i % len(OKABE_ITO_COLORS)]
+            for i, cfg in enumerate(dict.fromkeys(configs))
+        }
         fig, ax = plt.subplots(figsize=(max(9, len(sub) * 1.35), 5.4))
         seen = set()
         for i, (row, cfg) in enumerate(zip(sub.itertuples(index=False), configs)):
