@@ -142,6 +142,16 @@ COMMUNICATION_METRIC = "Custom Time [micros]"
 WAITING_METRIC = "Client Waiting Time [min]"
 TRAVEL_METRIC = "Client Travel Time [min]"
 DISTANCE_METRIC = "Taxi Travel Distance [km]"
+EXPECTED_METRICS = frozenset(
+    {
+        WAITING_METRIC,
+        TRAVEL_METRIC,
+        DISTANCE_METRIC,
+        CALCULATION_METRIC,
+        COMMUNICATION_METRIC,
+        "Simulation Time [millis]",
+    }
+)
 COMMUNICATION_COL = "communicationTimeMillisMean"
 CALCULATION_COLOR = "#4c78a8"
 LEGACY_SECOND_METRICS = {"Client Waiting Time [min]", "Client Travel Time [min]"}
@@ -233,6 +243,8 @@ TEXT_COLUMNS = [
     "idleRoamingMode",
     "spawnScenario",
 ]
+RUN_CONFIG_COLS = [col for col in EXACT_CONFIG_COLS if col != "metric"]
+RUN_ID_COLS = RUN_CONFIG_COLS + ["runIndex", "worldSeed"]
 
 
 # Configuration and input
@@ -284,11 +296,88 @@ def is_p2p(rows: pd.DataFrame) -> pd.Series:
     return rows["algorithm"].str.contains(P2P_ALGORITHM, case=False, na=False)
 
 
+def expected_runs(path: Path) -> int | None:
+    config_path = path.with_name("mass-run-config.properties")
+    if not config_path.exists():
+        return None
+    for line in config_path.read_text(encoding="utf-8").splitlines():
+        key, separator, value = line.partition("=")
+        if separator and key.strip() == "runs":
+            return int(value.strip())
+    raise ValueError(f"Config file has no runs property: {config_path}")
+
+
+def validate_runs(df: pd.DataFrame, path: Path) -> None:
+    numeric = [col for col in NUMERIC_COLS if col in df.columns]
+    invalid = df[numeric].isna().any(axis=1)
+    if invalid.any():
+        raise ValueError(
+            f"CSV contains {int(invalid.sum())} rows with invalid required numeric values; "
+            f"first row indices: {df.index[invalid].tolist()[:10]}"
+        )
+
+    duplicate = df.duplicated(RUN_ID_COLS + ["metric"], keep=False)
+    if duplicate.any():
+        raise ValueError(
+            f"CSV contains {int(duplicate.sum())} duplicate metric rows per run; "
+            f"first row indices: {df.index[duplicate].tolist()[:10]}"
+        )
+
+    metric_sets = df.groupby(RUN_ID_COLS, dropna=False)["metric"].agg(frozenset)
+    incomplete = ~metric_sets.map(lambda values: values == EXPECTED_METRICS)
+    if incomplete.any():
+        run = metric_sets.index[incomplete][0]
+        found = metric_sets.loc[run]
+        raise ValueError(
+            "Run has an incomplete metric set: "
+            f"run={run}, missing={sorted(EXPECTED_METRICS - found)}, "
+            f"unexpected={sorted(found - EXPECTED_METRICS)}"
+        )
+
+    runs = df[RUN_ID_COLS].drop_duplicates()
+    for identifier in ["runIndex", "worldSeed"]:
+        duplicate_identifier = runs.duplicated(RUN_CONFIG_COLS + [identifier], keep=False)
+        if duplicate_identifier.any():
+            raise ValueError(f"Configuration contains duplicate {identifier} values.")
+    run_counts = runs.groupby(RUN_CONFIG_COLS, dropna=False).size()
+    if run_counts.nunique() != 1:
+        raise ValueError(
+            "Configurations contain different run counts: "
+            f"min={int(run_counts.min())}, max={int(run_counts.max())}"
+        )
+
+    configured_runs = expected_runs(path)
+    if configured_runs is not None and not run_counts.eq(configured_runs).all():
+        raise ValueError(
+            f"Expected {configured_runs} runs per configuration from "
+            f"{path.with_name('mass-run-config.properties')}, found "
+            f"{int(run_counts.min())} to {int(run_counts.max())}."
+        )
+
+    seed_sets = runs.groupby(RUN_CONFIG_COLS, dropna=False)["worldSeed"].agg(frozenset)
+    if seed_sets.nunique() != 1:
+        raise ValueError("Configurations contain different world-seed sets.")
+
+
 def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
     if not path.exists():
         raise FileNotFoundError(f"CSV not found: {path}")
 
     df = pd.read_csv(path)
+    required = [
+        "metric", "algorithm", "min", "max", "avg", "sum", "count", "spread",
+        "runIndex", "worldSeed", "taxiCount", "clientCount", "taxiSeatCount", "spawnScenario",
+    ]
+    missing = [col for col in required if col not in df.columns]
+    if missing:
+        raise ValueError(f"CSV missing required columns: {missing}")
+    invalid_text = df[["metric", "algorithm", "spawnScenario"]].isna() | df[
+        ["metric", "algorithm", "spawnScenario"]
+    ].astype(str).apply(lambda column: column.str.strip().eq(""))
+    if invalid_text.any(axis=1).any():
+        rows = df.index[invalid_text.any(axis=1)].tolist()[:10]
+        raise ValueError(f"CSV contains missing required text values; first row indices: {rows}")
+
     for col in NUMERIC_COLS:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
@@ -311,15 +400,8 @@ def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = "n/a"
 
-    required = ["metric", "algorithm", "avg", "runIndex", "taxiCount", "clientCount", "spawnScenario"]
-    missing = [col for col in required if col not in df.columns]
-    if missing:
-        raise ValueError(f"CSV missing required columns: {missing}")
-
-    df = df.dropna(subset=["avg", "runIndex", "taxiCount", "clientCount"])
-    run_config_cols = [col for col in EXACT_CONFIG_COLS if col != "metric"] + [
-        col for col in ["runIndex", "worldSeed"] if col in df.columns
-    ]
+    validate_runs(df, path)
+    run_config_cols = RUN_ID_COLS
     communication = (
         df[df["metric"].eq(COMMUNICATION_METRIC)]
         .groupby(run_config_cols, dropna=False)["avg"]
@@ -330,10 +412,18 @@ def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
     )
     df = df.merge(communication, on=run_config_cols, how="left")
     calculation_rows = df["metric"].eq(CALCULATION_METRIC) & is_p2p(df)
-    df.loc[calculation_rows, COMMUNICATION_COL] = np.minimum(
-        df.loc[calculation_rows, COMMUNICATION_COL].fillna(0).clip(lower=0),
-        df.loc[calculation_rows, "avg"],
+    invalid_communication = calculation_rows & (
+        df[COMMUNICATION_COL].isna()
+        | df[COMMUNICATION_COL].lt(0)
+        | df[COMMUNICATION_COL].gt(df["avg"] + 1e-9)
     )
+    if invalid_communication.any():
+        columns = RUN_ID_COLS + ["avg", COMMUNICATION_COL]
+        sample = df.loc[invalid_communication, columns].head(5).to_dict("records")
+        raise ValueError(
+            "P2P communication time is missing, negative, or greater than calculation time: "
+            f"{sample}"
+        )
     df.loc[~calculation_rows, COMMUNICATION_COL] = np.nan
     if metrics:
         df = df[df["metric"].isin(metrics)].copy()
@@ -470,7 +560,7 @@ def load_request_summary(path: Path) -> pd.DataFrame:
 def write_overview(df: pd.DataFrame, path: Path) -> dict:
     overview = {
         "rows": int(len(df)),
-        "iterations": int(len(df) // max(1, df["metric"].nunique())),
+        "iterations": int(df[RUN_ID_COLS].drop_duplicates().shape[0]),
         "metrics": sorted(df["metric"].unique().tolist()),
         "algorithms": df["algorithm"].value_counts().to_dict(),
         "taxiClientPairs": df[["taxiCount", "clientCount"]].drop_duplicates().to_dict("records"),
@@ -577,6 +667,11 @@ def metric_matrix(rows: pd.DataFrame, extra_index: list[str] | None = None) -> p
 def add_operational_metrics(matrix: pd.DataFrame) -> pd.DataFrame:
     result = matrix.copy()
     result["servedClients"] = result["waitingCountMean"]
+    invalid = result["servedClients"].isna() | result["servedClients"].le(0)
+    if invalid.any():
+        columns = [col for col in RUN_CONFIG_COLS if col in result.columns]
+        sample = result.loc[invalid, columns + ["servedClients"]].head(5).to_dict("records")
+        raise ValueError(f"Operational metrics require at least one served client: {sample}")
     result["servedRatio"] = result["servedClients"] / result["clientCount"]
     result["totalTaxiDistanceKm"] = result["distanceAvgMean"] * result["taxiCount"]
     result["kmPerServedClient"] = result["totalTaxiDistanceKm"] / result["servedClients"]
@@ -918,7 +1013,19 @@ def write_parameter_effects(p2p: pd.DataFrame, out: Path) -> None:
 def write_extended_analysis(
         df: pd.DataFrame, summary: pd.DataFrame, out: Path
 ) -> dict[str, pd.DataFrame]:
+    seed_matrix = seed_result_matrix(df)
     matrix = add_operational_metrics(metric_matrix(summary))
+    ratio_cols = [
+        "kmPerServedClient",
+        "calculationMsPerServedClient",
+        "communicationMsPerServedClient",
+    ]
+    seed_ratios = (
+        seed_matrix.groupby(RUN_CONFIG_COLS, dropna=False)[ratio_cols]
+        .mean()
+        .reset_index()
+    )
+    matrix = matrix.drop(columns=ratio_cols).merge(seed_ratios, on=RUN_CONFIG_COLS, how="left")
     matched = add_crossover_flags(match_central(matrix))
     matched["pickupPct"] = matched["servedRatio"] * 100.0
 
@@ -1056,7 +1163,6 @@ def write_extended_analysis(
     )
     best_waiting.to_csv(out / "best_waiting_operational_cost.csv", index=False)
 
-    seed_matrix = seed_result_matrix(df)
     paired_deltas, seed_pass = paired_seed_tables(seed_matrix, out)
     best_waiting_seed_uncertainty = best_waiting[SCENARIO_COLS + CONFIG_COLS].merge(
         paired_deltas[paired_deltas["metric"].eq("waiting")],
@@ -1149,11 +1255,18 @@ def write_time_window_summary(time_df: pd.DataFrame, out: Path, tick_block_size:
                 activeClientsMean=("activeClientsMean", "mean"),
                 servedRequestsMean=("servedRequestsMean", "mean"),
                 finishedRequestsMean=("finishedRequestsMean", "mean"),
-                waitingTimeMean=("waitingTimeAvg", "mean"),
+                meanBlockWaitingTime=("waitingTimeAvg", "mean"),
                 waitingTimeMax=("waitingTimeAvg", "max"),
+                waitingTimeSum=("waitingTimeSum", "sum"),
+                waitingTimeCount=("waitingTimeCount", "sum"),
                 calculationTimeMillisMean=("calcTimeMillisMean", "mean"),
             )
             .reset_index()
+        )
+        grouped["pooledClientWaitingTime"] = np.where(
+            grouped["waitingTimeCount"].gt(0),
+            grouped["waitingTimeSum"] / grouped["waitingTimeCount"],
+            np.nan,
         )
         grouped.insert(0, "window", window)
         grouped.insert(1, "tickBlockSize", tick_block_size)
@@ -1281,23 +1394,19 @@ def write_effect_screens(df: pd.DataFrame, out: Path) -> None:
     )
     roaming.to_csv(out / "roaming_effect.csv", index=False)
 
-    if stats is None:
-        pd.DataFrame([{"note": "scipy not available"}]).to_csv(out / "factor_screen.csv", index=False)
-        return
-
     factors = ["kHops", "p2pRqsRadius", "p2pStrategy", "p2pOverlayShortcuts", "idleRoamingMode"]
     records = []
     p2p = df[df["is_p2p"]].copy()
     for keys, sub in p2p.groupby(["metric", "taxiCount", "clientCount", "spawnScenario"], dropna=False):
         for factor in factors:
-            groups = [g["avg"].dropna().to_numpy() for _, g in sub.groupby(factor, dropna=False)]
-            groups = [g for g in groups if len(g) >= 2]
-            if len(groups) < 2:
+            levels = (
+                sub.groupby(factor, dropna=False)["avg"]
+                .agg(["count", "mean", "std", "min", "max"])
+                .reset_index()
+            )
+            if len(levels) < 2:
                 continue
-            constant_groups = all(np.allclose(group, group[0]) for group in groups)
-            if constant_groups:
-                values = [float(group[0]) for group in groups]
-                same_value = np.allclose(values, values[0])
+            for level in levels.itertuples(index=False):
                 records.append(
                     {
                         "metric": keys[0],
@@ -1305,28 +1414,15 @@ def write_effect_screens(df: pd.DataFrame, out: Path) -> None:
                         "clientCount": keys[2],
                         "spawnScenario": keys[3],
                         "factor": factor,
-                        "F": np.nan if same_value else np.inf,
-                        "pValue": np.nan if same_value else 0.0,
-                        "note": "constant input; ANOVA skipped",
+                        "level": getattr(level, factor),
+                        "count": level.count,
+                        "mean": level.mean,
+                        "std": level.std,
+                        "min": level.min,
+                        "max": level.max,
+                        "note": "descriptive marginal screen; crossed factors and repeated seeds not modeled",
                     }
                 )
-                continue
-            f_value, p_value = stats.f_oneway(*groups)
-            records.append(
-                {
-                    "metric": keys[0],
-                    "taxiCount": keys[1],
-                    "clientCount": keys[2],
-                    "spawnScenario": keys[3],
-                    "factor": factor,
-                    "F": f_value,
-                    "pValue": p_value,
-                    "note": (
-                        "one-factor screen within metric/city/scenario; inspect matched "
-                        "deltas before claiming causality"
-                    ),
-                }
-            )
     pd.DataFrame(records).to_csv(out / "factor_screen.csv", index=False)
 
 
@@ -1757,10 +1853,12 @@ def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str,
                 s=18,
                 label=mode_labels.get(str(mode), str(mode)),
             )
-        frontier = sub.sort_values("distanceAvgMean")
-        frontier = frontier[
-            frontier["waitingAvgMean"].cummin().eq(frontier["waitingAvgMean"])
-        ]
+        frontier = (
+            sub.sort_values(["distanceAvgMean", "waitingAvgMean"])
+            .drop_duplicates("distanceAvgMean", keep="first")
+        )
+        previous_best = frontier["waitingAvgMean"].cummin().shift(fill_value=np.inf)
+        frontier = frontier[frontier["waitingAvgMean"].lt(previous_best)]
         ax.plot(
             frontier["distanceAvgMean"],
             frontier["waitingAvgMean"],
@@ -2809,7 +2907,8 @@ def write_report(base: Path, overview: dict, plot_files: list[dict[str, str]]) -
                 [
                     "window", "city", "spawnScenario", "series", "selectedConfig",
                     "firstBlock", "lastBlock",
-                    "activeClientsMean", "servedRequestsMean", "waitingTimeMean", "waitingTimeMax",
+                    "activeClientsMean", "servedRequestsMean", "meanBlockWaitingTime",
+                    "pooledClientWaitingTime", "waitingTimeMax",
                 ],
             ),
             report_csv_table(

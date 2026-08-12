@@ -35,12 +35,12 @@ If present next to the input CSV, these files are analyzed automatically:
 - `tables/best_waiting_seed_uncertainty.csv`: paired-seed spread for each mean-selected waiting-time best configuration
 - `tables/scenario_minimax_configs.csv`: scenario-specific Minimax selections with their metric deltas and normalized worst deviation
 - `tables/time_window_selected_configs.csv`: scenario-specific P2P Minimax selections
-- `tables/time_window_result_summary.csv`: central and selected-P2P values for the whole run and blocks 10--85
+- `tables/time_window_result_summary.csv`: central and selected-P2P values for the whole run and blocks 10--85, with separate block-mean and pooled-client waiting times
 - `tables/spatial_result_summary.csv`: pickup gaps and spatial waiting-time range per roaming mode
 - `tables/single_passenger.csv`
 - `tables/time_window_summary.csv`: tick-block load, served requests, wait, calc time
 - `tables/request_tail_summary.csv`: request count, completion ratio, wait, and travel summaries
-- `stats/factor_screen.csv`
+- `stats/factor_screen.csv`: descriptive marginal factor levels without invalid independence-based ANOVA p-values
 - `stats/strategy_effect.csv`
 - `stats/roaming_effect.csv`
 - `plots/*.png`: all six metrics, thesis H1-H4, error bars, time-window load, spatial wait/completion maps, and wait-distance trade-offs
