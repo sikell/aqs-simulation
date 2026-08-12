@@ -781,19 +781,31 @@ def summarize_moderation(rows: pd.DataFrame) -> pd.DataFrame:
 def write_moderation_analysis(seed_matrix: pd.DataFrame, out: Path) -> pd.DataFrame:
     p2p = seed_matrix[is_p2p(seed_matrix)].copy()
     city_cols = ["taxiCount", "clientCount", "taxiSeatCount"]
+    radius_steps = [(1000, 2000), (2000, 3000)]
+    hop_steps = [(0, 1), (1, 2)]
     detailed = [
-        moderation_seed_contrast(
-            p2p, "roaming_by_radius", "idleRoamingMode", ("none", "past-avg-total"),
-            "p2pRqsRadius", (1000, 3000), SCENARIO_COLS,
-        ),
-        moderation_seed_contrast(
-            p2p, "hops_by_radius", "kHops", (0, 2),
-            "p2pRqsRadius", (1000, 3000), SCENARIO_COLS,
-        ),
-        moderation_seed_contrast(
-            p2p, "shortcuts_by_hops", "p2pOverlayShortcuts", (0, 1),
-            "kHops", (0, 2), SCENARIO_COLS,
-        ),
+        *[
+            moderation_seed_contrast(
+                p2p, "roaming_by_radius", "idleRoamingMode", ("none", "past-avg-total"),
+                "p2pRqsRadius", radius_step, SCENARIO_COLS,
+            )
+            for radius_step in radius_steps
+        ],
+        *[
+            moderation_seed_contrast(
+                p2p, "hops_by_radius", "kHops", hop_step,
+                "p2pRqsRadius", radius_step, SCENARIO_COLS,
+            )
+            for hop_step in hop_steps
+            for radius_step in radius_steps
+        ],
+        *[
+            moderation_seed_contrast(
+                p2p, "shortcuts_by_hops", "p2pOverlayShortcuts", (0, 1),
+                "kHops", hop_step, SCENARIO_COLS,
+            )
+            for hop_step in hop_steps
+        ],
     ]
     for scenario in ["SPATIAL_IMBALANCE", "SPATIAL_ISLANDS"]:
         detailed.append(
