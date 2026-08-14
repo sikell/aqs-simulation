@@ -1,0 +1,44 @@
+{
+  "rows": 173280,
+  "iterations": 28880,
+  "metrics": [
+    "Calculation Time [millis]",
+    "Client Travel Time [min]",
+    "Client Waiting Time [min]",
+    "Custom Time [micros]",
+    "Simulation Time [millis]",
+    "Taxi Travel Distance [km]"
+  ],
+  "algorithms": {
+    "TaxiAlgorithmP2PCollector": 172800,
+    "TaxiAlgorithmSinglePassenger": 480
+  },
+  "taxiClientPairs": [
+    {
+      "taxiCount": 39,
+      "clientCount": 638
+    },
+    {
+      "taxiCount": 1685,
+      "clientCount": 27762
+    }
+  ],
+  "spawnScenarios": [
+    "BASELINE",
+    "RUSH_HOUR",
+    "SPATIAL_IMBALANCE",
+    "SPATIAL_ISLANDS"
+  ],
+  "timestampMin": "2026-08-06 14:53:36.313487635+00:00",
+  "timestampMax": "2026-08-13 18:07:26.915726587+00:00",
+  "days": [
+    "2026-08-06",
+    "2026-08-07",
+    "2026-08-08",
+    "2026-08-09",
+    "2026-08-10",
+    "2026-08-11",
+    "2026-08-12",
+    "2026-08-13"
+  ]
+}

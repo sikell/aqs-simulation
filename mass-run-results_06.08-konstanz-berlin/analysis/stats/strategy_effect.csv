@@ -1,0 +1,49 @@
+metric,taxiCount,clientCount,spawnScenario,pairs,changed,maxAbsDiff,factor,valueA,valueB
+Calculation Time [millis],39,638,BASELINE,1800,726,0.015000000000000003,p2pStrategy,nearest,greedy
+Calculation Time [millis],39,638,RUSH_HOUR,1800,911,0.005999999999999999,p2pStrategy,nearest,greedy
+Calculation Time [millis],39,638,SPATIAL_IMBALANCE,1800,1211,0.009999999999999998,p2pStrategy,nearest,greedy
+Calculation Time [millis],39,638,SPATIAL_ISLANDS,1800,1078,0.009999999999999998,p2pStrategy,nearest,greedy
+Calculation Time [millis],1685,27762,BASELINE,1800,1799,1.755,p2pStrategy,nearest,greedy
+Calculation Time [millis],1685,27762,RUSH_HOUR,1800,1795,4.698,p2pStrategy,nearest,greedy
+Calculation Time [millis],1685,27762,SPATIAL_IMBALANCE,1800,1798,2.2409999999999997,p2pStrategy,nearest,greedy
+Calculation Time [millis],1685,27762,SPATIAL_ISLANDS,1800,1798,3.2460000000000004,p2pStrategy,nearest,greedy
+Client Travel Time [min],39,638,BASELINE,1800,0,0.0,p2pStrategy,nearest,greedy
+Client Travel Time [min],39,638,RUSH_HOUR,1800,6,0.5146833333333323,p2pStrategy,nearest,greedy
+Client Travel Time [min],39,638,SPATIAL_IMBALANCE,1800,1,0.02376666666666516,p2pStrategy,nearest,greedy
+Client Travel Time [min],39,638,SPATIAL_ISLANDS,1800,2,0.32933333333333437,p2pStrategy,nearest,greedy
+Client Travel Time [min],1685,27762,BASELINE,1800,139,0.11788333333333867,p2pStrategy,nearest,greedy
+Client Travel Time [min],1685,27762,RUSH_HOUR,1800,1197,0.6561666666666639,p2pStrategy,nearest,greedy
+Client Travel Time [min],1685,27762,SPATIAL_IMBALANCE,1800,1034,1.9170000000000016,p2pStrategy,nearest,greedy
+Client Travel Time [min],1685,27762,SPATIAL_ISLANDS,1800,1165,2.8035666666666827,p2pStrategy,nearest,greedy
+Client Waiting Time [min],39,638,BASELINE,1800,0,0.0,p2pStrategy,nearest,greedy
+Client Waiting Time [min],39,638,RUSH_HOUR,1800,6,0.27548333333333375,p2pStrategy,nearest,greedy
+Client Waiting Time [min],39,638,SPATIAL_IMBALANCE,1800,1,0.029166666666666785,p2pStrategy,nearest,greedy
+Client Waiting Time [min],39,638,SPATIAL_ISLANDS,1800,2,0.027766666666666495,p2pStrategy,nearest,greedy
+Client Waiting Time [min],1685,27762,BASELINE,1800,141,0.16546666666666887,p2pStrategy,nearest,greedy
+Client Waiting Time [min],1685,27762,RUSH_HOUR,1800,1197,0.6358999999999995,p2pStrategy,nearest,greedy
+Client Waiting Time [min],1685,27762,SPATIAL_IMBALANCE,1800,1034,1.5260833333333323,p2pStrategy,nearest,greedy
+Client Waiting Time [min],1685,27762,SPATIAL_ISLANDS,1800,1165,2.7450666666666734,p2pStrategy,nearest,greedy
+Custom Time [micros],39,638,BASELINE,1800,1723,0.709,p2pStrategy,nearest,greedy
+Custom Time [micros],39,638,RUSH_HOUR,1800,1728,0.851,p2pStrategy,nearest,greedy
+Custom Time [micros],39,638,SPATIAL_IMBALANCE,1800,1748,7.0809999999999995,p2pStrategy,nearest,greedy
+Custom Time [micros],39,638,SPATIAL_ISLANDS,1800,1727,8.111,p2pStrategy,nearest,greedy
+Custom Time [micros],1685,27762,BASELINE,1800,1800,157.21699999999998,p2pStrategy,nearest,greedy
+Custom Time [micros],1685,27762,RUSH_HOUR,1800,1800,4877.4130000000005,p2pStrategy,nearest,greedy
+Custom Time [micros],1685,27762,SPATIAL_IMBALANCE,1800,1800,1323.2659999999996,p2pStrategy,nearest,greedy
+Custom Time [micros],1685,27762,SPATIAL_ISLANDS,1800,1800,2105.1900000000005,p2pStrategy,nearest,greedy
+Simulation Time [millis],39,638,BASELINE,1800,1093,0.018,p2pStrategy,nearest,greedy
+Simulation Time [millis],39,638,RUSH_HOUR,1800,1157,0.013999999999999999,p2pStrategy,nearest,greedy
+Simulation Time [millis],39,638,SPATIAL_IMBALANCE,1800,1444,0.017,p2pStrategy,nearest,greedy
+Simulation Time [millis],39,638,SPATIAL_ISLANDS,1800,1347,0.017,p2pStrategy,nearest,greedy
+Simulation Time [millis],1685,27762,BASELINE,1800,1799,2.6240000000000006,p2pStrategy,nearest,greedy
+Simulation Time [millis],1685,27762,RUSH_HOUR,1800,1800,4.858999999999998,p2pStrategy,nearest,greedy
+Simulation Time [millis],1685,27762,SPATIAL_IMBALANCE,1800,1794,2.5199999999999996,p2pStrategy,nearest,greedy
+Simulation Time [millis],1685,27762,SPATIAL_ISLANDS,1800,1800,3.6069999999999993,p2pStrategy,nearest,greedy
+Taxi Travel Distance [km],39,638,BASELINE,1800,0,0.0,p2pStrategy,nearest,greedy
+Taxi Travel Distance [km],39,638,RUSH_HOUR,1800,6,0.8044519999999977,p2pStrategy,nearest,greedy
+Taxi Travel Distance [km],39,638,SPATIAL_IMBALANCE,1800,1,0.031379000000001156,p2pStrategy,nearest,greedy
+Taxi Travel Distance [km],39,638,SPATIAL_ISLANDS,1800,2,2.27322700000002,p2pStrategy,nearest,greedy
+Taxi Travel Distance [km],1685,27762,BASELINE,1800,143,2.6428419999999733,p2pStrategy,nearest,greedy
+Taxi Travel Distance [km],1685,27762,RUSH_HOUR,1800,1197,16.03037400000005,p2pStrategy,nearest,greedy
+Taxi Travel Distance [km],1685,27762,SPATIAL_IMBALANCE,1800,1034,5.093391999999994,p2pStrategy,nearest,greedy
+Taxi Travel Distance [km],1685,27762,SPATIAL_ISLANDS,1800,1165,8.06978700000002,p2pStrategy,nearest,greedy
