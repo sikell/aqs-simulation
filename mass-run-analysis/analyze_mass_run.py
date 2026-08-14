@@ -2155,7 +2155,8 @@ def plot_spatial_maps(
                     "Waiting time [min]",
                     "spatial_waits",
                     False,
-                    "Each panel uses its own color scale. Titles show mean clients not picked up per run.",
+                    "Each panel uses its own color scale. Pickup zones cover picked-up clients only; "
+                    "titles show mean clients not picked up per run.",
             ),
             (
                     "waitMean",
@@ -2163,25 +2164,27 @@ def plot_spatial_maps(
                     "spatial_waits_normalized",
                     True,
                     "Equal values use equal colors across every plot; square-root normalization "
-                    "preserves contrast in lower ranges. Titles show mean clients not picked up "
-                    "per run.",
+                    "preserves contrast in lower ranges. Pickup zones cover picked-up clients only; "
+                    "titles show mean clients not picked up per run.",
             ),
             (
                     "pickupShare",
-                    "Share of picked-up clients [%]",
+                    "Distribution of picked-up clients [%]",
                     "spatial_pickup_share",
                     False,
-                    "Each panel uses its own color scale. Spatial share covers picked-up clients "
-                    "only; titles show the true mean unpicked total per run.",
+                    "Each panel uses its own color scale. Values show the spatial distribution of "
+                    "picked-up clients, not a zone-specific pickup rate; titles show the true mean "
+                    "unpicked total per run.",
             ),
             (
                     "pickupShare",
-                    "Share of picked-up clients [%]",
+                    "Distribution of picked-up clients [%]",
                     "spatial_pickup_share_normalized",
                     True,
                     "Equal values use equal colors across every plot; square-root normalization "
-                    "preserves contrast in lower ranges. Spatial share covers picked-up clients "
-                    "only; titles show the true mean unpicked total per run.",
+                    "preserves contrast in lower ranges. Values show the spatial distribution of "
+                    "picked-up clients, not a zone-specific pickup rate; titles show the true mean "
+                    "unpicked total per run.",
             ),
         ]:
             fig, axes = plt.subplots(
@@ -2234,7 +2237,7 @@ def plot_spatial_maps(
                     pad=0.02,
                 )
             fig.suptitle(
-                f"{label} by origin zone | {city_label(taxi_count, client_count)} | "
+                f"{label} by pickup zone | {city_label(taxi_count, client_count)} | "
                 f"{scenario} | {scale_label}"
             )
             name = f"{filename}_{safe_name(city_label(taxi_count, client_count))}_{safe_name(scenario)}.png"
