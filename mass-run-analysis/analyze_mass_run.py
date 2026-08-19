@@ -24,6 +24,7 @@ try:
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
 except Exception:  # pragma: no cover - tables still work without plots
     plt = None
 
@@ -2440,21 +2441,33 @@ def plot_best_waiting_cost(data: pd.DataFrame, out: Path) -> dict[str, str] | No
     if plt is None or data.empty:
         return None
     data = data.sort_values(["taxiCount", "spawnScenario"])
+    configs = [config_label(row) for row in data.itertuples(index=False)]
+    colors = {
+        config: OKABE_ITO_COLORS[i % len(OKABE_ITO_COLORS)]
+        for i, config in enumerate(dict.fromkeys(configs))
+    }
+    p2p_colors = [colors[config] for config in configs]
     labels = scenario_labels(data)
     x = np.arange(len(data))
     width = 0.36
     fig, axes = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
-    axes[0].bar(x - width / 2, data["centralKmPerServedClient"], width, label="Central")
-    axes[0].bar(x + width / 2, data["kmPerServedClient"], width, label="Best-waiting P2P")
+    axes[0].bar(x - width / 2, data["centralKmPerServedClient"], width, color="#6b7280")
+    axes[0].bar(x + width / 2, data["kmPerServedClient"], width, color=p2p_colors)
     axes[0].set_ylabel("Taxi km / picked-up client")
-    axes[1].bar(x - width / 2, data["centralCalculationMsPerServedClient"], width, label="Central")
-    axes[1].bar(x + width / 2, data["calculationMsPerServedClient"], width, label="Best-waiting P2P")
+    axes[1].bar(x - width / 2, data["centralCalculationMsPerServedClient"], width, color="#6b7280")
+    axes[1].bar(x + width / 2, data["calculationMsPerServedClient"], width, color=p2p_colors)
     axes[1].set_ylabel("Total calculation [ms] / picked-up client")
     axes[1].set_yscale("log")
     axes[1].set_xticks(x, labels, rotation=30, ha="right")
     for ax in axes:
-        ax.legend()
         ax.grid(axis="y", alpha=0.2)
+    axes[0].legend(
+        handles=[Patch(color="#6b7280", label="Central")]
+        + [Patch(color=colors[config], label=config) for config in dict.fromkeys(configs)],
+        title="Best-waiting P2P config",
+        fontsize=7,
+        ncol=2,
+    )
     fig.tight_layout()
     name = "best_waiting_service_normalized_cost.png"
     fig.savefig(out / name, dpi=150)
