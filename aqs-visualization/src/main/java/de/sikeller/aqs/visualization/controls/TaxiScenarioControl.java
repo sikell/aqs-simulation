@@ -638,6 +638,10 @@ public class TaxiScenarioControl extends AbstractControl {
       spinner.setValue(parsed);
       return;
     }
+    if (currentValue instanceof Long) {
+      spinner.setValue(Math.round(parsed));
+      return;
+    }
     spinner.setValue((int) Math.round(parsed));
   }
 
@@ -3241,7 +3245,13 @@ public class TaxiScenarioControl extends AbstractControl {
 
       String algoNameFromProps = props.getProperty("algorithmSelectionBox");
       String pastedStrategy = props.getProperty(P2P_VEHICLE_STRATEGY_CONFIG_KEY);
+      String pastedMode = props.getProperty("simulationModeBox");
       boolean algorithmChanged = false;
+
+      if (pastedMode != null
+          && getComponentByName("simulationModeBox") instanceof JComboBox<?> modeBox) {
+        modeBox.setSelectedItem(pastedMode);
+      }
 
       if (algoNameFromProps != null) {
         JComboBox<String> algoComboBox =
@@ -3287,7 +3297,9 @@ public class TaxiScenarioControl extends AbstractControl {
       }
 
       for (String name : props.stringPropertyNames()) {
-        if (name.equals("algorithmSelectionBox") || name.equals(P2P_VEHICLE_STRATEGY_CONFIG_KEY)) {
+        if (name.equals("algorithmSelectionBox")
+            || name.equals(P2P_VEHICLE_STRATEGY_CONFIG_KEY)
+            || name.equals("simulationModeBox")) {
           continue; // already handled above
         }
 
