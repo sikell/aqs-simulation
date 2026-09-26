@@ -2464,7 +2464,7 @@ def plot_best_waiting_cost(data: pd.DataFrame, out: Path) -> dict[str, str] | No
     for ax in axes:
         ax.grid(axis="y", alpha=0.2)
     axes[0].legend(
-        handles=[Patch(color="#6b7280", label="Central")]
+        handles=[Patch(color="#6b7280", label="SinglePassenger")]
                 + [Patch(color=colors[config], label=config) for config in dict.fromkeys(configs)],
         title="Best-waiting P2P config",
         fontsize=7,
@@ -2547,32 +2547,37 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
     best = best_p2p_configs(comp)
     files = []
     for metric, sub in best.groupby("metric", dropna=False):
-        labels = [
-            f"{int(r.taxiCount)}/{int(r.clientCount)}\n{r.spawnScenario}" for r in sub.itertuples(index=False)
-        ]
-        x = np.arange(len(sub))
         width = 0.38
-        fig, ax = plt.subplots(figsize=(max(8, len(sub) * 1.25), 5))
         if metric == CALCULATION_METRIC:
-            ax.bar(
-                x - width / 2,
-                sub["singleAvg"],
-                width,
-                yerr=sub["singleStd"].fillna(0),
-                capsize=3,
-                color="#6b7280",
-                label="SinglePassenger",
-            )
-            add_calculation_bars(
-                ax,
-                x + width / 2,
-                sub["avgMean"],
-                sub[COMMUNICATION_COL].fillna(0),
-                width,
-                sub["avgStd"].fillna(0),
-                labels=("Remaining calculation - Best P2P", "Communication - Best P2P"),
-            )
+            groups = list(sub.groupby(["taxiCount", "clientCount"], sort=True))
+            fig, axes = plt.subplots(1, len(groups), figsize=(max(8, len(groups) * 5), 5), squeeze=False)
+            for ax, ((taxi_count, client_count), city) in zip(axes[0], groups):
+                x = np.arange(len(city))
+                scale = 1000 if taxi_count < 500 else 1
+                ax.bar(
+                    x - width / 2, city["singleAvg"] * scale, width,
+                    yerr=city["singleStd"].fillna(0) * scale, capsize=3,
+                    color="#6b7280", label="SinglePassenger",
+                )
+                add_calculation_bars(
+                    ax, x + width / 2, city["avgMean"] * scale,
+                    city[COMMUNICATION_COL].fillna(0) * scale, width,
+                    city["avgStd"].fillna(0) * scale,
+                    labels=("Calculation excluding communication - P2P", "Communication - P2P"),
+                )
+                ax.set_title(f"{city_label(taxi_count, client_count)} ({int(taxi_count)} taxis, {int(client_count)} clients)")
+                ax.set_ylabel("Mean calculation per tick [µs]" if scale == 1000 else "Mean calculation per tick [ms]")
+                ax.set_xticks(x)
+                ax.set_xticklabels(city["spawnScenario"].str.replace("_", " "), rotation=30, ha="right")
+                ax.set_ylim(bottom=0)
+            fig.legend(*axes[0, 0].get_legend_handles_labels(), loc="upper center", ncol=3, fontsize=8)
+            fig.tight_layout(rect=(0, 0, 1, 0.91))
         else:
+            labels = [
+                f"{int(r.taxiCount)}/{int(r.clientCount)}\n{r.spawnScenario}" for r in sub.itertuples(index=False)
+            ]
+            x = np.arange(len(sub))
+            fig, ax = plt.subplots(figsize=(max(8, len(sub) * 1.25), 5))
             ax.bar(
                 x - width / 2,
                 sub["singleAvg"],
@@ -2589,12 +2594,12 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
                 capsize=3,
                 label="Best P2P config",
             )
-        ax.set_ylabel(metric)
-        set_sensible_y_span(ax, sub["singleAvg"], sub["avgMean"])
-        ax.set_xticks(x)
-        ax.set_xticklabels(labels, rotation=35, ha="right")
-        ax.legend()
-        fig.tight_layout()
+            ax.set_ylabel(metric)
+            set_sensible_y_span(ax, sub["singleAvg"], sub["avgMean"])
+            ax.set_xticks(x)
+            ax.set_xticklabels(labels, rotation=35, ha="right")
+            ax.legend()
+            fig.tight_layout()
         name = f"best_p2p_vs_single_{safe_name(metric)}.png"
         fig.savefig(out / name, dpi=140)
         plt.close(fig)
