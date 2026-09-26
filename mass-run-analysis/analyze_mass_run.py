@@ -2315,9 +2315,8 @@ def plot_interaction_grid(
     groups = list(data.groupby(["taxiCount", "clientCount", "spawnScenario"], dropna=False))
     fig, axes = plt.subplots(2, 4, figsize=(18, 8), squeeze=False, constrained_layout=True)
     values = data["waitingDeltaPct"].replace([np.inf, -np.inf], np.nan).dropna()
-    low = min(-1.0, float(values.quantile(0.05)))
-    high = max(1.0, float(values.quantile(0.95)))
-    norm = matplotlib.colors.TwoSlopeNorm(vmin=low, vcenter=0, vmax=high)
+    limit = max(100.0, float(np.ceil(values.abs().max() / 100) * 100))
+    norm = matplotlib.colors.TwoSlopeNorm(vmin=-limit, vcenter=0, vmax=limit)
     image = None
     for index, (ax, (keys, part)) in enumerate(zip(axes.ravel(), groups)):
         grid = part.pivot(index=row, columns=column, values="waitingDeltaPct").sort_index()
@@ -2332,7 +2331,7 @@ def plot_interaction_grid(
             for x in range(len(grid.columns)):
                 value = grid.iloc[y, x]
                 if pd.notna(value):
-                    ax.text(x, y, f"{value:.0f}%", ha="center", va="center", fontsize=7)
+                    ax.text(x, y, f"{value:.0f}%", ha="center", va="center", fontsize=12)
     for ax in axes.ravel()[len(groups):]:
         ax.set_visible(False)
     if image is not None:
@@ -2340,6 +2339,8 @@ def plot_interaction_grid(
             image,
             ax=axes.ravel().tolist(),
             label="Waiting-time delta vs central [%]",
+            ticks=np.linspace(-limit, limit, 5),
+            format="%.0f%%",
             shrink=0.82,
             pad=0.02,
         )
