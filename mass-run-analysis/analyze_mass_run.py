@@ -426,9 +426,9 @@ def load_data(path: Path, metrics: list[str]) -> pd.DataFrame:
     df = df.merge(communication, on=run_config_cols, how="left")
     calculation_rows = df["metric"].eq(CALCULATION_METRIC) & is_p2p(df)
     invalid_communication = calculation_rows & (
-        df[COMMUNICATION_COL].isna()
-        | df[COMMUNICATION_COL].lt(0)
-        | df[COMMUNICATION_COL].gt(df["avg"] + 1e-9)
+            df[COMMUNICATION_COL].isna()
+            | df[COMMUNICATION_COL].lt(0)
+            | df[COMMUNICATION_COL].gt(df["avg"] + 1e-9)
     )
     if invalid_communication.any():
         columns = RUN_ID_COLS + ["avg", COMMUNICATION_COL]
@@ -861,7 +861,8 @@ def summarize_moderation(rows: pd.DataFrame) -> pd.DataFrame:
         interaction = part["interaction"].dropna()
         mean = interaction.mean()
         std = interaction.std()
-        margin = stats.t.ppf(0.975, len(interaction) - 1) * std / np.sqrt(len(interaction)) if stats is not None and len(interaction) > 1 else np.nan
+        margin = stats.t.ppf(0.975, len(interaction) - 1) * std / np.sqrt(
+            len(interaction)) if stats is not None and len(interaction) > 1 else np.nan
         p_value = stats.ttest_1samp(interaction, 0.0).pvalue if stats is not None and len(interaction) > 1 else np.nan
         summaries.append(
             {
@@ -2075,7 +2076,7 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
         axes[4].set_xlabel(f"Tick block ({tick_block_size} ticks)")
         axes[0].set_title(
             f"Load windows | {city_label(taxi_count, client_count)} | {scenario}\n"
-            f"Scenario Minimax P2P\n{selected_label}",
+            f"Minimax P2P\n{selected_label}",
             fontsize=10,
         )
         for ax in axes:
@@ -2463,7 +2464,7 @@ def plot_best_waiting_cost(data: pd.DataFrame, out: Path) -> dict[str, str] | No
         ax.grid(axis="y", alpha=0.2)
     axes[0].legend(
         handles=[Patch(color="#6b7280", label="Central")]
-        + [Patch(color=colors[config], label=config) for config in dict.fromkeys(configs)],
+                + [Patch(color=colors[config], label=config) for config in dict.fromkeys(configs)],
         title="Best-waiting P2P config",
         fontsize=7,
         ncol=2,
