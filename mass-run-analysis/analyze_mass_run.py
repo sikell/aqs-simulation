@@ -138,6 +138,7 @@ BASE_COLS = ["metric", "algorithm", "taxiCount", "clientCount", "taxiSeatCount",
 EXACT_CONFIG_COLS = BASE_COLS + P2P_COLS
 MATCH_COLS = ["metric", "taxiCount", "clientCount", "taxiSeatCount", "spawnScenario"]
 P2P_ALGORITHM = "P2PCollector"
+CENTRAL_PLOT_LABEL = "SinglePassenger"
 CALCULATION_METRIC = "Calculation Time [millis]"
 COMMUNICATION_METRIC = "Custom Time [micros]"
 WAITING_METRIC = "Client Waiting Time [min]"
@@ -1639,8 +1640,8 @@ def plot_scale_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
                 continue
             sub = sub.sort_values("clientCount")
             fig, ax = plt.subplots(figsize=(7, 4.5))
-            ax.plot(sub["clientCount"], sub["singleAvg"], marker="o", linewidth=2, label="SinglePassenger")
-            ax.plot(sub["clientCount"], sub["avgMean"], marker="o", linewidth=2, label="Best P2P")
+            ax.plot(sub["clientCount"], sub["singleAvg"], marker="o", linewidth=2, label=CENTRAL_PLOT_LABEL)
+            ax.plot(sub["clientCount"], sub["avgMean"], marker="o", linewidth=2, label="P2P")
             ax.set_xscale("log")
             ax.set_title(f"H2 scale trend | {metric} | {scenario}")
             ax.set_xlabel("Client count (log scale)")
@@ -1823,9 +1824,9 @@ def plot_best_delta_trends(comp: pd.DataFrame, out: Path) -> list[dict[str, str]
             ax.plot(sub["clientCount"], sub["deltaPct"], marker="o", linewidth=2)
             ax.axhline(0, color="#6b7280", linewidth=1)
             ax.set_xscale("log")
-            ax.set_title(f"Best P2P delta trend | {metric} | {scenario}")
+            ax.set_title(f"P2P delta trend | {metric} | {scenario}")
             ax.set_xlabel("Client count (log scale)")
-            ax.set_ylabel("Delta vs SinglePassenger [%]")
+            ax.set_ylabel("Delta vs central reference [%]")
             fig.tight_layout()
             name = f"best_p2p_delta_trend_{safe_name(metric)}_{safe_name(scenario)}.png"
             fig.savefig(out / name, dpi=140)
@@ -1912,7 +1913,7 @@ def plot_efficiency_tradeoff(summary: pd.DataFrame, out: Path) -> list[dict[str,
                     marker="x",
                     s=80,
                     color="red",
-                    label="Central reference" if target is ax else None,
+                    label=CENTRAL_PLOT_LABEL if target is ax else None,
                 )
         ax.set_title("Roaming modes")
         pickup_ax.set_title("Pickup rate")
@@ -2031,8 +2032,8 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
         ("calcTimeMillisMean", "Calc. time [ms]"),
     ]
     styles = {
-        "Central": ("#0072B2", "-"),
-        "Selected P2P": ("#D55E00", "--"),
+        "Central": ("#0072B2", "-", CENTRAL_PLOT_LABEL),
+        "Selected P2P": ("#D55E00", "--", "P2P"),
     }
     for (taxi_count, client_count, _seat_count, scenario), block in time_df.groupby(
             SCENARIO_COLS, dropna=False
@@ -2053,14 +2054,14 @@ def plot_time_windows(time_df: pd.DataFrame, out: Path, tick_block_size: int) ->
                 x = group["tickBlock"].to_numpy(dtype=float)
                 mean = group["mean"].to_numpy(dtype=float)
                 std = group["std"].fillna(0).to_numpy(dtype=float)
-                color, linestyle = styles[str(series)]
+                color, linestyle, display_label = styles[str(series)]
                 ax.plot(
                     x,
                     mean,
                     color=color,
                     linestyle=linestyle,
                     linewidth=2,
-                    label=str(series),
+                    label=display_label,
                     zorder=2,
                 )
                 ax.fill_between(
@@ -2214,10 +2215,12 @@ def plot_spatial_maps(
                 pickup_note = (
                     f"\nNot picked up/run: {missing[0]:.1f} ({missing[1]:.1f}%)" if missing else ""
                 )
-                ax.set_title(
-                    f"{str(algorithm).replace('TaxiAlgorithm', '')}\n{mode}{pickup_note}",
-                    fontsize=9,
+                algorithm_label = (
+                    CENTRAL_PLOT_LABEL if "SinglePassenger" in str(algorithm)
+                    else "P2P" if P2P_ALGORITHM in str(algorithm)
+                    else str(algorithm).replace("TaxiAlgorithm", "")
                 )
+                ax.set_title(f"{algorithm_label}\n{mode}{pickup_note}", fontsize=9)
                 ax.set_xlabel("Zone X")
                 ax.set_ylabel("Zone Y")
                 if not normalized:
@@ -2265,6 +2268,7 @@ def plot_architecture_roaming_control(data: pd.DataFrame, out: Path) -> dict[str
     if plt is None or data.empty:
         return None
     variants = ["Central", "P2P none", "P2P past-avg", "P2P past-avg-total", "P2P random", "P2P past-avg-revisit"]
+    variant_labels = {"Central": CENTRAL_PLOT_LABEL}
     cities = sorted(data["taxiCount"].unique())
     fig, axes = plt.subplots(2, len(cities), figsize=(15, 8), squeeze=False)
     for column, taxi_count in enumerate(cities):
@@ -2277,8 +2281,8 @@ def plot_architecture_roaming_control(data: pd.DataFrame, out: Path) -> dict[str
             waits = [part["waitingAvgMean"].get(scenario, np.nan) for scenario in scenarios]
             served = [part["servedRatio"].get(scenario, np.nan) * 100 for scenario in scenarios]
             offset = (i - (len(variants) - 1) / 2) * width
-            axes[0, column].bar(x + offset, waits, width, label=variant)
-            axes[1, column].bar(x + offset, served, width, label=variant)
+            axes[0, column].bar(x + offset, waits, width, label=variant_labels.get(variant, variant))
+            axes[1, column].bar(x + offset, served, width, label=variant_labels.get(variant, variant))
         title = city_label(taxi_count, city["clientCount"].iloc[0])
         axes[0, column].set_title(title)
         axes[0, column].set_yscale("log")
@@ -2338,7 +2342,7 @@ def plot_interaction_grid(
         fig.colorbar(
             image,
             ax=axes.ravel().tolist(),
-            label="Waiting-time delta vs central [%]",
+            label="Waiting-time delta vs central reference [%]",
             ticks=np.linspace(-limit, limit, 5),
             format="%.0f%%",
             shrink=0.82,
@@ -2369,7 +2373,7 @@ def plot_robust_config(data: pd.DataFrame, out: Path) -> dict[str, str] | None:
         axes[0].bar(x + (i - 1) * width, data[column], width, label=label)
     axes[0].axhline(0, color="#111827", linewidth=1)
     axes[0].axhline(5, color="#b91c1c", linestyle="--", linewidth=1, label="5% corridor")
-    axes[0].set_ylabel("Delta vs central [%]")
+    axes[0].set_ylabel("Delta vs central reference [%]")
     axes[0].legend(ncol=4)
     axes[1].bar(x, data["pickupGapPoints"], color="#0f766e")
     axes[1].axhline(1, color="#b91c1c", linestyle="--", linewidth=1)
@@ -2464,9 +2468,9 @@ def plot_best_waiting_cost(data: pd.DataFrame, out: Path) -> dict[str, str] | No
     for ax in axes:
         ax.grid(axis="y", alpha=0.2)
     axes[0].legend(
-        handles=[Patch(color="#6b7280", label="SinglePassenger")]
+        handles=[Patch(color="#6b7280", label=CENTRAL_PLOT_LABEL)]
                 + [Patch(color=colors[config], label=config) for config in dict.fromkeys(configs)],
-        title="Best-waiting P2P config",
+        title="P2P",
         fontsize=7,
         ncol=2,
     )
@@ -2498,7 +2502,7 @@ def plot_best_waiting_uncertainty(
     )
     ax.axhline(0, color="#111827", linewidth=1)
     ax.axhline(5, color="#b91c1c", linestyle="--", linewidth=1)
-    ax.set_ylabel("Paired waiting-time delta vs central [%]")
+    ax.set_ylabel("Paired waiting-time delta vs central reference [%]")
     ax.set_xticks(x, labels, rotation=30, ha="right")
     ax.grid(axis="y", alpha=0.2)
     fig.tight_layout()
@@ -2557,7 +2561,7 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
                 ax.bar(
                     x - width / 2, city["singleAvg"] * scale, width,
                     yerr=city["singleStd"].fillna(0) * scale, capsize=3,
-                    color="#6b7280", label="SinglePassenger",
+                    color="#6b7280", label=CENTRAL_PLOT_LABEL,
                 )
                 add_calculation_bars(
                     ax, x + width / 2, city["avgMean"] * scale,
@@ -2565,7 +2569,7 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
                     city["avgStd"].fillna(0) * scale,
                     labels=("Calculation excluding communication - P2P", "Communication - P2P"),
                 )
-                ax.set_title(f"{city_label(taxi_count, client_count)} ({int(taxi_count)} taxis, {int(client_count)} clients)")
+                ax.set_title(city_label(taxi_count, client_count))
                 ax.set_ylabel("Mean calculation per tick [µs]" if scale == 1000 else "Mean calculation per tick [ms]")
                 ax.set_xticks(x)
                 ax.set_xticklabels(city["spawnScenario"].str.replace("_", " "), rotation=30, ha="right")
@@ -2574,7 +2578,7 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
             fig.tight_layout(rect=(0, 0, 1, 0.91))
         else:
             labels = [
-                f"{int(r.taxiCount)}/{int(r.clientCount)}\n{r.spawnScenario}" for r in sub.itertuples(index=False)
+                f"{city_label(r.taxiCount, r.clientCount)}\n{r.spawnScenario}" for r in sub.itertuples(index=False)
             ]
             x = np.arange(len(sub))
             fig, ax = plt.subplots(figsize=(max(8, len(sub) * 1.25), 5))
@@ -2584,7 +2588,7 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
                 width,
                 yerr=sub["singleStd"].fillna(0),
                 capsize=3,
-                label="SinglePassenger",
+                label=CENTRAL_PLOT_LABEL,
             )
             ax.bar(
                 x + width / 2,
@@ -2592,7 +2596,7 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
                 width,
                 yerr=sub["avgStd"].fillna(0),
                 capsize=3,
-                label="Best P2P config",
+                label="P2P",
             )
             ax.set_ylabel(metric)
             set_sensible_y_span(ax, sub["singleAvg"], sub["avgMean"])
@@ -2629,7 +2633,7 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
                     yerr=0 if pd.isna(row.singleStd) else row.singleStd,
                     capsize=3,
                     color="#6b7280",
-                    label="SinglePassenger",
+                    label=CENTRAL_PLOT_LABEL,
                 )
             else:
                 ax.bar(
@@ -2654,7 +2658,7 @@ def plot_best_vs_single(comp: pd.DataFrame, out: Path) -> list[dict[str, str]]:
         set_sensible_y_span(ax, sub["singleAvg"], sub["avgMean"])
         ax.set_xticks(x)
         ax.set_xticklabels(labels, rotation=35, ha="right")
-        ax.legend(title="Best P2P config", fontsize=8, ncol=1 if len(seen) < 6 else 2)
+        ax.legend(title="P2P", fontsize=8, ncol=1 if len(seen) < 6 else 2)
         fig.tight_layout()
         name = f"best_p2p_config_colored_{safe_name(metric)}.png"
         fig.savefig(out / name, dpi=140)
