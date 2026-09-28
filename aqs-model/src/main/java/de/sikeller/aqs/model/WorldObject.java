@@ -3,10 +3,10 @@ package de.sikeller.aqs.model;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 /**
  * The World class represents a simulation environment where taxis and clients are present. It
@@ -15,17 +15,22 @@ import lombok.Data;
  *
  * <p>A world object is always a snapshot of the scenario at a specific point in time.
  */
-@Data
+@Getter
+@EqualsAndHashCode
+@ToString
 @Builder
+@AllArgsConstructor
 public class WorldObject implements World {
-  private final int maxX;
-  private final int maxY;
+  public static final int DEFAULT_WORLD_SIZE = 40000;
+
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
   @Builder.Default private final Collection<Taxi> taxis = new ArrayList<>();
   @Builder.Default private final Collection<TaxiEntity> taxiEntities = new ArrayList<>();
   @Builder.Default private final Collection<Client> clients = new ArrayList<>();
   @Builder.Default private final Collection<ClientEntity> clientEntities = new ArrayList<>();
-  @Builder.Default private long currentTime = 0;
+  @Builder.Default private WorldSize size = World.size(DEFAULT_WORLD_SIZE, DEFAULT_WORLD_SIZE);
+
+  @Setter @Builder.Default private long currentTime = 0;
 
   @Builder.Default
   private Function<WorldObject, Boolean> isFinished =
@@ -68,7 +73,6 @@ public class WorldObject implements World {
     try {
       lock.readLock().lock();
       Collection<Client> result = new ArrayList<>();
-      // for loop to improve performance for large client collections and use ArrayList as result
       for (Client client : clients) {
         if ((!onlySpawned || client.isSpawned(currentTime)) && modes.contains(client.getMode())) {
           result.add(client);
@@ -80,12 +84,27 @@ public class WorldObject implements World {
     }
   }
 
+  /** Count of clients which are already spawned and not finished yet. */
+  public int getActiveClientsCount() {
+    try {
+      lock.readLock().lock();
+      int count = 0;
+      for (Client client : clients) {
+        if (client.isSpawned(currentTime) && !client.getMode().equals(ClientMode.FINISHED)) {
+          count++;
+        }
+      }
+      return count;
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
   @Override
   public Collection<Client> getClientsByMode(ClientMode mode, boolean onlySpawned) {
     try {
       lock.readLock().lock();
       Collection<Client> result = new ArrayList<>();
-      // for loop to improve performance for large client collections and use ArrayList as result
       for (Client client : clients) {
         if ((!onlySpawned || client.isSpawned(currentTime)) && mode.equals(client.getMode())) {
           result.add(client);
@@ -163,8 +182,7 @@ public class WorldObject implements World {
       }
 
       return WorldObject.builder()
-          .maxX(maxX)
-          .maxY(maxY)
+          .size(size)
           .taxis(taxis)
           .taxiEntities(taxiEntities)
           .clients(clients)
@@ -177,9 +195,10 @@ public class WorldObject implements World {
     }
   }
 
-  public void reset() {
+  public void reset(WorldSize worldSize) {
     try {
       lock.writeLock().lock();
+      this.size = worldSize;
       this.taxis.clear();
       this.taxiEntities.clear();
       this.clients.clear();
@@ -189,6 +208,10 @@ public class WorldObject implements World {
       lock.writeLock().unlock();
     }
     this.currentTime = 0;
+  }
+
+  public void reset() {
+    this.reset(size);
   }
 
   public WorldMutator mutate() {
@@ -220,6 +243,15 @@ public class WorldObject implements World {
     }
   }
 
+  @Override
+  public void setIdleTarget(Taxi taxi, Position target) {
+    if (target == null) {
+      return;
+    }
+    var taxiEntity = findTaxiEntity(taxi);
+    taxiEntity.setIdleTarget(clampToWorld(target));
+  }
+
   private TaxiEntity findTaxiEntity(Taxi taxi) {
     try {
       lock.readLock().lock();
@@ -242,12 +274,15 @@ public class WorldObject implements World {
       String name, int spawnTime, Position position, Position target, Integer clientSpeed) {
     try {
       lock.writeLock().lock();
+      Position clampedPosition = clampToWorld(position);
+      Position clampedTarget = clampToWorld(target);
       ClientEntity clientEntity =
           ClientEntity.builder()
               .name(name)
               .spawnTime(spawnTime)
-              .position(position)
-              .target(target)
+              .position(clampedPosition)
+              .target(clampedTarget)
+              .lastUpdate(spawnTime)
               .currentSpeed(clientSpeed)
               .build();
       this.clients.add(clientEntity);
@@ -261,11 +296,12 @@ public class WorldObject implements World {
       String name, Integer taxiSeatCount, Position taxiPosition, Integer taxiSpeed) {
     try {
       lock.writeLock().lock();
+      Position clampedTaxiPosition = clampToWorld(taxiPosition);
       TaxiEntity taxiEntity =
           TaxiEntity.builder()
               .name(name)
               .capacity(taxiSeatCount)
-              .position(taxiPosition)
+              .position(clampedTaxiPosition)
               .currentSpeed(taxiSpeed)
               .build();
       this.taxis.add(taxiEntity);
@@ -273,5 +309,19 @@ public class WorldObject implements World {
     } finally {
       lock.writeLock().unlock();
     }
+  }
+
+  private Position clampToWorld(Position position) {
+    if (position == null) {
+      return new Position(0, 0);
+    }
+    int maxAllowedX = Math.max(0, size.getMaxX() - 1);
+    int maxAllowedY = Math.max(0, size.getMaxY() - 1);
+    int clampedX = Math.clamp(position.getX(), 0, maxAllowedX);
+    int clampedY = Math.clamp(position.getY(), 0, maxAllowedY);
+    if (clampedX == position.getX() && clampedY == position.getY()) {
+      return position;
+    }
+    return new Position(clampedX, clampedY);
   }
 }

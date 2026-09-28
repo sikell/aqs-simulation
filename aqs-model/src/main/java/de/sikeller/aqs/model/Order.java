@@ -10,13 +10,13 @@ import lombok.Getter;
 
 @Builder
 public class Order {
-  @Getter private final Client client;
+  @Getter private final String client;
   @Getter private final long timestamp;
   @Builder.Default private final List<Position> path = new LinkedList<>();
 
   public static Order of(ClientEntity client, long timestamp) {
     return Order.builder()
-        .client(client)
+        .client(client.getName())
         .path(Arrays.asList(client.getPosition(), client.getTarget()))
         .timestamp(timestamp)
         .build();

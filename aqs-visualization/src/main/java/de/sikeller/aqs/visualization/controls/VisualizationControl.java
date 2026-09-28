@@ -10,16 +10,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class VisualizationControl extends AbstractControl {
   private final VisualizationProperties properties;
+  private JCheckBox showP2PRqsRangeCheckBox;
+  private JCheckBox showP2PTopologyCheckBox;
 
-  public VisualizationControl(VisualizationProperties properties) {
+  public VisualizationControl(
+      VisualizationProperties properties, JComponent p2pTopologyComponent) {
     this.properties = properties;
-    add(setup());
+    add(setup(p2pTopologyComponent));
   }
 
-  private JPanel setup() {
+  private JPanel setup(JComponent p2pTopologyComponent) {
     var controls = new JPanel();
     controls.setBorder(new TitledBorder("Visualization Control"));
-    controls.setLayout(new GridLayout(4, 2, GAP, GAP));
+    controls.setLayout(new GridLayout(0, 2, GAP, GAP));
+
+    controls.add(
+        checkBox(
+            "Enable realtime visualization",
+            "enableRealTimeVisualization",
+            "Enable the visualization feature - or disable completely for performance reasons",
+            properties.isEnableRealtimeVisualization(),
+            properties::setEnableRealtimeVisualization));
+    controls.add(placeholder());
 
     controls.add(label("Scale", "scaleLabel"));
 
@@ -41,12 +53,12 @@ public class VisualizationControl extends AbstractControl {
             properties::setShowClientPaths));
 
     controls.add(
-            checkBox(
-                    "Show client positions",
-                    "showClientPositions",
-                    "Display the client positions.",
-                    properties.isShowClientPositions(),
-                    properties::setShowClientPositions));
+        checkBox(
+            "Show client positions",
+            "showClientPositions",
+            "Display the client positions.",
+            properties.isShowClientPositions(),
+            properties::setShowClientPositions));
 
     controls.add(
         checkBox(
@@ -104,6 +116,70 @@ public class VisualizationControl extends AbstractControl {
             properties.isShowTime(),
             properties::setShowTime));
 
+    showP2PRqsRangeCheckBox =
+        checkBox(
+            "Show RQS range overlay",
+            "showP2PRqsRange",
+            "Display the RQS range overlay in the live simulation view.",
+            properties.isShowRqsRecognitionRange(),
+            properties::setShowRqsRecognitionRange);
+    controls.add(showP2PRqsRangeCheckBox);
+
+    controls.add(
+        checkBox(
+            "Show taxi topology links",
+            "showTaxiTopologyLinks",
+            "Display taxi-to-taxi P2P overlay links on the simulation map.",
+            properties.isShowTaxiTopologyLinks(),
+            properties::setShowTaxiTopologyLinks));
+
+    showP2PTopologyCheckBox =
+        checkBox(
+            "Show P2P topology",
+            "showP2PTopology",
+            "Display the P2P network topology below the simulation map.",
+            p2pTopologyComponent.isVisible(),
+            visible -> {
+              p2pTopologyComponent.setVisible(visible);
+              Container parent = p2pTopologyComponent.getParent();
+              if (parent != null) {
+                parent.revalidate();
+                parent.repaint();
+              }
+            });
+    controls.add(showP2PTopologyCheckBox);
+
+    controls.add(
+        checkBox(
+            "Color clients by taxi knowledge",
+            "showClientKnowledgeColors",
+            "Color clients by taxis that currently know them; multiple taxis are shown as radial color segments.",
+            properties.isShowClientKnowledgeColors(),
+            properties::setShowClientKnowledgeColors));
+
+    controls.add(
+        checkBox(
+            "Show past-avg HQ markers",
+            "showPageRankHq",
+            "Display the average pickup position (past-avg HQ) for each taxi as a small triangle.",
+            properties.isShowPageRankHq(),
+            properties::setShowPageRankHq));
+
     return controls;
+  }
+
+  public void setP2PModeUiState(boolean p2pMode) {
+    if (showP2PRqsRangeCheckBox == null || showP2PTopologyCheckBox == null) {
+      return;
+    }
+    showP2PRqsRangeCheckBox.setVisible(p2pMode);
+    showP2PRqsRangeCheckBox.setEnabled(p2pMode);
+    showP2PTopologyCheckBox.setVisible(p2pMode);
+    showP2PTopologyCheckBox.setEnabled(p2pMode);
+    showP2PTopologyCheckBox.setSelected(p2pMode);
+    if (!p2pMode) {
+      showP2PRqsRangeCheckBox.setSelected(false);
+      properties.setShowRqsRecognitionRange(false);
+    }
   }
 }

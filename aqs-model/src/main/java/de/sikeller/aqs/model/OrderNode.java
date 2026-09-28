@@ -4,6 +4,6 @@ import lombok.Value;
 
 @Value
 public class OrderNode {
-  Client client;
+  String client;
   Position position;
 }

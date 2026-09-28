@@ -154,7 +154,7 @@ public class TaxiAlgorithmDistributed extends AbstractTaxiAlgorithm {
         for (Taxi taxi : candidateTaxis) {
           if (calculateFullTaxis || taxi.hasCapacity()) {
             CostCalculationResult calcResult =
-                costCalculator.calculateMarginalCost(taxi, client, maxClientWalkingTime_s);
+                costCalculator.calculateMarginalCost(taxi, client, maxClientWalkingTime_s, world.getClients());
             timer.recordSingleTaxiRouteCalcTime(taxi, calcResult.calculationTimeNanos());
             log.debug("Route Calculation Time(ns): {}", calcResult.calculationTimeNanos());
 

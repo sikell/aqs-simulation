@@ -3,18 +3,21 @@ package de.sikeller.aqs.runner;
 import de.sikeller.aqs.model.Algorithm;
 import de.sikeller.aqs.model.WorldObject;
 import de.sikeller.aqs.simulation.SimulationRunner;
-import de.sikeller.aqs.simulation.WorldGeneratorRandom;
-import de.sikeller.aqs.taxi.algorithm.TaxiAlgorithmSinglePassenger;
+import de.sikeller.aqs.simulation.WorldGeneratorScenario;
+import de.sikeller.aqs.taxi.algorithm.collector.TaxiAlgorithmP2PCollector;
 import de.sikeller.aqs.visualization.SimulationVisualization;
 
 public class Main {
 
   public static void main(String[] args) {
-    var world = WorldObject.builder().maxX(40000).maxY(40000).build();
+    var world = WorldObject.builder().build();
 
-    var algorithm = new Algorithm(new TaxiAlgorithmSinglePassenger());
+    var defaultAlgorithm = new TaxiAlgorithmP2PCollector();
+    var algorithm = new Algorithm(defaultAlgorithm);
 
-    var runner = new SimulationRunner(world, algorithm, new WorldGeneratorRandom());
+    var worldGenerator = new WorldGeneratorScenario();
+
+    var runner = new SimulationRunner(world, algorithm, worldGenerator);
     var visualisation = new SimulationVisualization(world, runner);
     visualisation.start();
 
