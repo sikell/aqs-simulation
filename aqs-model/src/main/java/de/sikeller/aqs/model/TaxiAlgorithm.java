@@ -14,6 +14,20 @@ public interface TaxiAlgorithm {
   default void init(World world) {}
 
   /**
+   * Allows algorithms to adjust initial world parameters before world generation.
+   * Default: unchanged.
+   */
+  default Map<String, Integer> prepareWorldParameters(Map<String, Integer> parameters) {
+    return parameters;
+  }
+
+  /**
+   * Called before replacing the current algorithm to release resources.
+   * Default: no action.
+   */
+  default void shutdown() {}
+
+  /**
    * Triggers the algorithm for the calculation of the next Time step within the simulation.
    *
    * @param world The current state of the simulation world.

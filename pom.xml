@@ -15,6 +15,7 @@
         <module>aqs-taxi-algorithm</module>
         <module>aqs-visualization</module>
         <module>aqs-simulation-core</module>
+        <module>aqs-p2p</module>
     </modules>
 
     <properties>
@@ -46,6 +47,11 @@
             <dependency>
                 <groupId>de.sikeller.aqs</groupId>
                 <artifactId>aqs-visualization</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.sikeller.aqs</groupId>
+                <artifactId>aqs-p2p</artifactId>
                 <version>${revision}</version>
             </dependency>
         </dependencies>

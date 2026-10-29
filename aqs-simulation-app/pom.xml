@@ -16,6 +16,10 @@
     <dependencies>
         <dependency>
             <groupId>de.sikeller.aqs</groupId>
+            <artifactId>aqs-p2p</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>de.sikeller.aqs</groupId>
             <artifactId>aqs-taxi-algorithm</artifactId>
         </dependency>
         <dependency>

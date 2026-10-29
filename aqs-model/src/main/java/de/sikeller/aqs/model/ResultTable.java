@@ -24,6 +24,7 @@ import lombok.Data;
 public class ResultTable {
   private final String[] columns;
   private final Object[][] data;
+  private final int groupSize;
 
   public Object getData(int row, int column) {
     return data[row][column];

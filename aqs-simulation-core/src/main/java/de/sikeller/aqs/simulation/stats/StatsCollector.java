@@ -3,18 +3,22 @@ package de.sikeller.aqs.simulation.stats;
 import static java.lang.String.format;
 
 import de.sikeller.aqs.model.*;
+import de.sikeller.aqs.model.events.EventClientEntersTaxi;
 import de.sikeller.aqs.model.events.EventClientFinished;
 import de.sikeller.aqs.model.events.EventList;
+import java.util.ArrayList;
 import de.sikeller.aqs.simulation.stats.CollectorMinMaxAverage.Result;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class StatsCollector {
-  private static final String DOUBLE_FORMAT = "%.02f";
+  private static final String DOUBLE_FORMAT = "%.03f";
   private Result<Double> travelDistance;
+  private Result<Long> waitingTime;
   private Result<Long> travelTime;
   private Result<Long> calculationTime;
   private Result<Long> customTime;
+  private Result<Long> simulationTime;
   private Algorithm algorithm;
   private int runCounter = 0;
 
@@ -23,19 +27,22 @@ public class StatsCollector {
       World world,
       Algorithm algorithm,
       Result<Long> calculationTime,
-      Result<Long> customTime) {
+      Result<Long> customTime,
+      Result<Long> simulationTime) {
+    collectClientWaitingTime(eventList);
     collectClientTravelTime(eventList);
     collectTaxiTravelDistance(world);
     this.calculationTime = calculationTime;
     this.customTime = customTime;
     this.algorithm = algorithm;
+    this.simulationTime = simulationTime;
     runCounter++;
   }
 
   public ResultTable tableResults() {
     var columns = new String[] {"Result", "Min", "Max", "Avg", "Sum", "Count", "Algorithm", "Run"};
 
-    var data = new Object[4][];
+    var data = new Object[6][];
     data[0] =
         new Object[] {
           "Taxi Travel Distance [km]",
@@ -49,6 +56,17 @@ public class StatsCollector {
         };
     data[1] =
         new Object[] {
+          "Client Waiting Time [min]",
+          waitingTime.min(),
+          waitingTime.max(),
+          format(DOUBLE_FORMAT, waitingTime.avg()),
+          waitingTime.sum(),
+          waitingTime.count(),
+          algorithm.get().getName(),
+          runCounter
+        };
+    data[2] =
+        new Object[] {
           "Client Travel Time [min]",
           travelTime.min(),
           travelTime.max(),
@@ -58,7 +76,7 @@ public class StatsCollector {
           algorithm.get().getName(),
           runCounter
         };
-    data[2] =
+    data[3] =
         new Object[] {
           "Calculation Time [millis]",
           calculationTime.min(),
@@ -69,7 +87,7 @@ public class StatsCollector {
           algorithm.get().getName(),
           runCounter
         };
-    data[3] =
+    data[4] =
         new Object[] {
           "Custom Time [micros]",
           customTime.min(),
@@ -80,8 +98,18 @@ public class StatsCollector {
           algorithm.get().getName(),
           runCounter
         };
-
-    return new ResultTable(columns, data);
+    data[5] =
+        new Object[] {
+          "Simulation Time [millis]",
+          simulationTime.min(),
+          simulationTime.max(),
+          format(DOUBLE_FORMAT, simulationTime.avg()),
+          simulationTime.sum(),
+          simulationTime.count(),
+          algorithm.get().getName(),
+          runCounter
+        };
+    return new ResultTable(columns, data, data.length);
   }
 
   public void print() {
@@ -105,12 +133,27 @@ public class StatsCollector {
         new CollectorMinMaxAverage<Taxi>().collectDouble(world.getTaxis(), Taxi::getTravelDistance);
   }
 
+  private void collectClientWaitingTime(EventList eventList) {
+    var enterEvents = new ArrayList<EventClientEntersTaxi>();
+    for (int i = 0; i < eventList.size(); i++) {
+      if (eventList.get(i) instanceof EventClientEntersTaxi event) {
+        enterEvents.add(event);
+      }
+    }
+
+    waitingTime =
+        new CollectorMinMaxAverage<EventClientEntersTaxi>()
+            .collectLong(
+                enterEvents, event -> event.getCurrentTime() - event.getClient().getSpawnTime());
+  }
+
   private void collectClientTravelTime(EventList eventList) {
-    var finishedEvents =
-        eventList.getAll().stream()
-            .filter(e -> e instanceof EventClientFinished)
-            .map(e -> (EventClientFinished) e)
-            .toList();
+    var finishedEvents = new ArrayList<EventClientFinished>();
+    for (int i = 0; i < eventList.size(); i++) {
+      if (eventList.get(i) instanceof EventClientFinished event) {
+        finishedEvents.add(event);
+      }
+    }
 
     travelTime =
         new CollectorMinMaxAverage<EventClientFinished>()

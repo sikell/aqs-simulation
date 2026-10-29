@@ -2,6 +2,7 @@ package de.sikeller.aqs.model;
 
 import java.util.Collection;
 import java.util.Set;
+import lombok.Value;
 
 public interface World extends WorldMutator {
   Set<Client> getSpawnedClients();
@@ -18,9 +19,17 @@ public interface World extends WorldMutator {
 
   boolean isFinished();
 
-  int getMaxX();
+  @Value
+  class WorldSize {
+    int maxX;
+    int maxY;
+  }
 
-  int getMaxY();
+  static WorldSize size(int maxX, int maxY) {
+    return new WorldSize(maxX, maxY);
+  }
+
+  WorldSize getSize();
 
   Set<Taxi> getTaxis();
 

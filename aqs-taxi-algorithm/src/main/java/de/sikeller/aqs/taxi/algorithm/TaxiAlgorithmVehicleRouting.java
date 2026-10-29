@@ -35,7 +35,6 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
   public AlgorithmResult nextStep(World world, Collection<Client> waitingClients) {
     var taxiCandidates = new LinkedList<>(world.getTaxis());
     var taxiCandidatesCount = taxiCandidates.size();
-    if (taxiCandidates.isEmpty()) return stop("No taxis with capacity found.");
 
     var notFinishedClients =
         new LinkedList<>(
@@ -159,10 +158,10 @@ public class TaxiAlgorithmVehicleRouting extends AbstractTaxiAlgorithm implement
         int entityIndex = manager.indexToNode(index);
         if (entityIndex / 2 < notFinishedClientsCount) {
           path.add(
-              new OrderNode(notFinishedClients.get(entityIndex / 2), entityPositions[entityIndex]));
+              new OrderNode(notFinishedClients.get(entityIndex / 2).getName(), entityPositions[entityIndex]));
           if (entityIndex % 2 == 0) {
             var client = notFinishedClients.get(entityIndex / 2);
-            world.mutate().planClientForTaxi(taxi, client,  TargetList.sequentialOrders);
+            world.mutate().planClientForTaxi(taxi, client, TargetList.sequentialOrders);
           }
         }
       }

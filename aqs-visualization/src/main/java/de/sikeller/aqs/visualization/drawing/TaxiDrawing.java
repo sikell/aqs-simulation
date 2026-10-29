@@ -96,7 +96,7 @@ public class TaxiDrawing extends EntityDrawing {
   }
 
   private void printPosition(Graphics2D g, double canvasWidthRatio, double canvasHeightRatio) {
-    g.setColor(taxiColor());
+    g.setColor(taxiColor(taxi.getName()));
     g.fillOval(
         (int) round(taxi.getPosition().getX() * canvasWidthRatio) - markerSize / 2,
         (int) round(taxi.getPosition().getY() * canvasHeightRatio) - markerSize / 2,
